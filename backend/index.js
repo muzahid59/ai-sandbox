@@ -1,6 +1,6 @@
 require('dotenv').config();
 const { createServer } = require('node:http');
-const { AIService, getAIService } = require('./ai_services/ai_services');
+const { AIService, getAIService } = require('./src/ai_services');
 
 const hostname = '127.0.0.1';
 const port = 3000;
