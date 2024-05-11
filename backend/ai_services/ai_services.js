@@ -22,7 +22,8 @@ function fileToGenerativePart(path, mimeType) {
     },
   };
 }
-
++
++ 
 class GoogleAIService extends AIService {
     constructor(apiKey) {
       super();
