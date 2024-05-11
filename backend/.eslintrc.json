@@ -1,0 +1,10 @@
+{
+  "env": {
+    "node": true
+  },
+  "globals": {
+    "__filename": "readonly",
+    "Buffer": "readonly",
+    "process": "readonly"
+  }
+}
