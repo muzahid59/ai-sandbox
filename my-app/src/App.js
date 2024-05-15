@@ -5,9 +5,17 @@ function App() {
   const [inputValue, setInputValue] = useState('');
   const [messages, setMessages] = useState([]);
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
-    setMessages([...messages, inputValue]);
+    const response = await fetch('http://localhost:3000/text-completion', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ text: inputValue }),
+    });
+    const completion = await response.text();
+    setMessages([...messages, completion]);
     setInputValue('');
   };
 
