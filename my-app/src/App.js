@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { fetchMessage, setOnNewMessage, listenMessage } from './fetch_message'; 
 import './App.css';
 
 function App() {
@@ -8,20 +9,31 @@ function App() {
 
   const handleSubmit = async (event) => {
     event.preventDefault();
-    setIsLoading(true);
-    setMessages([...messages, inputValue]);
-    setInputValue('');
-    const response = await fetch('http://localhost:3000/text-completion', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ text: inputValue }),
-    });
-    const completion = await response.text();
-    setMessages([...messages, completion]);
-    setIsLoading(false);
+    if (!inputValue) {
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      const newMessaages = [...messages, inputValue];
+      setMessages(newMessaages);
+      setInputValue('');
+      listenMessage(inputValue);
+      // const response = await fetchMessage(inputValue);
+      // const completion = response;
+      // setMessages([...newMessaages, completion]);
+      // setIsLoading(false);
+    } catch (error) {
+      console.error('Error:', error);
+      setIsLoading(false);
+    }
   };
+
+  setOnNewMessage((message) => {
+    const newMessaages = [...messages, message];
+    setMessages(newMessaages);
+    setIsLoading(false);
+  })
 
   return (
     <div className="App">

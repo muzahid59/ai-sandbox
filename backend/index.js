@@ -15,7 +15,10 @@ app.post('/text-completion', async (req, res) => {
   console.log('text-completion', req.body);
   const text = req.body.text;
   const completion = await aiService.textCompletion(text);
-  res.send(completion);
+  console.log('completion', completion);
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.write(`data: ${JSON.stringify(completion)}\n\n`);
+  res.end();
 });
 
 app.listen(port, () => {
