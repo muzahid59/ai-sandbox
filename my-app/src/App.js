@@ -8,24 +8,48 @@ function App() {
   const [isLoading, setIsLoading] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const recognition = useRef(null);
+  const messagesRef = useRef(messages);
+
+  setOnNewMessage((message) => {
+    const newMessaages = [...messages, message];
+    setMessages(newMessaages);
+    setIsLoading(false);
+  })
 
   useEffect(() => {
-    recognition.current = new (window.SpeechRecognition || window.webkitSpeechRecognition || window.mozSpeechRecognition || window.msSpeechRecognition)();
-    if (recognition.current) {
-      console.log('Speech recognition supported')
-      recognition.lang = 'en-US';
-      recognition.current.interimResults = true;
-      recognition.current.onresult = (event) => {
-        const transcript = Array.from(event.results)
-          .map(result => result[0])
-          .map(result => result.transcript)
-          .join('');
-        setInputValue(transcript);
-      };
-    } else {
-      console.log('Speech recognition not supported');
-    }
+      recognition.current = new (window.SpeechRecognition || window.webkitSpeechRecognition || window.mozSpeechRecognition || window.msSpeechRecognition)();
+      let finalTranscript = '';
+      if (recognition.current) {
+        console.log('Speech recognition supported');
+        recognition.lang = 'en-US';
+        recognition.current.interimResults = true;
+        recognition.current.continuous = true;
+        recognition.current.onresult = (event) => {
+          const transcript = Array.from(event.results)
+            .map(result => result[0])
+            .map(result => result.transcript)
+            .join('');
+
+          console.log('recognition result', transcript);
+          finalTranscript = transcript
+          setInputValue(transcript);
+        };
+
+        recognition.current.onend = () => {
+          console.log('recognition end');
+          console.log('inputValue', finalTranscript);
+          dispatchMessage(finalTranscript);
+          setIsListening(false);
+        };
+      } else {
+        console.log('Speech recognition not supported');
+      }
   }, []);
+
+  useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
+
 
    const startListening = () => {
     console.log('start listening');
@@ -50,24 +74,21 @@ function App() {
     if (!inputValue) {
       return;
     }
+    dispatchMessage(inputValue);
+  };
 
+  async function dispatchMessage(message) {
     try {
       setIsLoading(true);
-      const newMessaages = [...messages, inputValue];
+      const newMessaages = [...messagesRef.current, message];
       setMessages(newMessaages);
       setInputValue('');
-      listenMessage(inputValue);
+      listenMessage(message);
     } catch (error) {
       console.error('Error:', error);
       setIsLoading(false);
     }
-  };
-
-  setOnNewMessage((message) => {
-    const newMessaages = [...messages, message];
-    setMessages(newMessaages);
-    setIsLoading(false);
-  })
+  } 
 
   return (
     <div className="App">
@@ -85,7 +106,7 @@ function App() {
           onChange={e => setInputValue(e.target.value)}
         />
         <button 
-          className="microphone-button"
+          className={`microphone-button ${isListening ? 'listening' : ''}`}
           type="button" 
           onClick={isListening ? stopListening : startListening}
         />
