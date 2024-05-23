@@ -2,11 +2,21 @@ require('dotenv').config();
 const express = require('express');
 const multer  = require('multer')
 const cors = require('cors');
+const path = require('path')
 const { AIService, getAIService } = require('./src/ai_services');
-
 const app = express();
 const port = 3000;
-const upload = multer({ dest: 'uploads/'});
+const storage = multer.diskStorage({
+  destination: function(req, file, cb) {
+    cb(null, path.dirname(__filename) + '/uploads');
+  },
+  filename: function(req, file, cb) {
+    const ext = '.png'; // default extension
+    cb(null, file.fieldname + '-' + Date.now() + ext);
+  }
+});
+
+const upload = multer({ storage: storage});
 app.use(cors())
 app.use(express.json()); // for parsing application/json
 
