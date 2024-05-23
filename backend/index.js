@@ -36,8 +36,12 @@ app.post('/text-completion', async (req, res) => {
 app.post('/content-completion', async (req, res) => {
   console.log('text-completion', req.body);
   const text = req.body.text;
-  const imagePath = req.body.image;
-  const completion = await aiService.imageCompletion({ text, image: imagePath });
+  let completion = null;
+  if (req.body.image) {
+    completion = await aiService.imageCompletion({ text, image: req.body.image });
+  } else {
+    completion = await aiService.textCompletion(text);
+  }
   console.log('completion', completion);
   res.setHeader('Content-Type', 'text/event-stream');
   res.write(`data: ${JSON.stringify(completion)}\n\n`);
