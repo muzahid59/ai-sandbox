@@ -121,11 +121,18 @@ function App() {
           onChange={e => setInputValue(e.target.value)}
         />
          <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/*"
-          onChange={handleImageChange}
-        />
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handleImageChange}
+            style={{ display: 'none' }} // Hide the default input
+          />
+          <button 
+            className={`attach-button ${imageData ? 'attached' : ''}`}
+            type="button"
+            onClick={() => fileInputRef.current.click()} // Trigger the hidden input
+          />
+           
         <button 
           className={`microphone-button ${isListening ? 'listening' : ''}`}
           type="button" 
