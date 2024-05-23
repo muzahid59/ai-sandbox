@@ -9,6 +9,7 @@ function App() {
   const [isLoading, setIsLoading] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const recognition = useRef(null);
+  const fileInputRef = useRef();
   const messagesRef = useRef(messages);
 
   setOnNewMessage((message) => {
@@ -96,6 +97,8 @@ function App() {
       setMessages(newMessaages);
       setInputValue('');
       listenMessage(message);
+      setImageData(null);
+      fileInputRef.current.value = '';
     } catch (error) {
       console.error('Error:', error);
       setIsLoading(false);
@@ -118,6 +121,7 @@ function App() {
           onChange={e => setInputValue(e.target.value)}
         />
          <input
+          ref={fileInputRef}
           type="file"
           accept="image/*"
           onChange={handleImageChange}
