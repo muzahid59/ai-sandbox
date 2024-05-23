@@ -6,13 +6,14 @@ const path = require('path')
 const { AIService, getAIService } = require('./src/ai_services');
 const app = express();
 const port = 3000;
+
 const storage = multer.diskStorage({
   destination: function(req, file, cb) {
     cb(null, path.dirname(__filename) + '/uploads');
   },
   filename: function(req, file, cb) {
-    const ext = '.png'; // default extension
-    cb(null, file.fieldname + '-' + Date.now() + ext);
+    const tempImage = 'sample.png'; // default extension
+    cb(null, file.fieldname + '-' + tempImage);
   }
 });
 
@@ -46,9 +47,7 @@ app.post('/content-completion', async (req, res) => {
 app.post('/upload', upload.single('image'), async (req, res) => {
   console.log('Received image:', req.file);
   const completion = { image: req.file.path };
-  res.setHeader('Content-Type', 'text/event-stream');
-  res.write(`data: ${JSON.stringify(completion)}\n\n`);
-  res.end();
+  res.json(completion);
 });
 
 app.listen(port, () => {
