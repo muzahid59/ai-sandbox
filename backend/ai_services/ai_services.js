@@ -30,20 +30,21 @@ class GoogleAIService extends AIService {
     }
 
     async imageCompletion(prompt) {
-      // const prompt = "What's different between these pictures?";
+      const prompt = prompt.text;
       const model = this.genAI.getGenerativeModel({ model: "gemini-pro-vision" });
       console.log('prompt', prompt);
       console.log(process.cwd());
-      const imagePath1 = path.join(scriptDir, 'image1.png');
-      const imagePath2 = path.join(scriptDir, 'image2.jpeg');
+      const imagePath1 = path.join(scriptDir,"image1.png");
+      const imagePath2 = path.join(scriptDir, "image2.jpeg");
+    //  console.log('imagePath1', imagePath1);
 
       const imageParts = [
         fileToGenerativePart(imagePath1, "image/png"),
-        fileToGenerativePart(imagePath2, "image/jpeg"),
+        fileToGenerativePart(imagePath2, "image/jpeg")
       ];
       console.log('imageParts', imageParts);
-      const result = await model.generateContent([prompt, ...imageParts]);
-      const response = await result.response;
+      const result = await model.generateContent([prompt.text, ...imageParts]);
+      const response = result.response;
       const text = response.text();
       return text;
     }

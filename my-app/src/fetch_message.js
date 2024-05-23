@@ -17,15 +17,47 @@ export async function fetchMessage(query) {
     return await response.text();
 }
 
+async function uploadImage(image) {
+    try {
+        const formData = new FormData();
+        formData.append('image', image);
+        const response = await fetch('http://localhost:3000/upload', {
+            method: 'POST',
+            body: formData,
+        });
+        return await response.text();
+    } catch (error) {
+        console.error('Error:', error);
+    }
+}
 
-export function listenMessage(query) {
+export async function listenMessage(message) {
     const ctrl = new AbortController();
+
+    const payloadBody = {
+        text: message.text,
+    };
+
+    if (message.image) {
+        const response = await fetch(message.image);
+        console.log('response', response);
+        const blob = await response.blob();
+        console.log('blob', blob);
+        const imageResponse  = await uploadImage(blob);
+        console.log('imageResponse', imageResponse);
+        const imageJson = JSON.parse(imageResponse.replace('data: ', '')); // Remove 'data: ' from the response
+        console.log('imageJson', imageJson);         
+        payloadBody.image = imageJson.image;
+    }
+
+    console.log('payloadBody', payloadBody);
+
     const options = {
         method: 'POST',
         headers: {
         'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ text: query }),
+        body: JSON.stringify(payloadBody),
         signal: ctrl.signal,
         openWhenHidden: true,
         async onopen(response) {
@@ -53,7 +85,7 @@ export function listenMessage(query) {
             console.error('Error:', err);
         }
     }
-
-    fetchEventSource('http://localhost:3000/text-completion', options);
+    console.log('invoke api');
+    fetchEventSource('http://localhost:3000/content-completion', options);
     
 }
