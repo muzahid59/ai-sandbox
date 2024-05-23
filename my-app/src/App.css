@@ -73,6 +73,31 @@ input {
   }
 }
 
+.attach-button {
+  display: flex;
+  margin-right: 10px;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  background-color: #f5f5f5;
+  box-shadow: 0px 1px 5px rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+  outline: none;
+  position: relative;
+  background-image: url("https://img.icons8.com/material-outlined/24/000000/attach.png");
+  background-size: 60%;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+.attach-button.attached {
+  background-color: #007bff;
+  background-image: url("https://img.icons8.com/material-outlined/24/ffffff/attach.png");
+}
+
 .microphone-button {
   display: flex;
   margin-right: 10px;
