@@ -1,14 +1,13 @@
 require('dotenv').config();
 const express = require('express');
-const multer = require('multer');
+const multer  = require('multer')
 const cors = require('cors');
-delete require.cache[require.resolve('./src/ai_services.js')];
 const { AIService, getAIService } = require('./src/ai_services');
 
 const app = express();
 const port = 3000;
 const upload = multer({ dest: 'uploads/'});
-app.use(cors());
+app.use(cors())
 app.use(express.json()); // for parsing application/json
 
 const aiService = getAIService(process.env.GOOGLE_API_KEY, 'google');
