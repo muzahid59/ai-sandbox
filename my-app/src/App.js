@@ -5,6 +5,7 @@ import './App.css';
 function App() {
   const [inputValue, setInputValue] = useState('');
   const [messages, setMessages] = useState([]);
+  const [imageData, setImageData] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const recognition = useRef(null);
@@ -74,13 +75,24 @@ function App() {
     if (!inputValue) {
       return;
     }
-    dispatchMessage(inputValue);
+    dispatchMessage({ text: inputValue, image: imageData });
+  };
+
+  const handleImageChange = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImageData(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   async function dispatchMessage(message) {
     try {
       setIsLoading(true);
-      const newMessaages = [...messagesRef.current, message];
+      const newMessaages = [...messagesRef.current, message.text];
       setMessages(newMessaages);
       setInputValue('');
       listenMessage(message);
@@ -104,6 +116,11 @@ function App() {
           value={inputValue}
           placeholder= { isListening ? 'Listening...' : 'Type a message'}
           onChange={e => setInputValue(e.target.value)}
+        />
+         <input
+          type="file"
+          accept="image/*"
+          onChange={handleImageChange}
         />
         <button 
           className={`microphone-button ${isListening ? 'listening' : ''}`}
