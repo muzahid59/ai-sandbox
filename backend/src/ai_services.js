@@ -15,6 +15,11 @@ class AIService {
 }
 
 function fileToGenerativePart(path, mimeType) {
+  if (!fs.existsSync(path)) {
+    console.error(`File not found: ${path}`);
+    return null;
+  }
+
   return {
     inlineData: {
       data: Buffer.from(fs.readFileSync(path)).toString("base64"),
@@ -30,20 +35,20 @@ class GoogleAIService extends AIService {
     }
 
     async imageCompletion(prompt) {
-      // const prompt = "What's different between these pictures?";
+      const defalutPromt = "Give me a description of this image.";
+      const finalPrompt = defalutPromt + prompt.text;
       const model = this.genAI.getGenerativeModel({ model: "gemini-pro-vision" });
       console.log('prompt', prompt);
       console.log(process.cwd());
-      const imagePath1 = path.join(scriptDir, 'image1.png');
+      const imagePath1 = prompt.image;
       const imagePath2 = path.join(scriptDir, 'image2.jpeg');
       console.log('imagePath1', imagePath1);
       console.log('imagePath2', imagePath2);
       const imageParts = [
-        fileToGenerativePart(imagePath1, "image/png"),
-        fileToGenerativePart(imagePath2, "image/jpeg"),
+        fileToGenerativePart(imagePath1, "image/png")
       ];
       console.log('imageParts', imageParts);
-      const result = await model.generateContent([prompt.text, ...imageParts]);
+      const result = await model.generateContent([finalPrompt, ...imageParts]);
       const response = result.response;
       const text = response.text();
       return text;
