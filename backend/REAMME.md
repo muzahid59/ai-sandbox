@@ -10,3 +10,4 @@ Expetected features:
 Technology:
 1. Vector db.
 2. Ragas system.
+3. docker run
