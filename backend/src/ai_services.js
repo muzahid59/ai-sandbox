@@ -38,16 +38,10 @@ class GoogleAIService extends AIService {
       const defalutPromt = "Give me a description of this image.";
       const finalPrompt = defalutPromt + prompt.text;
       const model = this.genAI.getGenerativeModel({ model: "gemini-pro-vision" });
-      console.log('prompt', prompt);
-      console.log(process.cwd());
-      const imagePath1 = prompt.image;
-      const imagePath2 = path.join(scriptDir, 'image2.jpeg');
-      console.log('imagePath1', imagePath1);
-      console.log('imagePath2', imagePath2);
+      const imagePath = prompt.image;
       const imageParts = [
-        fileToGenerativePart(imagePath1, "image/png")
+        fileToGenerativePart(imagePath, "image/png")
       ];
-      console.log('imageParts', imageParts);
       const result = await model.generateContent([finalPrompt, ...imageParts]);
       const response = result.response;
       const text = response.text();

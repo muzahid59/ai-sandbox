@@ -24,6 +24,12 @@ function fileToGenerativePart(path, mimeType) {
 }
 
 class GoogleAIService extends AIService {
+    ModelName = {
+      GEMINI_PRO: "gemini-pro",
+      GEMINI_PRO_VISION: "gemini-pro-vision"
+    };
+
+
     constructor(apiKey) {
       super();
       this.genAI = new GoogleGenerativeAI(apiKey);
@@ -31,12 +37,12 @@ class GoogleAIService extends AIService {
 
     async imageCompletion(prompt) {
       const prompt = prompt.text;
-      const model = this.genAI.getGenerativeModel({ model: "gemini-pro-vision" });
+      const model = this.genAI.getGenerativeModel({ model: this.ModelName.GEMINI_PRO_VISION });
       console.log('prompt', prompt);
       console.log(process.cwd());
       const imagePath1 = path.join(scriptDir,"image1.png");
       const imagePath2 = path.join(scriptDir, "image2.jpeg");
-    //  console.log('imagePath1', imagePath1);
+    
 
       const imageParts = [
         fileToGenerativePart(imagePath1, "image/png"),
@@ -51,8 +57,7 @@ class GoogleAIService extends AIService {
 
     async textCompletion(prompt) {
       console.log('prompt', prompt);
-      // gemini-pro-vision
-      const model = this.genAI.getGenerativeModel({ model: "gemini-pro"});
+      const model = this.genAI.getGenerativeModel({ model: this.ModelName.GEMINI_PRO});
       console.log('model', model);
       const result = await model.generateContent(prompt);
       console.log(result);
@@ -70,8 +75,10 @@ class GoogleAIService extends AIService {
   
     async textCompletion(prompt) {
       const completion = await this.openai.chat.completions.create({
-        messages: [{"role": "system", "content": "You are a helpful assistant."},
-          {"role": "user", "content": prompt}],
+        messages: [
+          {"role": "system", "content": "You are a helpful assistant."},  
+          {"role": "user", "content": prompt}
+        ],
         model: "gpt-3.5-turbo",
       });
       return completion.choices[0].text;
