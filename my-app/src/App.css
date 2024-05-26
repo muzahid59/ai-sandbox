@@ -18,6 +18,33 @@
   overflow-y: auto;
   border-radius: 5px;
   border: 1px solid #ddd;
+} 
+/* .chatbox {
+  display: flex;
+  flex-direction: column;
+  padding: 10px;
+  max-width: 600px;
+  margin: auto;
+}
+*/
+
+.message {
+  padding: 10px;
+  margin-bottom: 10px;
+  border-radius: 20px;
+  max-width: 80%;
+}
+
+.message.sent {
+  align-self: flex-end;
+  background-color: #0084ff;
+  color: white;
+}
+
+.message.received {
+  align-self: flex-start;
+  background-color: #e5e5ea;
+  color: black;
 }
 
 .chat-input {

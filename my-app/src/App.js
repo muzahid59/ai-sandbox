@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import ReactMarkdown from 'react-markdown';
 import { fetchMessage, setOnNewMessage, listenMessage } from './fetch_message'; 
 import './App.css';
 
@@ -76,7 +77,7 @@ function App() {
     if (!inputValue) {
       return;
     }
-    dispatchMessage({ text: inputValue, image: imageData });
+    dispatchMessage({ text: inputValue, image: imageData, sent: true});
   };
 
   const handleImageChange = (event) => {
@@ -91,9 +92,10 @@ function App() {
   };
 
   async function dispatchMessage(message) {
+    console.log('dispatchMessage', message);
     try {
       setIsLoading(true);
-      const newMessaages = [...messagesRef.current, message.text];
+      const newMessaages = [...messagesRef.current, message];
       setMessages(newMessaages);
       setInputValue('');
       listenMessage(message);
@@ -109,9 +111,11 @@ function App() {
     <div className="App">
       <div className="chatbox">
         {messages.map((message, index) => (
-          <p key={index}>{message}</p>
+          <div key={index} className={`message ${message.sent ? 'sent' : 'received'}`}>
+            <ReactMarkdown>{message.text}</ReactMarkdown>
+          </div>
         ))}
-        {isLoading && <div className="loader"></div>} {/* Add loader here */}
+        {/* {isLoading && <div className="loader"></div>} Add loader here */}
       </div>
       <form onSubmit={handleSubmit} className="chat-input">
         <input
