@@ -44,6 +44,7 @@ class GoogleAIService extends AIService {
       ];
       const result = await model.generateContent([finalPrompt, ...imageParts]);
       const response = result.response;
+      console.log("Image Completion Response:", JSON.stringify(response, null, 2));
       const text = response.text();
       return text;
     }
@@ -54,8 +55,8 @@ class GoogleAIService extends AIService {
       const model = this.genAI.getGenerativeModel({ model: "gemini-pro"});
       console.log('model', model);
       const result = await model.generateContent(prompt);
-      console.log(result);
       const response = result.response;
+      console.log("Text Completion Response:", JSON.stringify(response, null, 2));
       return response.text();
     }
   }

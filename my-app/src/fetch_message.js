@@ -76,7 +76,7 @@ export async function listenMessage(message) {
             // so it gets handled by the onerror callback below:
             console.log('event', event);
             const data = JSON.parse(event.data);
-            onNewMessage(data);
+            onNewMessage({ text: data });
         },
         onclose() {
            console.log('Close');
