@@ -86,6 +86,6 @@ export async function listenMessage(message) {
         }
     }
     console.log('invoke api');
-    fetchEventSource('http://localhost:3000/content-completion', options);
+    fetchEventSource('http://localhost:3999/content-completion', options);
     
 }
