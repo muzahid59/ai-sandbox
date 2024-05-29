@@ -2,8 +2,10 @@ require('dotenv').config();
 const express = require('express');
 const multer  = require('multer')
 const cors = require('cors');
+const { ToutubeTranscript, YoutubeTranscript } = require('youtube-transcript');
 const path = require('path')
 const { AIService, getAIService } = require('./src/ai_services');
+const { isValidYoutubeUrl } = require('./utils.js');
 const app = express();
 const port = 3999;
 
@@ -43,9 +45,15 @@ app.post('/content-completion', async (req, res) => {
     image_context = await aiService.imageCompletion({ text, image: req.body.image });
     image_context = 'Prefix: ' + image_context;
   } 
-  let query =  '';
-  if (image_context !== '' && text !== '') {
-    
+  if (isValidYoutubeUrl(text)) {
+    const youtubeId = text.split('v=')[1];
+    console.log('youtubeId', youtubeId);
+    const trascripts = await YoutubeTranscript.fetchTranscript(youtubeId);
+    const youtubeTranscript = trascripts.map((item) => item.text).join(' ');
+    console.log('youtubeTranscript', youtubeTranscript);
+    image_context = youtubeTranscript; 
+  } else {
+    console.log('Not a valid youtube url');
   }
   const completion = await aiService.textCompletion(text + image_context);
   console.log('completion', completion);
