@@ -5,7 +5,7 @@ const cors = require('cors');
 const path = require('path')
 const { AIService, getAIService } = require('./src/ai_services');
 const app = express();
-const port = 3000;
+const port = 3999;
 
 const storage = multer.diskStorage({
   destination: function(req, file, cb) {
@@ -59,6 +59,10 @@ app.post('/upload', upload.single('image'), async (req, res) => {
   const completion = { image: req.file.path };
   res.json(completion);
 });
+
+app.get('/', (req, res) => {
+  res.send('Hi ther! This is the from AI sandbox server');
+})
 
 app.listen(port, () => {
   console.log(`Server running at http://localhost:${port}/`);

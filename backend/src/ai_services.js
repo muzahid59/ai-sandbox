@@ -35,8 +35,8 @@ class GoogleAIService extends AIService {
     }
 
     async imageCompletion(prompt) {
-      const defalutPromt = "Give me a description of this image.";
-      const finalPrompt = defalutPromt + prompt.text;
+      const defalutPromt = "Extract the text from the image by list:";
+      const finalPrompt = defalutPromt;
       const model = this.genAI.getGenerativeModel({ model: "gemini-pro-vision" });
       const imagePath = prompt.image;
       const imageParts = [
