@@ -7,7 +7,7 @@ export function setOnNewMessage(callBack) {
 }   
 
 export async function fetchMessage(query) {
-    const response = await fetch('http://localhost:3000/text-completion', {
+    const response = await fetch('http://localhost:3999/text-completion', {
         method: 'POST',
         headers: {
         'Content-Type': 'application/json',
@@ -21,7 +21,7 @@ async function uploadImage(image) {
     try {
         const formData = new FormData();
         formData.append('image', image);
-        const response = await fetch('http://localhost:3000/upload', {
+        const response = await fetch('http://localhost:3999/upload', {
             method: 'POST',
             body: formData,
         });
