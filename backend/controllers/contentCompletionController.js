@@ -1,8 +1,6 @@
 const { AIService, getAIService } = require('../src/ai_services');
 const { isValidYoutubeUrl } = require('../utils/utils.js');
-
 const aiService = getAIService(process.env.GOOGLE_API_KEY, 'google');
-
 async function handleContentCompletion(req, res) {
     console.log('handleContentCompletion', req.body);
     const text = req.body.text;
