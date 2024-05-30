@@ -5,7 +5,8 @@ const cors = require('cors');
 const { ToutubeTranscript, YoutubeTranscript } = require('youtube-transcript');
 const path = require('path')
 const { AIService, getAIService } = require('./src/ai_services');
-const { isValidYoutubeUrl } = require('./utils.js');
+const { isValidYoutubeUrl } = require('./utils/utils.js');
+const contentCompletionRoute = require('./routes/ContentCompletionRoute');
 const app = express();
 const port = 3999;
 
@@ -22,40 +23,13 @@ const storage = multer.diskStorage({
 const upload = multer({ storage: storage});
 app.use(cors())
 app.use(express.json()); // for parsing application/json
-
+app.use(contentCompletionRoute);
 const aiService = getAIService(process.env.GOOGLE_API_KEY, 'google');
 
 app.post('/text-completion', async (req, res) => {
   console.log('text-completion', req.body);
   const text = req.body.text;
   const completion = await aiService.textCompletion(text);
-  console.log('completion', completion);
-  res.setHeader('Content-Type', 'text/event-stream');
-  res.write(`data: ${JSON.stringify(completion)}\n\n`);
-  res.end();
-});
-
-app.post('/content-completion', async (req, res) => {
-  console.log('text-completion', req.body);
-  const text = req.body.text;
-  
-  let image_context = '';
-
-  if (req.body.image) {
-    image_context = await aiService.imageCompletion({ text, image: req.body.image });
-    image_context = 'Prefix: ' + image_context;
-  } 
-  if (isValidYoutubeUrl(text)) {
-    const youtubeId = text.split('v=')[1];
-    console.log('youtubeId', youtubeId);
-    const trascripts = await YoutubeTranscript.fetchTranscript(youtubeId);
-    const youtubeTranscript = trascripts.map((item) => item.text).join(' ');
-    console.log('youtubeTranscript', youtubeTranscript);
-    image_context = youtubeTranscript; 
-  } else {
-    console.log('Not a valid youtube url');
-  }
-  const completion = await aiService.textCompletion(text + image_context);
   console.log('completion', completion);
   res.setHeader('Content-Type', 'text/event-stream');
   res.write(`data: ${JSON.stringify(completion)}\n\n`);
