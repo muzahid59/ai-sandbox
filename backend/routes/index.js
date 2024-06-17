@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 
 const textCompletionRoute = require('./textCompletionRoute');
-const contentCompletionRoute = require('./contentCompletionRoute'); 
+const contentCompletionRoute = require('./ContentCompletionRoute'); 
 const uploadRoute = require('./uploadRoute');
 
 router.use(textCompletionRoute);

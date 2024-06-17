@@ -6,6 +6,7 @@ Expetected features:
 4. Audio, video summarization.
 5. Context awreness.
 6. Streaming response
+7. Context awareness
 
 Technology:
 1. Vector db.
