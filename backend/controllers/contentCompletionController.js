@@ -1,6 +1,7 @@
-const { AIService, getAIService } = require('../services/ai_services.js');
+const { getAIService } = require('../services/ai_services.js');
 const { YoutubeTranscript } = require('youtube-transcript');
 const { isValidYoutubeUrl } = require('../utils/utils.js');
+
 const aiService = getAIService(process.env.GOOGLE_API_KEY, 'google');
 
 async function handleContentCompletion(req, res) {
@@ -11,18 +12,18 @@ async function handleContentCompletion(req, res) {
 
     if (req.body.image) {
         content_context = await aiService.imageCompletion({image: req.body.image });
-        content_context = 'Prefix: ' + content_context;
+        content_context = 'Image Context: ' + content_context;
     } 
-    if (isValidYoutubeUrl(text)) {
-        const youtubeId = text.split('v=')[1];
-        console.log('youtubeId', youtubeId);
-        const trascripts = await YoutubeTranscript.fetchTranscript(youtubeId);
-        const youtubeTranscript = trascripts.map((item) => item.text).join(' ');
-        console.log('youtubeTranscript', youtubeTranscript);
-        content_context = youtubeTranscript; 
-    } else {
-        console.log('Not a valid youtube url');
-    }
+    // if (isValidYoutubeUrl(text)) {
+    //     const youtubeId = text.split('v=')[1];
+    //     console.log('youtubeId', youtubeId);
+    //     const trascripts = await YoutubeTranscript.fetchTranscript(youtubeId);
+    //     const youtubeTranscript = trascripts.map((item) => item.text).join(' ');
+    //     console.log('youtubeTranscript', youtubeTranscript);
+    //     content_context = youtubeTranscript; 
+    // } else {
+    //     console.log('Not a valid youtube url');
+    // }
 
     const completion = await aiService.textCompletion(text + content_context);
     console.log('completion', completion);

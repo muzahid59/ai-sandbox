@@ -20,7 +20,7 @@
   border: 1px solid #ddd;
 }  */
 .chatbox {
-  /* display: flex; */
+  display: flex;
   flex-grow: 1;
   flex-direction: column;
   padding: 16px;
@@ -36,7 +36,7 @@
 
 
 .message {
-  padding: 16px;
+  padding: 8px 16px;
   margin-bottom: 10px;
   border-radius: 16px;
   /* max-width: 80%; */
@@ -45,14 +45,19 @@
 
 .message.sent {
   align-self: flex-end;
-  background-color: #0084ff;
-  color: white;
+  background-color: #e5e5ea;
+  max-width: 80%;
+  min-width: 30%;
+  width: auto;
+  color: black;
 }
 
 .message.received {
   align-self: flex-start;
   background-color: #e5e5ea;
   color: black;
+  max-width: 80%;
+  min-width: 30%;
 }
 
 .chat-input {
