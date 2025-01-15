@@ -2,7 +2,7 @@ const { getAIService } = require('../services/ai_services.js');
 const { YoutubeTranscript } = require('youtube-transcript');
 const { isValidYoutubeUrl } = require('../utils/utils.js');
 
-const aiService = getAIService(process.env.GOOGLE_API_KEY, 'google');
+const aiService = getAIService(process.env.LAMA_API_KEY, 'lama');
 
 async function handleContentCompletion(req, res) {
     console.log('handleContentCompletion', req.body);

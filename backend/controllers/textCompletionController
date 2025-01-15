@@ -1,5 +1,5 @@
 const { AIService, getAIService } = require('../services/ai_services');
-const aiService = getAIService(process.env.GOOGLE_API_KEY, 'google');
+const aiService = getAIService(process.env.LAMA_API_KEY, 'lama');
 
 async function handleTextCompletion(req, res) {
     console.log('handleTextCompletion', req.body);

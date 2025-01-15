@@ -21,6 +21,9 @@ Navigate to the backend directory:
 - Create a .env file and update it with your API keys as shown in the .env.example file.
 - Then start the server: npm start
 
+## Docker Run:
+
+
 ### Frontend
 
 Navigate to the frontend directory:

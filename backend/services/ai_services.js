@@ -78,12 +78,24 @@ class GoogleAIService extends AIService {
     }
   }
 
+class LamaAIService extends AIService {
+    constructor(apiKey) {
+      super();
+    }
+  
+    async textCompletion(prompt) {
+      return "Lamma: " + prompt;
+    }
+  }
+
   function getAIService(apiKey, type) {
     switch (type) {
       case 'google':
         return new GoogleAIService(apiKey);
       case 'openai':
         return new OpenAIService(apiKey);
+      case 'lama':
+        return new LamaAIService(apiKey);
       default:
         throw new Error(`Unsupported AI service type: ${type}`);
     }
