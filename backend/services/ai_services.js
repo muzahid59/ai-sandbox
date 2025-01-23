@@ -1,3 +1,4 @@
+const axios = require('axios');
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 const OpenAI = require('openai');
 const fs = require('fs');
@@ -79,14 +80,30 @@ class GoogleAIService extends AIService {
   }
 
 class LamaAIService extends AIService {
-    constructor(apiKey) {
-      super();
-    }
-  
-    async textCompletion(prompt) {
-      return "Lamma: " + prompt;
+  constructor(apiKey, baseUrl = 'http://localhost:11434/api') {
+    super();
+    this.apiKey = apiKey;
+    this.baseUrl = baseUrl;
+  }
+
+  async textCompletion(prompt) {
+    try {
+      const request = {
+        "model": "llama3.2",
+        "prompt": prompt,
+        "stream": false
+      };
+      console.log('request', request);
+      const response = await axios.post(`${this.baseUrl}/generate`, request);
+      console.log("Lama AI Response:", response.data);
+      const formattedResponse = response.data.response;
+      return formattedResponse;
+    } catch (error) {
+      console.error("Error calling Lama AI Service:", error.message);
+      throw new Error("Failed to complete text request.");
     }
   }
+}
 
   function getAIService(apiKey, type) {
     switch (type) {
