@@ -13,9 +13,7 @@ class GoogleAI extends AIService {
       const finalPrompt = defalutPromt;
       const model = this.genAI.getGenerativeModel({ model: "gemini-pro-vision" });
       const imagePath = prompt.image;
-      const imageParts = [
-        fileUtils(imagePath, "image/png")
-      ];
+      const imageParts = [fileUtils(imagePath, "image/png")];
       const result = await model.generateContent([finalPrompt, ...imageParts]);
       const response = result.response;
       console.log("Image Completion Response:", JSON.stringify(response, null, 2));
