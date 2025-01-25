@@ -1,4 +1,4 @@
-const { getAIService } = require('../services/ai_services.js');
+const { getAIService } = require('../services/ai_factory');
 const { YoutubeTranscript } = require('youtube-transcript');
 const { isValidYoutubeUrl } = require('../utils/utils.js');
 

@@ -1,4 +1,4 @@
-const { AIService, getAIService } = require('../services/ai_services');
+const { AIService, getAIService } = require('../services/ai_factory');
 
 const aiService = getAIService(process.env.LAMA_API_KEY, 'lama');
 
