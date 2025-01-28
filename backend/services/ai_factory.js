@@ -1,5 +1,6 @@
 const { LamaAI } = require('./lama_ai');
 const { OpenAI } = require('./open_ai');
+const { DeepSeekAI } = require('./deep_seek_ai');
 const { GoogleAI } = require('./google_ai');
 
 function getAIService(apiKey, type) {
@@ -8,6 +9,8 @@ function getAIService(apiKey, type) {
         return new GoogleAI(apiKey);
       case 'openai':
         return new OpenAI(apiKey);
+      case 'deepseek':
+        return new DeepSeekAI(apiKey);  
       case 'lama':
         return new LamaAI(apiKey);
       default:

@@ -1,6 +1,7 @@
 const { AIService, getAIService } = require('../services/ai_factory');
 
-const aiService = getAIService(process.env.LAMA_API_KEY, 'lama');
+// const aiService = getAIService(process.env.LAMA_API_KEY, 'lama');
+const aiService = getAIService(process.env.DEEP_SEEK_API_KEY, 'deepseek');
 
 
 async function handleTextCompletion(req, res) {
