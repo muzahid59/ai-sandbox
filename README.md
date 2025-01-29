@@ -10,22 +10,78 @@ AI Sandbox is a comprehensive toolkit that provides various AI-powered features.
 
 3. **Audio Input**: The application can take audio input, opening up possibilities for voice-activated commands or audio analysis.
 
+## Supported AI Services
+
+1. **OpenAI GPT**: Requires API key from OpenAI
+2. **Google Gemini**: Requires API key from Google AI Studio
+3. **Llama 3.2**: Runs locally through Ollama
+4. **DeepSeek-r1**: Runs locally through Ollama
+
+## Prerequisites
+
+1. **API Keys Setup**:
+   - Get OpenAI API key from [OpenAI Platform](https://platform.openai.com)
+   - Get Google API key from [Google AI Studio](https://makersuite.google.com/app/apikey)
+
+2. **Ollama Setup** (for Llama and DeepSeek):
+   - Install Ollama from [ollama.ai](https://ollama.ai)
+   - Pull the models:
+     ```bash
+     ollama pull llama3.2
+     ollama pull deepseek-r1:8b
+     ```
+   - Start Ollama service locally
+
 ## How to Run
 
-To get the application running:
+### Local Development
 
-### Backend
+1. **Backend Setup**:
+   ```bash
+   # Navigate to backend directory
+   cd backend
 
-Navigate to the backend directory:
-- cd backend
-- Create a .env file and update it with your API keys as shown in the .env.example file.
-- Then start the server: npm start
+   # Copy environment file and update with your API keys
+   cp .env.example .env
 
-### Frontend
+   # Install dependencies
+   npm install
 
-Navigate to the frontend directory:
-- Then start the application: yarn start
+   # Start the server
+   npm start
+```
 
-Now, you should be able to access the application in your web browser.
+1. **Frontend Setup**:
+   ```bash
+   # Navigate to frontend directory
+   cd app
 
-Enjoy exploring the AI Sandbox!
+   # Install dependencies
+   npm install
+
+   # Start the server
+   npm start
+```
+
+### Docker Development
+```bash
+# Build and start all services
+docker-compose up --build
+```
+## Access Points
+- Frontend: http://localhost:3000
+- Backend API: http://localhost:5001
+## Environment Variables
+Update the .env file in the backend directory with your API keys:
+
+```plaintext
+OPENAI_API_KEY=your_openai_key_here
+GOOGLE_API_KEY=your_google_key_here
+ ```
+
+## Notes
+- OpenAI and Google Gemini services require valid API keys in the .env file
+- Llama and DeepSeek services require Ollama to be running locally on port 11434
+- The application allows switching between different AI models through the interface
+
+Enjoy exploring the AI Sandbox

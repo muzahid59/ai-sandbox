@@ -33,28 +33,3 @@ class DeepSeekAI extends AIService {
 }
 
 module.exports = { DeepSeekAI };
-
-
-// const OpenAI = require('openai');
-// const AIService = require('./ai_services');
-
-// class DeepSeekAI extends AIService {
-//     constructor(apiKey) {
-//       super();
-//       this.openai = new OpenAI({
-//             baseURL: 'https://api.deepseek.com',
-//             apiKey: apiKey
-//         });
-//     }
-  
-//     async textCompletion(prompt) {
-//       const completion = await this.openai.chat.completions.create({
-//         messages: [{"role": "system", "content": "You are a helpful assistant."},
-//           {"role": "user", "content": prompt}],
-//         model: "deepseek-chat",
-//       });
-//       return completion.choices[0].text;
-//     }
-// }
-
-// module.exports = { DeepSeekAI };
