@@ -36,7 +36,7 @@ AI Sandbox is a comprehensive toolkit that provides various AI-powered features.
 
 ### Local Development
 
-1. **Backend Setup**:
+**Backend Setup**:
    ```bash
    # Navigate to backend directory
    cd backend
@@ -50,8 +50,7 @@ AI Sandbox is a comprehensive toolkit that provides various AI-powered features.
    # Start the server
    npm start
 ```
-
-1. **Frontend Setup**:
+**Frontend Setup**:
    ```bash
    # Navigate to frontend directory
    cd app
