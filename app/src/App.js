@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { fetchMessage, setOnNewMessage, listenMessage } from './fetch_message'; 
+import ModelSelector from './components/ModelSelector';
 import './App.css';
 
 function App() {
@@ -12,12 +13,17 @@ function App() {
   const recognition = useRef(null);
   const fileInputRef = useRef();
   const messagesRef = useRef(messages);
+  const [selectedModel, setSelectedModel] = useState('openai');
 
   setOnNewMessage((message) => {
     const newMessaages = [...messages, message];
     setMessages(newMessaages);
     setIsLoading(false);
   })
+
+  const handleModelChange = (model) => {
+    setSelectedModel(model);
+  };
 
   useEffect(() => {
       recognition.current = new (window.SpeechRecognition || window.webkitSpeechRecognition || window.mozSpeechRecognition || window.msSpeechRecognition)();
@@ -77,7 +83,7 @@ function App() {
     if (!inputValue) {
       return;
     }
-    dispatchMessage({ text: inputValue, image: imageData, sent: true});
+    dispatchMessage({ text: inputValue, image: imageData, sent: true, model: selectedModel});
   };
 
   const handleImageChange = (event) => {
@@ -118,6 +124,7 @@ function App() {
         {/* {isLoading && <div className="loader"></div>} Add loader here */}
       </div>
       <form onSubmit={handleSubmit} className="chat-input">
+      <ModelSelector onModelChange={handleModelChange} selectedModel={selectedModel} />
         <input
           type="text"
           value={inputValue}

@@ -3,11 +3,12 @@ const { YoutubeTranscript } = require('youtube-transcript');
 const { isValidYoutubeUrl } = require('../utils/utils.js');
 
 // const aiService = getAIService(process.env.LAMA_API_KEY, 'lama');
-const aiService = getAIService(process.env.DEEP_SEEK_API_KEY, 'deepseek');
+
 
 async function handleContentCompletion(req, res) {
     console.log('handleContentCompletion', req.body);
-    const text = req.body.text;
+    const { text, model} = req.body;
+    const aiService = getAIService(process.env[`${model.toUpperCase()}_API_KEY`], model);
 
     let content_context = '';
 

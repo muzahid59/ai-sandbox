@@ -36,6 +36,7 @@ export async function listenMessage(message) {
 
     const payloadBody = {
         text: message.text,
+        model: message.model
     };
 
     if (message.image) {
