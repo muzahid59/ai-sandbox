@@ -2,7 +2,7 @@ const  AIService  = require('./ai_services');
 const axios = require('axios');
 
 class LamaAI extends AIService {
-  constructor(apiKey, baseUrl = 'http://localhost:11434/api') {
+  constructor(apiKey, baseUrl = 'http://host.docker.internal:11434/api') {
     super();
     this.apiKey = apiKey;
     this.baseUrl = baseUrl;
