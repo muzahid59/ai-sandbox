@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
-import { fetchMessage, setOnNewMessage, listenMessage } from './fetch_message'; 
+import { setOnNewMessage, listenMessage } from './fetch_message'; 
 import ModelSelector from './components/ModelSelector';
 import './App.css';
 
@@ -13,13 +13,47 @@ function App() {
   const recognition = useRef(null);
   const fileInputRef = useRef();
   const messagesRef = useRef(messages);
-  const [selectedModel, setSelectedModel] = useState('openai');
+  const [selectedModel, setSelectedModel] = useState('deepseek');
+  const [streamingMessageIndex, setStreamingMessageIndex] = useState(null);
 
   setOnNewMessage((message) => {
-    const newMessaages = [...messages, message];
-    setMessages(newMessaages);
-    setIsLoading(false);
-  })
+    setMessages(prevMessages => {
+      const newMessages = [...prevMessages];
+      if (streamingMessageIndex !== null) {
+        // Append to existing streaming message
+        newMessages[streamingMessageIndex] = {
+          ...newMessages[streamingMessageIndex],
+          text: newMessages[streamingMessageIndex].text + message.text
+        };
+      } else {
+        // Start new streaming message
+        newMessages.push(message);
+        setStreamingMessageIndex(newMessages.length - 1);
+      }
+      return newMessages;
+    });
+    
+    if (message.done) {
+      setStreamingMessageIndex(null);
+      setIsLoading(false);
+    }
+  });
+
+  async function dispatchMessage(message) {
+    try {
+      setIsLoading(true);
+      setStreamingMessageIndex(null); // Reset streaming index for new message
+      const newMessages = [...messagesRef.current, message];
+      setMessages(newMessages);
+      setInputValue('');
+      listenMessage(message);
+      setImageData(null);
+      fileInputRef.current.value = '';
+    } catch (error) {
+      console.error('Error:', error);
+      setIsLoading(false);
+    }
+  }
 
   const handleModelChange = (model) => {
     setSelectedModel(model);

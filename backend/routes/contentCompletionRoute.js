@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const contentCompletionController = require('../controllers/contentCompletionController');
+const { handleContentCompletion } = require('../controllers/contentCompletionController');
 
-router.post('/content-completion', contentCompletionController.handleContentCompletion);
+router.post('/content-completion', handleContentCompletion);
 
 module.exports = router;
