@@ -1,8 +1,8 @@
 const { getAIService } = require('../services/ai_factory');
+const OllamaAdapter = require('../services/adapters/deepseek_response_adapter');
 
 async function handleContentCompletion(req, res) {
     console.log('handleContentCompletion', req.body);
-
     const { text, model, image } = req.body;
     
     res.setHeader('Content-Type', 'text/event-stream');
@@ -11,6 +11,7 @@ async function handleContentCompletion(req, res) {
 
     try {
         const aiService = getAIService(process.env[`${model.toUpperCase()}_API_KEY`], model);
+        const responseAdapter = new OllamaAdapter(); // Will be factory-based when adding more adapters
         let content_context = '';
 
         if (image) {
@@ -22,10 +23,9 @@ async function handleContentCompletion(req, res) {
         
         stream.on('data', (chunk) => {
             try {
-                const data = JSON.parse(chunk);
-                console.log('chunk data', data);
-                if (data.response) {
-                    res.write(`data: ${JSON.stringify({ text: data.response })}\n\n`);
+                const adaptedResponse = responseAdapter.parseStreamResponse(chunk);
+                if (adaptedResponse.text) {
+                    res.write(`data: ${JSON.stringify({ text: adaptedResponse.text })}\n\n`);
                 }
             } catch (error) {
                 console.error('Error parsing chunk:', error);
