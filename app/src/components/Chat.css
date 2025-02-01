@@ -1,0 +1,157 @@
+
+.chatbox {
+    display: flex;
+    flex-grow: 1;
+    flex-direction: column;
+    padding: 16px;
+    /* max-width: 600px; */
+    width: 60%;
+    margin: auto;
+    background-color: #fff;
+    box-sizing: border-box;
+    border-radius: 5px;
+    overflow-y: auto;
+    border: 1px solid #ddd;
+  }
+  
+  
+  .message {
+    padding: 8px 16px;
+    margin-bottom: 10px;
+    border-radius: 16px;
+    /* max-width: 80%; */
+    /* width: compact; */
+  }
+  
+  .message.sent {
+    align-self: flex-end;
+    background-color: #e5e5ea;
+    max-width: 80%;
+    min-width: 30%;
+    width: auto;
+    color: black;
+  }
+  
+  .message.received {
+    align-self: flex-start;
+    background-color: #e5e5ea;
+    color: black;
+    max-width: 80%;
+    min-width: 30%;
+  }
+  
+  .chat-input {
+    display: flex;
+    align-items: center;
+    margin-top: 20px;
+    width: 60%;
+  }
+  
+  input {
+    flex-grow: 1;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    margin-right: 10px;
+    outline: none;
+  }
+  
+  .submit-button {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    background-color: #007bff;
+    color: white;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+  }
+  
+  .submit-button:hover {
+    background-color: #0056b3;
+  }
+  
+  .loader {
+    margin-left: 10px;
+    /* Add some space between the input and the loader */
+    border: 4px solid #f3f3f3;
+    /* Light grey */
+    border-top: 4px solid #3498db;
+    /* Blue */
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    animation: spin 1s linear infinite;
+  }
+  
+  @keyframes spin {
+    0% {
+      transform: rotate(0deg);
+    }
+  
+    100% {
+      transform: rotate(360deg);
+    }
+  }
+  
+  .attach-button {
+    display: flex;
+    margin-right: 10px;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+    background-color: #f5f5f5;
+    box-shadow: 0px 1px 5px rgba(0, 0, 0, 0.1);
+    cursor: pointer;
+    outline: none;
+    position: relative;
+    background-image: url("https://img.icons8.com/material-outlined/24/000000/attach.png");
+    background-size: 60%;
+    background-position: center;
+    background-repeat: no-repeat;
+  }
+  
+  .attach-button.attached {
+    background-color: #007bff;
+    background-image: url("https://img.icons8.com/material-outlined/24/ffffff/attach.png");
+  }
+  
+  .microphone-button {
+    display: flex;
+    margin-right: 10px;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+    background-color: #f5f5f5;
+    box-shadow: 0px 1px 5px rgba(0, 0, 0, 0.1);
+    cursor: pointer;
+    outline: none;
+    position: relative;
+    background-image: url("https://img.icons8.com/material-outlined/24/000000/microphone.png");
+    background-size: 60%;
+    background-position: center;
+    background-repeat: no-repeat;
+  }
+  
+  .microphone-button.listening {
+    animation: pulse 1s infinite;
+  }
+  
+  @keyframes pulse {
+    0% {
+      box-shadow: 0 0 0 0 rgba(0, 0, 0, 0.1);
+    }
+  
+    70% {
+      box-shadow: 0 0 0 10px rgba(0, 0, 0, 0);
+    }
+  
+    100% {
+      box-shadow: 0 0 0 0 rgba(0, 0, 0, 0);
+    }
+  }
