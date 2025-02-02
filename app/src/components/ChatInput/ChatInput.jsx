@@ -1,5 +1,5 @@
 import React, { useRef } from 'react';
-import './ChatInput.css';
+import styles from './ChatInput.module.css';
 
 const ChatInput = ({
   inputValue,
@@ -14,7 +14,7 @@ const ChatInput = ({
   imageData,
 }) => {
   return (
-    <form onSubmit={handleSubmit} className="chat-input">
+    <form onSubmit={handleSubmit} className={styles['chat-input']}>
       <input
         type="text"
         value={inputValue}
@@ -29,16 +29,16 @@ const ChatInput = ({
         style={{ display: 'none' }}
       />
       <button
-        className={`attach-button ${imageData ? 'attached' : ''}`}
+        className={`${styles['attach-button']} ${imageData ? styles.attached : ''}`}
         type="button"
         onClick={() => fileInputRef.current.click()}
       />
       <button
-        className={`microphone-button ${isListening ? 'listening' : ''}`}
+        className={`${styles['microphone-button']} ${isListening ? styles.listening : ''}`}
         type="button"
         onClick={isListening ? stopListening : startListening}
       />
-      <button type="submit" className="submit-button" disabled={isLoading}>
+      <button type="submit" className={`${styles['submit-button']}`} disabled={isLoading}>
         Send
       </button>
     </form>

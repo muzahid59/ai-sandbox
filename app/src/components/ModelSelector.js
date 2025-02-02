@@ -9,7 +9,7 @@ const ModelSelector = ({ selectedModel, onModelChange }) => {
   ];
 
   return (
-    <div style={{ position: 'absolute', top: '1rem', right: '1rem' }}>
+    <div style={{ position: 'absolute', top: '1rem', left: '1rem' }}>
       <select
         value={selectedModel}
         onChange={(e) => onModelChange(e.target.value)}

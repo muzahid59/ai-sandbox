@@ -1,11 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
-import { setOnNewMessage, listenMessage } from '../fetch_message';
-import ModelSelector from './ModelSelector';
-import MessageList from './MessageList';
-import ChatInput from './ChatInput';
-import './Chat.css';
-import '../App.css';
+import { setOnNewMessage, listenMessage } from '../../fetch_message';
+import ModelSelector from '../ModelSelector';
+import MessageList from '../MessageList/MessageList';
+import ChatInput from '../ChatInput/ChatInput';
+import './ChatContainer.module.css';
 
 function ChatContainer() {
   const [inputValue, setInputValue] = useState('');
