@@ -7,7 +7,7 @@ export const AuthProvider = ({ children }) => {
   const [users, setUsers] = useState([{ username: 'admin', password: 'password' }]);
 
   const signup = (username, password) => {
-    if (users.find(user => user.username === username)) {
+    if (users.find((user) => user.username === username)) {
       return { success: false, message: 'Username already exists' };
     }
     setUsers([...users, { username, password }]);
@@ -15,7 +15,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   const login = (username, password) => {
-    const user = users.find(u => u.username === username && u.password === password);
+    const user = users.find((u) => u.username === username && u.password === password);
     if (user) {
       setUser({ username });
       return { success: true };
@@ -28,9 +28,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, signup }}>
-      {children}
-    </AuthContext.Provider>
+    <AuthContext.Provider value={{ user, login, logout, signup }}>{children}</AuthContext.Provider>
   );
 };
 

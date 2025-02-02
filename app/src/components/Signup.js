@@ -38,7 +38,10 @@ function Signup({ onToggle }) {
         />
         <button type="submit">Sign Up</button>
         <p className="toggle-text">
-          Already have an account? <button onClick={onToggle} className="toggle-button">Login</button>
+          Already have an account?{' '}
+          <button onClick={onToggle} className="toggle-button">
+            Login
+          </button>
         </p>
       </form>
     </div>

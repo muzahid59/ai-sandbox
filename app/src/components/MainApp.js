@@ -14,7 +14,9 @@ function MainApp() {
     <div className="App">
       <div className="header">
         <span>Welcome, {user.username}</span>
-        <button onClick={logout} className="logout-button">Logout</button>
+        <button onClick={logout} className="logout-button">
+          Logout
+        </button>
       </div>
       {/* Your existing chat UI code */}
     </div>

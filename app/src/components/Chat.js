@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { setOnNewMessage, listenMessage } from '../fetch_message';
 import ModelSelector from './ModelSelector';
+import MessageList from './MessageList';
+import ChatInput from './ChatInput';
 import './Chat.css';
 import '../App.css';
 
@@ -18,13 +20,13 @@ function Chat() {
   const [streamingMessageIndex, setStreamingMessageIndex] = useState(null);
 
   setOnNewMessage((message) => {
-    setMessages(prevMessages => {
+    setMessages((prevMessages) => {
       const newMessages = [...prevMessages];
       if (streamingMessageIndex !== null) {
         // Append to existing streaming message
         newMessages[streamingMessageIndex] = {
           ...newMessages[streamingMessageIndex],
-          text: newMessages[streamingMessageIndex].text + message.text
+          text: newMessages[streamingMessageIndex].text + message.text,
         };
       } else {
         // Start new streaming message
@@ -33,7 +35,7 @@ function Chat() {
       }
       return newMessages;
     });
-    
+
     if (message.done) {
       setStreamingMessageIndex(null);
       setIsLoading(false);
@@ -61,41 +63,43 @@ function Chat() {
   };
 
   useEffect(() => {
-      recognition.current = new (window.SpeechRecognition || window.webkitSpeechRecognition || window.mozSpeechRecognition || window.msSpeechRecognition)();
-      let finalTranscript = '';
-      if (recognition.current) {
-        console.log('Speech recognition supported');
-        recognition.lang = 'en-US';
-        recognition.current.interimResults = true;
-        recognition.current.continuous = true;
-        recognition.current.onresult = (event) => {
-          const transcript = Array.from(event.results)
-            .map(result => result[0])
-            .map(result => result.transcript)
-            .join('');
+    recognition.current = new (window.SpeechRecognition ||
+      window.webkitSpeechRecognition ||
+      window.mozSpeechRecognition ||
+      window.msSpeechRecognition)();
+    let finalTranscript = '';
+    if (recognition.current) {
+      console.log('Speech recognition supported');
+      recognition.lang = 'en-US';
+      recognition.current.interimResults = true;
+      recognition.current.continuous = true;
+      recognition.current.onresult = (event) => {
+        const transcript = Array.from(event.results)
+          .map((result) => result[0])
+          .map((result) => result.transcript)
+          .join('');
 
-          console.log('recognition result', transcript);
-          finalTranscript = transcript
-          setInputValue(transcript);
-        };
+        console.log('recognition result', transcript);
+        finalTranscript = transcript;
+        setInputValue(transcript);
+      };
 
-        recognition.current.onend = () => {
-          console.log('recognition end');
-          console.log('inputValue', finalTranscript);
-          dispatchMessage(finalTranscript);
-          setIsListening(false);
-        };
-      } else {
-        console.log('Speech recognition not supported');
-      }
+      recognition.current.onend = () => {
+        console.log('recognition end');
+        console.log('inputValue', finalTranscript);
+        dispatchMessage(finalTranscript);
+        setIsListening(false);
+      };
+    } else {
+      console.log('Speech recognition not supported');
+    }
   }, []);
 
   useEffect(() => {
     messagesRef.current = messages;
   }, [messages]);
 
-
-   const startListening = () => {
+  const startListening = () => {
     console.log('start listening');
     setIsListening(true);
     if (recognition.current) {
@@ -118,7 +122,7 @@ function Chat() {
     if (!inputValue) {
       return;
     }
-    dispatchMessage({ text: inputValue, image: imageData, sent: true, model: selectedModel});
+    dispatchMessage({ text: inputValue, image: imageData, sent: true, model: selectedModel });
   };
 
   const handleImageChange = (event) => {
@@ -146,44 +150,24 @@ function Chat() {
       console.error('Error:', error);
       setIsLoading(false);
     }
-  } 
+  }
 
   return (
     <>
-        <div className="chatbox">
-        {messages.map((message, index) => (
-          <div key={index} className={`message ${message.sent ? 'sent' : 'received'}`}>
-            <ReactMarkdown>{message.text}</ReactMarkdown>
-          </div>
-        ))}
-      </div>
-      <form onSubmit={handleSubmit} className="chat-input">
-        <ModelSelector onModelChange={handleModelChange} selectedModel={selectedModel} />
-        <input
-          type="text"
-          value={inputValue}
-          placeholder={isListening ? 'Listening...' : 'Type a message'}
-          onChange={e => setInputValue(e.target.value)}
-        />
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/*"
-          onChange={handleImageChange}
-          style={{ display: 'none' }}
-        />
-        <button 
-          className={`attach-button ${imageData ? 'attached' : ''}`}
-          type="button"
-          onClick={() => fileInputRef.current.click()}
-        />
-        <button 
-          className={`microphone-button ${isListening ? 'listening' : ''}`}
-          type="button" 
-          onClick={isListening ? stopListening : startListening}
-        />
-        <button type="submit" className='submit-button' disabled={isLoading}>Send</button>
-      </form>
+      <MessageList messages={messages} />
+      <ChatInput
+        inputValue={inputValue}
+        setInputValue={setInputValue}
+        handleSubmit={handleSubmit}
+        handleImageChange={handleImageChange}
+        startListening={startListening}
+        stopListening={stopListening}
+        isListening={isListening}
+        isLoading={isLoading}
+        fileInputRef={fileInputRef}
+        imageData={imageData}
+      />
+      <ModelSelector onModelChange={handleModelChange} selectedModel={selectedModel} />
     </>
   );
 }

@@ -37,7 +37,10 @@ function Login({ onToggle }) {
         />
         <button type="submit">Login</button>
         <p className="toggle-text">
-          Need an account? <button onClick={onToggle} className="toggle-button">Sign Up</button>
+          Need an account?{' '}
+          <button onClick={onToggle} className="toggle-button">
+            Sign Up
+          </button>
         </p>
       </form>
     </div>

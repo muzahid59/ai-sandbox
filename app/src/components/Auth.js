@@ -9,9 +9,7 @@ function Auth() {
     setIsLogin(!isLogin);
   };
 
-  return isLogin ? 
-    <Login onToggle={toggleAuth} /> : 
-    <Signup onToggle={toggleAuth} />;
+  return isLogin ? <Login onToggle={toggleAuth} /> : <Signup onToggle={toggleAuth} />;
 }
 
 export default Auth;
