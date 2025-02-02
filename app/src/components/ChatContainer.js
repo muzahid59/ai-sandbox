@@ -7,7 +7,7 @@ import ChatInput from './ChatInput';
 import './Chat.css';
 import '../App.css';
 
-function Chat() {
+function ChatContainer() {
   const [inputValue, setInputValue] = useState('');
   const [messages, setMessages] = useState([]);
   const [imageData, setImageData] = useState(null);
@@ -172,4 +172,4 @@ function Chat() {
   );
 }
 
-export default Chat;
+export default ChatContainer;
