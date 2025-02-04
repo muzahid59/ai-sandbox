@@ -5,10 +5,15 @@ services:
     build:
       context: ./app
       dockerfile: Dockerfile
+    image: ai-sandbox-frontend:latest
     ports:
       - "3000:3000"
+    restart: always
     environment:
       - NODE_ENV=development
+    volumes:
+      - ./app:/app  # Mount frontend source code
+      - /app/node_modules  # Prevent overwriting node_modules
     depends_on:
       - backend
 
@@ -16,10 +21,15 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
+    image: ai-sandbox-backend:latest  
     ports:
       - "5001:5001"
+    restart: always
     environment:
       - NODE_ENV=development
+    volumes:
+      - ./backend:/backend  # Mount backend source code
+      - /backend/node_modules  # Prevent overwriting node_modules
     extra_hosts:
       - "host.docker.internal:host-gateway"
     env_file:
