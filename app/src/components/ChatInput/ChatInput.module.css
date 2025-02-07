@@ -6,6 +6,25 @@
   border-top: 1px solid #ddd;
   width: 60%;
   margin: 0 auto;
+  gap: 10px; /* Add spacing between elements */
+}
+
+/* Add styles for the text input */
+input[type="text"] {
+  flex: 1;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 20px;
+  outline: none;
+  font-size: 16px;
+  min-width: 0; /* Allows input to shrink properly */
+}
+
+/* Group the buttons together */
+.attach-button,
+.microphone-button,
+.submit-button {
+  flex-shrink: 0; /* Prevent buttons from shrinking */
 }
 
 .input-box {
