@@ -1,0 +1,14 @@
+.model-selector select {
+    background-color: #40414F;
+    color: #FFFFFF;
+    border: 1px solid rgba(255,255,255,0.1);
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem;
+    font-size: 0.875rem;
+    cursor: pointer;
+  }
+  
+  .model-selector select:focus {
+    outline: none;
+    border-color: rgba(255,255,255,0.2);
+  }
