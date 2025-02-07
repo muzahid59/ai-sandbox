@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from 'react';
-import ReactMarkdown from 'react-markdown';
 import { setOnNewMessage, listenMessage } from '../../fetch_message';
 import ModelSelector from '../ModelSelector';
 import MessageList from '../MessageList/MessageList';
@@ -134,22 +133,6 @@ function ChatContainer() {
       reader.readAsDataURL(file);
     }
   };
-
-  async function dispatchMessage(message) {
-    console.log('dispatchMessage', message);
-    try {
-      setIsLoading(true);
-      const newMessaages = [...messagesRef.current, message];
-      setMessages(newMessaages);
-      setInputValue('');
-      listenMessage(message);
-      setImageData(null);
-      fileInputRef.current.value = '';
-    } catch (error) {
-      console.error('Error:', error);
-      setIsLoading(false);
-    }
-  }
 
   return (
     <>
