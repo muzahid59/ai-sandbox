@@ -65,7 +65,6 @@ function ChatContainer() {
       window.webkitSpeechRecognition ||
       window.mozSpeechRecognition ||
       window.msSpeechRecognition)();
-    let finalTranscript = '';
     if (recognition.current) {
       console.log('Speech recognition supported');
       recognition.lang = 'en-US';
@@ -76,16 +75,12 @@ function ChatContainer() {
           .map((result) => result[0])
           .map((result) => result.transcript)
           .join('');
-
+      
         console.log('recognition result', transcript);
-        finalTranscript = transcript;
         setInputValue(transcript);
       };
-
+      
       recognition.current.onend = () => {
-        console.log('recognition end');
-        console.log('inputValue', finalTranscript);
-        dispatchMessage(finalTranscript);
         setIsListening(false);
       };
     } else {
@@ -107,12 +102,10 @@ function ChatContainer() {
   };
 
   const stopListening = () => {
-    setIsListening(false);
-    console.log('stop listening');
     if (recognition.current) {
-      console.log('stop listening');
       recognition.current.stop();
     }
+    setIsListening(false);
   };
 
   const handleSubmit = async (event) => {
@@ -120,6 +113,12 @@ function ChatContainer() {
     if (!inputValue) {
       return;
     }
+    
+    // Stop recognition if it's currently listening
+    if (isListening) {
+      stopListening();
+    }
+    
     dispatchMessage({ text: inputValue, image: imageData, sent: true, model: selectedModel });
   };
 
