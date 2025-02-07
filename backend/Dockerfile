@@ -10,6 +10,9 @@ COPY package*.json ./
 # Install dependencies
 RUN npm install
 
+# Install nodemon for live reload
+RUN npm install -g nodemon
+
 # Copy app files
 COPY . .
 

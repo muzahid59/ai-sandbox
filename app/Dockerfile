@@ -5,10 +5,10 @@ FROM node:18-alpine
 WORKDIR /usr/src/app
 
 # Copy package files
-COPY package*.json ./
+COPY package.json package-lock.json ./
 
-# Clean install dependencies
-RUN npm ci
+# Install dependencies
+RUN npm install
 
 # Copy app files
 COPY . .
