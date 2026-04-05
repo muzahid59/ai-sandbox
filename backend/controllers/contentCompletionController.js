@@ -36,8 +36,9 @@ async function handleContentCompletion(req, res) {
         });
 
     } catch (error) {
-        console.error('Error:', error);
-        res.write(`data: ${JSON.stringify({ error: error.message })}\n\n`);
+        console.error('Error:', error.message);
+        const userMessage = error.message || 'Something went wrong. Please try again.';
+        res.write(`data: ${JSON.stringify({ error: userMessage })}\n\n`);
         res.end();
     }
 }

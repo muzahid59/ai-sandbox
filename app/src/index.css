@@ -1,11 +1,87 @@
+:root,
+[data-theme='light'] {
+  /* Claude light theme */
+  --bg-100: #faf9f5;
+  --bg-200: #f3f2ee;
+  --bg-300: #f0eee6;
+  --bg-400: #e8e6de;
+  --text-100: #141413;
+  --text-200: #3d3d3a;
+  --text-300: #6b6b66;
+  --text-muted: #9b9b96;
+
+  --sidebar-bg: #ebe9e1;
+  --sidebar-hover: #dfddd5;
+  --sidebar-text: #3d3d3a;
+  --sidebar-text-active: #141413;
+
+  --input-bg: #f3f2ee;
+  --input-border: #e0ded6;
+  --input-border-focus: #c8c6be;
+
+  --accent-warm: #da7b3a;
+  --accent-code: #8a2424;
+
+  --user-msg-bg: #f0eee6;
+
+  --scrollbar-track: transparent;
+  --scrollbar-thumb: #c8c6be;
+
+  --divider: #e0ded6;
+  --button-hover: #e8e6de;
+
+  --code-bg: rgba(61, 61, 58, 0.05);
+
+  /* Fonts */
+  --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --font-serif: Georgia, 'Times New Roman', serif;
+  --font-mono: ui-monospace, 'Fira Code', Menlo, Monaco, Consolas, monospace;
+}
+
+[data-theme='dark'] {
+  --bg-100: #2b2a27;
+  --bg-200: #302f2c;
+  --bg-300: #3a3935;
+  --bg-400: #4a4945;
+  --text-100: #ececec;
+  --text-200: #c8c8c4;
+  --text-300: #9b9b96;
+  --text-muted: #6b6b66;
+
+  --sidebar-bg: #1a1a1a;
+  --sidebar-hover: #2a2a2a;
+  --sidebar-text: #9b9b96;
+  --sidebar-text-active: #ececec;
+
+  --input-bg: #3a3935;
+  --input-border: #4a4945;
+  --input-border-focus: #6a6960;
+
+  --accent-warm: #da7b3a;
+  --accent-code: #e8a08a;
+
+  --user-msg-bg: #3a3935;
+
+  --scrollbar-track: transparent;
+  --scrollbar-thumb: #4a4945;
+
+  --divider: #3a3935;
+  --button-hover: #4a4945;
+
+  --code-bg: rgba(255, 255, 255, 0.06);
+}
+
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu',
-    'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  background-color: var(--bg-100);
+  color: var(--text-100);
 }
 
 code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;
+  font-family: var(--font-mono);
 }

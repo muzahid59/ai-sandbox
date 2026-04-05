@@ -1,161 +1,188 @@
-.chat-input {
+.inputWrapper {
+  width: 100%;
+  max-width: 768px;
+  margin: 0 auto;
+  padding: 8px 24px 12px;
+  box-sizing: border-box;
+  flex-shrink: 0;
+}
+
+.inputContainer {
+  background: var(--input-bg);
+  border: 1px solid var(--input-border);
+  border-radius: 16px;
+  padding: 10px 14px;
+  transition: border-color 0.2s ease;
+}
+
+.inputContainer:focus-within {
+  border-color: var(--input-border-focus);
+}
+
+.textInput {
+  width: 100%;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--text-100);
+  font-size: 16px;
+  padding: 4px 0;
+  font-family: var(--font-sans);
+  box-sizing: border-box;
+  resize: none;
+  overflow-y: auto;
+  max-height: 200px;
+  line-height: 1.5;
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) transparent;
+}
+
+.textInput::-webkit-scrollbar {
+  width: 4px;
+}
+
+.textInput::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.textInput::-webkit-scrollbar-thumb {
+  background-color: var(--scrollbar-thumb);
+  border-radius: 2px;
+}
+
+.textInput::placeholder {
+  color: var(--text-muted);
+}
+
+.textInput:disabled {
+  opacity: 0.6;
+}
+
+.toolbar {
   display: flex;
   align-items: center;
-  padding: 1rem;
-  background: white;
-  border-top: 1px solid #ddd;
-  width: 60%;
-  margin: 0 auto;
-  gap: 10px; /* Add spacing between elements */
+  margin-top: 4px;
+  gap: 6px;
 }
 
-/* Add styles for the text input */
-input[type="text"] {
-  flex: 1;
-  padding: 10px;
-  border: 1px solid #ddd;
-  border-radius: 20px;
-  outline: none;
-  font-size: 16px;
-  min-width: 0; /* Allows input to shrink properly */
+.toolbarRight {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
 }
 
-/* Group the buttons together */
-.attach-button,
-.microphone-button,
-.submit-button {
-  flex-shrink: 0; /* Prevent buttons from shrinking */
-}
-
-.input-box {
-  flex: 1;
-  padding: 10px;
-  border: 1px solid #ddd;
-  border-radius: 20px;
-  outline: none;
-  font-size: 16px;
-}
-
-.icon-button {
+.toolBtn {
   background: none;
-  border: none;
-  font-size: 20px;
+  border: 1px solid var(--input-border);
+  border-radius: 6px;
+  width: 28px;
+  height: 28px;
+  color: var(--text-300);
   cursor: pointer;
-  margin: 0 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  transition: background-color 0.15s ease;
+  padding: 0;
 }
 
-.send-button {
-  background: #0b93f6;
+.toolBtn:hover {
+  background-color: var(--button-hover);
+}
+
+.toolBtn.attached {
+  background-color: var(--accent-warm);
   color: white;
+  border-color: var(--accent-warm);
+}
+
+.toolBtn.listening {
+  color: #dc2626;
+  border-color: #dc2626;
+  animation: pulse 1.5s infinite;
+}
+
+.modelSelect {
+  background: transparent;
   border: none;
-  padding: 8px 15px;
-  border-radius: 50%;
-  font-size: 18px;
+  color: var(--text-300);
+  padding: 2px 20px 2px 4px;
+  font-size: 13px;
   cursor: pointer;
+  outline: none;
+  font-family: var(--font-sans);
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%239b9b96' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 4px center;
 }
 
-.listening {
-  color: red;
+.modelSelect option {
+  background: var(--bg-100);
+  color: var(--text-100);
 }
 
+.sendBtn {
+  background-color: var(--text-100);
+  border: none;
+  border-radius: 6px;
+  width: 28px;
+  height: 28px;
+  color: var(--bg-100);
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.15s ease;
+}
 
-.submit-button {
-    padding: 10px 20px;
-    border: none;
-    border-radius: 5px;
-    background-color: #007bff;
-    color: white;
-    cursor: pointer;
-    transition: background-color 0.3s ease;
+.sendBtn:disabled {
+  opacity: 0.2;
+  cursor: not-allowed;
+}
+
+.sendBtn:not(:disabled):hover {
+  opacity: 0.8;
+}
+
+.loader {
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--input-border);
+  border-top: 2px solid var(--text-100);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+.disclaimer {
+  text-align: center;
+  font-size: 12px;
+  color: var(--text-muted);
+  margin: 6px 0 0;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
   }
-  
-  .submit-button:hover {
-    background-color: #0056b3;
+  100% {
+    transform: rotate(360deg);
   }
-  
-  .loader {
-    margin-left: 10px;
-    /* Add some space between the input and the loader */
-    border: 4px solid #f3f3f3;
-    /* Light grey */
-    border-top: 4px solid #3498db;
-    /* Blue */
-    border-radius: 50%;
-    width: 20px;
-    height: 20px;
-    animation: spin 1s linear infinite;
+}
+
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.2);
   }
-  
-  @keyframes spin {
-    0% {
-      transform: rotate(0deg);
-    }
-  
-    100% {
-      transform: rotate(360deg);
-    }
+  70% {
+    box-shadow: 0 0 0 8px rgba(220, 38, 38, 0);
   }
-  
-  .attach-button {
-    display: flex;
-    margin-right: 10px;
-    align-items: center;
-    justify-content: center;
-    border: none;
-    border-radius: 50%;
-    width: 36px;
-    height: 36px;
-    background-color: #f5f5f5;
-    box-shadow: 0px 1px 5px rgba(0, 0, 0, 0.1);
-    cursor: pointer;
-    outline: none;
-    position: relative;
-    background-image: url('https://img.icons8.com/material-outlined/24/000000/attach.png');
-    background-size: 60%;
-    background-position: center;
-    background-repeat: no-repeat;
+  100% {
+    box-shadow: 0 0 0 0 rgba(220, 38, 38, 0);
   }
-  
-  .attach-button.attached {
-    background-color: #007bff;
-    background-image: url('https://img.icons8.com/material-outlined/24/ffffff/attach.png');
-  }
-  
-  .microphone-button {
-    display: flex;
-    margin-right: 10px;
-    align-items: center;
-    justify-content: center;
-    border: none;
-    border-radius: 50%;
-    width: 36px;
-    height: 36px;
-    background-color: #f5f5f5;
-    box-shadow: 0px 1px 5px rgba(0, 0, 0, 0.1);
-    cursor: pointer;
-    outline: none;
-    position: relative;
-    background-image: url('https://img.icons8.com/material-outlined/24/000000/microphone.png');
-    background-size: 60%;
-    background-position: center;
-    background-repeat: no-repeat;
-  }
-  
-  .microphone-button.listening {
-    animation: pulse 1s infinite;
-  }
-  
-  @keyframes pulse {
-    0% {
-      box-shadow: 0 0 0 0 rgba(0, 0, 0, 0.1);
-    }
-  
-    70% {
-      box-shadow: 0 0 0 10px rgba(0, 0, 0, 0);
-    }
-  
-    100% {
-      box-shadow: 0 0 0 0 rgba(0, 0, 0, 0);
-    }
-  }
-  
+}

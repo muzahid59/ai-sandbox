@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import MessageBubble from '../MessageBubble/MessageBubble';
-import styles from './MessageList.module.css'; 
+import styles from './MessageList.module.css';
 
 const MessageList = ({ messages }) => {
   const chatEndRef = useRef(null);
@@ -14,10 +14,12 @@ const MessageList = ({ messages }) => {
 
   return (
     <div className={styles.chatbox} ref={chatboxRef}>
-      {messages.map((message, index) => (
-        <MessageBubble key={index} message={message} />
-      ))}
-      <div ref={chatEndRef} />
+      <div className={styles.inner}>
+        {messages.map((message) => (
+          <MessageBubble key={message.id} message={message} />
+        ))}
+        <div ref={chatEndRef} />
+      </div>
     </div>
   );
 };
