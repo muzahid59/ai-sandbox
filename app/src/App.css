@@ -1,8 +1,15 @@
 .App {
   display: flex;
+  flex-direction: row;
+  height: 100vh;
+  background-color: var(--main-bg);
+  box-sizing: border-box;
+}
+
+.mainContent {
+  flex: 1;
+  display: flex;
   flex-direction: column;
   height: 100vh;
-  background-color: #ffffff;
-  box-sizing: border-box;
-  padding: auto;
+  overflow: hidden;
 }

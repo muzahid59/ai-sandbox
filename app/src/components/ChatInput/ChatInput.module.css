@@ -1,161 +1,154 @@
-.chat-input {
+.inputWrapper {
+  width: 100%;
+  max-width: 680px;
+  margin: 0 auto;
+  padding: 16px 24px 24px;
+  box-sizing: border-box;
+}
+
+.inputContainer {
+  background: var(--input-bg);
+  border: 1px solid var(--input-border);
+  border-radius: 20px;
+  padding: 12px 16px;
+  transition: border-color 0.2s ease;
+}
+
+.inputContainer:focus-within {
+  border-color: var(--input-border-focus);
+}
+
+.textInput {
+  width: 100%;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--text-primary);
+  font-size: 16px;
+  padding: 8px 0;
+  font-family: var(--font-sans);
+  box-sizing: border-box;
+}
+
+.textInput::placeholder {
+  color: var(--text-muted);
+}
+
+.textInput:disabled {
+  opacity: 0.6;
+}
+
+.toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 8px;
+}
+
+.toolbarLeft,
+.toolbarRight {
   display: flex;
   align-items: center;
-  padding: 1rem;
-  background: white;
-  border-top: 1px solid #ddd;
-  width: 60%;
-  margin: 0 auto;
-  gap: 10px; /* Add spacing between elements */
+  gap: 8px;
 }
 
-/* Add styles for the text input */
-input[type="text"] {
-  flex: 1;
-  padding: 10px;
-  border: 1px solid #ddd;
-  border-radius: 20px;
-  outline: none;
-  font-size: 16px;
-  min-width: 0; /* Allows input to shrink properly */
-}
-
-/* Group the buttons together */
-.attach-button,
-.microphone-button,
-.submit-button {
-  flex-shrink: 0; /* Prevent buttons from shrinking */
-}
-
-.input-box {
-  flex: 1;
-  padding: 10px;
-  border: 1px solid #ddd;
-  border-radius: 20px;
-  outline: none;
-  font-size: 16px;
-}
-
-.icon-button {
+.toolBtn {
   background: none;
-  border: none;
-  font-size: 20px;
+  border: 1px solid var(--input-border);
+  border-radius: 8px;
+  width: 32px;
+  height: 32px;
+  color: var(--text-secondary);
   cursor: pointer;
-  margin: 0 8px;
-}
-
-.send-button {
-  background: #0b93f6;
-  color: white;
-  border: none;
-  padding: 8px 15px;
-  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   font-size: 18px;
+  transition: background-color 0.15s ease;
+  padding: 0;
+}
+
+.toolBtn:hover {
+  background-color: var(--button-hover);
+}
+
+.toolBtn.attached {
+  background-color: var(--accent-warm);
+  color: var(--sidebar-bg);
+  border-color: var(--accent-warm);
+}
+
+.toolBtn.listening {
+  color: #ef4444;
+  border-color: #ef4444;
+  animation: pulse 1.5s infinite;
+}
+
+.modelSelect {
+  background: transparent;
+  border: 1px solid var(--input-border);
+  border-radius: 8px;
+  color: var(--text-secondary);
+  padding: 4px 8px;
+  font-size: 13px;
   cursor: pointer;
+  outline: none;
+  font-family: var(--font-sans);
 }
 
-.listening {
-  color: red;
+.modelSelect option {
+  background: var(--sidebar-bg);
+  color: var(--text-primary);
 }
 
+.sendBtn {
+  background-color: var(--accent-warm);
+  border: none;
+  border-radius: 8px;
+  width: 32px;
+  height: 32px;
+  color: #1a1a1a;
+  cursor: pointer;
+  font-size: 18px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.15s ease;
+}
 
-.submit-button {
-    padding: 10px 20px;
-    border: none;
-    border-radius: 5px;
-    background-color: #007bff;
-    color: white;
-    cursor: pointer;
-    transition: background-color 0.3s ease;
-  }
-  
-  .submit-button:hover {
-    background-color: #0056b3;
-  }
-  
-  .loader {
-    margin-left: 10px;
-    /* Add some space between the input and the loader */
-    border: 4px solid #f3f3f3;
-    /* Light grey */
-    border-top: 4px solid #3498db;
-    /* Blue */
-    border-radius: 50%;
-    width: 20px;
-    height: 20px;
-    animation: spin 1s linear infinite;
-  }
-  
-  @keyframes spin {
-    0% {
-      transform: rotate(0deg);
-    }
-  
-    100% {
-      transform: rotate(360deg);
-    }
-  }
-  
-  .attach-button {
-    display: flex;
-    margin-right: 10px;
-    align-items: center;
-    justify-content: center;
-    border: none;
-    border-radius: 50%;
-    width: 36px;
-    height: 36px;
-    background-color: #f5f5f5;
-    box-shadow: 0px 1px 5px rgba(0, 0, 0, 0.1);
-    cursor: pointer;
-    outline: none;
-    position: relative;
-    background-image: url('https://img.icons8.com/material-outlined/24/000000/attach.png');
-    background-size: 60%;
-    background-position: center;
-    background-repeat: no-repeat;
-  }
-  
-  .attach-button.attached {
-    background-color: #007bff;
-    background-image: url('https://img.icons8.com/material-outlined/24/ffffff/attach.png');
-  }
-  
-  .microphone-button {
-    display: flex;
-    margin-right: 10px;
-    align-items: center;
-    justify-content: center;
-    border: none;
-    border-radius: 50%;
-    width: 36px;
-    height: 36px;
-    background-color: #f5f5f5;
-    box-shadow: 0px 1px 5px rgba(0, 0, 0, 0.1);
-    cursor: pointer;
-    outline: none;
-    position: relative;
-    background-image: url('https://img.icons8.com/material-outlined/24/000000/microphone.png');
-    background-size: 60%;
-    background-position: center;
-    background-repeat: no-repeat;
-  }
-  
-  .microphone-button.listening {
-    animation: pulse 1s infinite;
-  }
-  
-  @keyframes pulse {
-    0% {
-      box-shadow: 0 0 0 0 rgba(0, 0, 0, 0.1);
-    }
-  
-    70% {
-      box-shadow: 0 0 0 10px rgba(0, 0, 0, 0);
-    }
-  
-    100% {
-      box-shadow: 0 0 0 0 rgba(0, 0, 0, 0);
-    }
-  }
-  
+.sendBtn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.sendBtn:not(:disabled):hover {
+  opacity: 0.85;
+}
+
+.loader {
+  width: 24px;
+  height: 24px;
+  border: 3px solid var(--input-border);
+  border-top: 3px solid var(--accent-warm);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.disclaimer {
+  text-align: center;
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 8px;
+}
+
+@keyframes pulse {
+  0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.3); }
+  70% { box-shadow: 0 0 0 8px rgba(239, 68, 68, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+}

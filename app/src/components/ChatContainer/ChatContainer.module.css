@@ -1,14 +1,30 @@
-.chatbox {
+.container {
   display: flex;
-  flex-grow: 1;
   flex-direction: column;
-  padding: 16px;
-  /* max-width: 600px; */
-  width: 50%;
-  margin: auto;
-  background-color: #fff;
-  box-sizing: border-box;
-  border-radius: 5px;
-  overflow-y: auto;
-  border: 1px solid #ddd;
+  flex: 1;
+  height: 100vh;
+  background-color: var(--main-bg);
+  overflow: hidden;
+}
+
+.welcomeScreen {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding-bottom: 120px;
+}
+
+.welcomeIcon {
+  font-size: 48px;
+  margin-bottom: 16px;
+  color: var(--accent-warm);
+}
+
+.welcomeHeading {
+  font-size: 28px;
+  font-weight: 500;
+  color: var(--accent-cream);
+  margin: 0 0 32px 0;
 }

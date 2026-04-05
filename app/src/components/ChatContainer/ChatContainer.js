@@ -1,9 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { setOnNewMessage, listenMessage } from '../../fetch_message';
-import ModelSelector from '../ModelSelector';
 import MessageList from '../MessageList/MessageList';
 import ChatInput from '../ChatInput/ChatInput';
-import './ChatContainer.module.css';
+import styles from './ChatContainer.module.css';
 
 function ChatContainer() {
   const [inputValue, setInputValue] = useState('');
@@ -21,13 +20,11 @@ function ChatContainer() {
     setMessages((prevMessages) => {
       const newMessages = [...prevMessages];
       if (streamingMessageIndex !== null) {
-        // Append to existing streaming message
         newMessages[streamingMessageIndex] = {
           ...newMessages[streamingMessageIndex],
           text: newMessages[streamingMessageIndex].text + message.text,
         };
       } else {
-        // Start new streaming message
         newMessages.push(message);
         setStreamingMessageIndex(newMessages.length - 1);
       }
@@ -43,7 +40,7 @@ function ChatContainer() {
   async function dispatchMessage(message) {
     try {
       setIsLoading(true);
-      setStreamingMessageIndex(null); // Reset streaming index for new message
+      setStreamingMessageIndex(null);
       const newMessages = [...messagesRef.current, message];
       setMessages(newMessages);
       setInputValue('');
@@ -75,11 +72,11 @@ function ChatContainer() {
           .map((result) => result[0])
           .map((result) => result.transcript)
           .join('');
-      
+
         console.log('recognition result', transcript);
         setInputValue(transcript);
       };
-      
+
       recognition.current.onend = () => {
         setIsListening(false);
       };
@@ -113,12 +110,11 @@ function ChatContainer() {
     if (!inputValue) {
       return;
     }
-    
-    // Stop recognition if it's currently listening
+
     if (isListening) {
       stopListening();
     }
-    
+
     dispatchMessage({ text: inputValue, image: imageData, sent: true, model: selectedModel });
   };
 
@@ -133,23 +129,36 @@ function ChatContainer() {
     }
   };
 
+  const inputProps = {
+    inputValue,
+    setInputValue,
+    handleSubmit,
+    handleImageChange,
+    startListening,
+    stopListening,
+    isListening,
+    isLoading,
+    fileInputRef,
+    imageData,
+    selectedModel,
+    onModelChange: handleModelChange,
+  };
+
   return (
-    <>
-      <MessageList messages={messages} />
-      <ChatInput
-        inputValue={inputValue}
-        setInputValue={setInputValue}
-        handleSubmit={handleSubmit}
-        handleImageChange={handleImageChange}
-        startListening={startListening}
-        stopListening={stopListening}
-        isListening={isListening}
-        isLoading={isLoading}
-        fileInputRef={fileInputRef}
-        imageData={imageData}
-      />
-      <ModelSelector onModelChange={handleModelChange} selectedModel={selectedModel} />
-    </>
+    <div className={styles.container}>
+      {messages.length === 0 ? (
+        <div className={styles.welcomeScreen}>
+          <div className={styles.welcomeIcon}>✦</div>
+          <h1 className={styles.welcomeHeading}>How can I help you today?</h1>
+          <ChatInput {...inputProps} />
+        </div>
+      ) : (
+        <>
+          <MessageList messages={messages} />
+          <ChatInput {...inputProps} />
+        </>
+      )}
+    </div>
   );
 }
 
