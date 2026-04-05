@@ -14,10 +14,12 @@ const MessageList = ({ messages }) => {
 
   return (
     <div className={styles.chatbox} ref={chatboxRef}>
-      {messages.map((message, index) => (
-        <MessageBubble key={index} message={message} />
-      ))}
-      <div ref={chatEndRef} />
+      <div className={styles.inner}>
+        {messages.map((message, index) => (
+          <MessageBubble key={index} message={message} />
+        ))}
+        <div ref={chatEndRef} />
+      </div>
     </div>
   );
 };

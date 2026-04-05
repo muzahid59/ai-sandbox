@@ -1,16 +1,17 @@
 .inputWrapper {
   width: 100%;
-  max-width: 680px;
+  max-width: 768px;
   margin: 0 auto;
-  padding: 16px 24px 24px;
+  padding: 8px 24px 12px;
   box-sizing: border-box;
+  flex-shrink: 0;
 }
 
 .inputContainer {
   background: var(--input-bg);
   border: 1px solid var(--input-border);
-  border-radius: 20px;
-  padding: 12px 16px;
+  border-radius: 16px;
+  padding: 10px 14px;
   transition: border-color 0.2s ease;
 }
 
@@ -23,11 +24,30 @@
   background: transparent;
   border: none;
   outline: none;
-  color: var(--text-primary);
+  color: var(--text-100);
   font-size: 16px;
-  padding: 8px 0;
+  padding: 4px 0;
   font-family: var(--font-sans);
   box-sizing: border-box;
+  resize: none;
+  overflow-y: auto;
+  max-height: 200px;
+  line-height: 1.5;
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) transparent;
+}
+
+.textInput::-webkit-scrollbar {
+  width: 4px;
+}
+
+.textInput::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.textInput::-webkit-scrollbar-thumb {
+  background-color: var(--scrollbar-thumb);
+  border-radius: 2px;
 }
 
 .textInput::placeholder {
@@ -40,30 +60,30 @@
 
 .toolbar {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  margin-top: 8px;
+  margin-top: 4px;
+  gap: 6px;
 }
 
-.toolbarLeft,
 .toolbarRight {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
+  margin-left: auto;
 }
 
 .toolBtn {
   background: none;
   border: 1px solid var(--input-border);
-  border-radius: 8px;
-  width: 32px;
-  height: 32px;
-  color: var(--text-secondary);
+  border-radius: 6px;
+  width: 28px;
+  height: 28px;
+  color: var(--text-300);
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 18px;
+  font-size: 16px;
   transition: background-color 0.15s ease;
   padding: 0;
 }
@@ -74,22 +94,21 @@
 
 .toolBtn.attached {
   background-color: var(--accent-warm);
-  color: var(--sidebar-bg);
+  color: white;
   border-color: var(--accent-warm);
 }
 
 .toolBtn.listening {
-  color: #ef4444;
-  border-color: #ef4444;
+  color: #dc2626;
+  border-color: #dc2626;
   animation: pulse 1.5s infinite;
 }
 
 .modelSelect {
   background: transparent;
-  border: 1px solid var(--input-border);
-  border-radius: 8px;
-  color: var(--text-secondary);
-  padding: 4px 8px;
+  border: none;
+  color: var(--text-300);
+  padding: 2px 4px;
   font-size: 13px;
   cursor: pointer;
   outline: none;
@@ -97,19 +116,19 @@
 }
 
 .modelSelect option {
-  background: var(--sidebar-bg);
-  color: var(--text-primary);
+  background: var(--bg-100);
+  color: var(--text-100);
 }
 
 .sendBtn {
-  background-color: var(--accent-warm);
+  background-color: var(--text-100);
   border: none;
-  border-radius: 8px;
-  width: 32px;
-  height: 32px;
-  color: #1a1a1a;
+  border-radius: 6px;
+  width: 28px;
+  height: 28px;
+  color: var(--bg-100);
   cursor: pointer;
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 700;
   display: flex;
   align-items: center;
@@ -118,21 +137,28 @@
 }
 
 .sendBtn:disabled {
-  opacity: 0.3;
+  opacity: 0.2;
   cursor: not-allowed;
 }
 
 .sendBtn:not(:disabled):hover {
-  opacity: 0.85;
+  opacity: 0.8;
 }
 
 .loader {
-  width: 24px;
-  height: 24px;
-  border: 3px solid var(--input-border);
-  border-top: 3px solid var(--accent-warm);
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--input-border);
+  border-top: 2px solid var(--text-100);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
+}
+
+.disclaimer {
+  text-align: center;
+  font-size: 12px;
+  color: var(--text-muted);
+  margin: 6px 0 0;
 }
 
 @keyframes spin {
@@ -140,15 +166,8 @@
   100% { transform: rotate(360deg); }
 }
 
-.disclaimer {
-  text-align: center;
-  font-size: 12px;
-  color: var(--text-muted);
-  margin-top: 8px;
-}
-
 @keyframes pulse {
-  0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.3); }
-  70% { box-shadow: 0 0 0 8px rgba(239, 68, 68, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+  0% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.2); }
+  70% { box-shadow: 0 0 0 8px rgba(220, 38, 38, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0); }
 }
