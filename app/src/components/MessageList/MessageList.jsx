@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import MessageBubble from '../MessageBubble/MessageBubble';
-import styles from './MessageList.module.css'; 
+import styles from './MessageList.module.css';
 
 const MessageList = ({ messages }) => {
   const chatEndRef = useRef(null);

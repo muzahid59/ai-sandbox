@@ -1,5 +1,5 @@
 :root,
-[data-theme="light"] {
+[data-theme='light'] {
   /* Claude light theme */
   --bg-100: #faf9f5;
   --bg-200: #f3f2ee;
@@ -38,7 +38,7 @@
   --font-mono: ui-monospace, 'Fira Code', Menlo, Monaco, Consolas, monospace;
 }
 
-[data-theme="dark"] {
+[data-theme='dark'] {
   --bg-100: #2b2a27;
   --bg-200: #302f2c;
   --bg-300: #3a3935;

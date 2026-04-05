@@ -36,16 +36,34 @@ const ChatInput = ({
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSubmit(e);
+      // Refocus and reset height after submit
+      setTimeout(() => {
+        if (textareaRef.current) {
+          textareaRef.current.focus();
+          textareaRef.current.style.height = 'auto';
+        }
+      }, 0);
     }
   };
 
   return (
     <div className={styles.inputWrapper}>
-      <form onSubmit={handleSubmit} className={styles.inputContainer}>
+      <form
+        onSubmit={(e) => {
+          handleSubmit(e);
+          setTimeout(() => {
+            if (textareaRef.current) {
+              textareaRef.current.focus();
+              textareaRef.current.style.height = 'auto';
+            }
+          }, 0);
+        }}
+        className={styles.inputContainer}
+      >
         <textarea
           ref={textareaRef}
           value={inputValue}
-          placeholder={isListening ? 'Listening...' : 'Reply...'}
+          placeholder={isListening ? 'Listening...' : 'Ask anything...'}
           onChange={(e) => {
             setInputValue(e.target.value);
             autoResize();
@@ -89,7 +107,16 @@ const ChatInput = ({
               onClick={isListening ? stopListening : startListening}
               title={isListening ? 'Stop listening' : 'Voice input'}
             >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
                 <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
                 <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
                 <line x1="12" y1="19" x2="12" y2="23" />

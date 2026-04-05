@@ -13,7 +13,7 @@ function ChatContainer() {
   const recognition = useRef(null);
   const fileInputRef = useRef();
   const messagesRef = useRef(messages);
-  const [selectedModel, setSelectedModel] = useState('deepseek');
+  const [selectedModel, setSelectedModel] = useState('lama');
   const [streamingMessageIndex, setStreamingMessageIndex] = useState(null);
 
   setOnNewMessage((message) => {
