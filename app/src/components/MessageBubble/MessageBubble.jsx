@@ -1,6 +1,5 @@
 import React from 'react';
 import ReactMarkdown from 'react-markdown';
-// import './Message.module.css';
 import styles from './Message.module.css';
 
 const MessageBubble = ({ message }) => {

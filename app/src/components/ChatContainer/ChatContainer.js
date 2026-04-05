@@ -1,99 +1,115 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { setOnNewMessage, listenMessage } from '../../fetch_message';
 import MessageList from '../MessageList/MessageList';
 import ChatInput from '../ChatInput/ChatInput';
 import styles from './ChatContainer.module.css';
+
+let nextMessageId = 1;
 
 function ChatContainer() {
   const [inputValue, setInputValue] = useState('');
   const [messages, setMessages] = useState([]);
   const [imageData, setImageData] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
   const [isListening, setIsListening] = useState(false);
   const recognition = useRef(null);
   const fileInputRef = useRef();
-  const messagesRef = useRef(messages);
   const [selectedModel, setSelectedModel] = useState('lama');
-  const [streamingMessageIndex, setStreamingMessageIndex] = useState(null);
+  const streamingIndexRef = useRef(null);
 
-  setOnNewMessage((message) => {
-    setMessages((prevMessages) => {
-      const newMessages = [...prevMessages];
-      if (streamingMessageIndex !== null) {
-        newMessages[streamingMessageIndex] = {
-          ...newMessages[streamingMessageIndex],
-          text: newMessages[streamingMessageIndex].text + message.text,
-        };
-      } else {
-        newMessages.push(message);
-        setStreamingMessageIndex(newMessages.length - 1);
+  useEffect(() => {
+    setOnNewMessage((message) => {
+      const isError = message.done && message.text && message.text.startsWith('Error:');
+
+      if (isError) {
+        setError(message.text);
+        streamingIndexRef.current = null;
+        setIsLoading(false);
+        return;
       }
-      return newMessages;
+
+      if (message.text) {
+        setMessages((prev) => {
+          const updated = [...prev];
+          const idx = streamingIndexRef.current;
+          if (idx !== null && updated[idx]) {
+            updated[idx] = {
+              ...updated[idx],
+              text: updated[idx].text + message.text,
+            };
+          } else {
+            const newMsg = { ...message, id: nextMessageId++ };
+            updated.push(newMsg);
+            streamingIndexRef.current = updated.length - 1;
+          }
+          return updated;
+        });
+      }
+
+      if (message.done) {
+        streamingIndexRef.current = null;
+        setIsLoading(false);
+      }
     });
 
-    if (message.done) {
-      setStreamingMessageIndex(null);
-      setIsLoading(false);
-    }
-  });
+    return () => setOnNewMessage(() => {});
+  }, []);
 
-  async function dispatchMessage(message) {
+  const dispatchMessage = useCallback((message) => {
     try {
       setIsLoading(true);
-      setStreamingMessageIndex(null);
-      const newMessages = [...messagesRef.current, message];
-      setMessages(newMessages);
+      setError(null);
+      streamingIndexRef.current = null;
+      const msgWithId = { ...message, id: nextMessageId++ };
+      setMessages((prev) => [...prev, msgWithId]);
       setInputValue('');
       listenMessage(message);
       setImageData(null);
-      fileInputRef.current.value = '';
-    } catch (error) {
-      console.error('Error:', error);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    } catch (err) {
+      setError(err.message);
       setIsLoading(false);
-    }
-  }
-
-  const handleModelChange = (model) => {
-    setSelectedModel(model);
-  };
-
-  useEffect(() => {
-    recognition.current = new (window.SpeechRecognition ||
-      window.webkitSpeechRecognition ||
-      window.mozSpeechRecognition ||
-      window.msSpeechRecognition)();
-    if (recognition.current) {
-      console.log('Speech recognition supported');
-      recognition.lang = 'en-US';
-      recognition.current.interimResults = true;
-      recognition.current.continuous = true;
-      recognition.current.onresult = (event) => {
-        const transcript = Array.from(event.results)
-          .map((result) => result[0])
-          .map((result) => result.transcript)
-          .join('');
-
-        console.log('recognition result', transcript);
-        setInputValue(transcript);
-      };
-
-      recognition.current.onend = () => {
-        setIsListening(false);
-      };
-    } else {
-      console.log('Speech recognition not supported');
     }
   }, []);
 
   useEffect(() => {
-    messagesRef.current = messages;
-  }, [messages]);
+    const SpeechRecognition =
+      window.SpeechRecognition ||
+      window.webkitSpeechRecognition ||
+      window.mozSpeechRecognition ||
+      window.msSpeechRecognition;
+
+    if (!SpeechRecognition) return;
+
+    recognition.current = new SpeechRecognition();
+    recognition.current.lang = 'en-US';
+    recognition.current.interimResults = true;
+    recognition.current.continuous = true;
+
+    recognition.current.onresult = (event) => {
+      const transcript = Array.from(event.results)
+        .map((result) => result[0].transcript)
+        .join('');
+      setInputValue(transcript);
+    };
+
+    recognition.current.onend = () => {
+      setIsListening(false);
+    };
+
+    return () => {
+      if (recognition.current) {
+        recognition.current.abort();
+      }
+    };
+  }, []);
 
   const startListening = () => {
-    console.log('start listening');
     setIsListening(true);
     if (recognition.current) {
-      console.log('start listening');
       recognition.current.start();
     }
   };
@@ -105,17 +121,20 @@ function ChatContainer() {
     setIsListening(false);
   };
 
-  const handleSubmit = async (event) => {
+  const handleSubmit = (event) => {
     event.preventDefault();
-    if (!inputValue) {
-      return;
-    }
+    if (!inputValue) return;
 
     if (isListening) {
       stopListening();
     }
 
-    dispatchMessage({ text: inputValue, image: imageData, sent: true, model: selectedModel });
+    dispatchMessage({
+      text: inputValue,
+      image: imageData,
+      sent: true,
+      model: selectedModel,
+    });
   };
 
   const handleImageChange = (event) => {
@@ -141,7 +160,7 @@ function ChatContainer() {
     fileInputRef,
     imageData,
     selectedModel,
-    onModelChange: handleModelChange,
+    onModelChange: setSelectedModel,
   };
 
   return (
@@ -155,6 +174,7 @@ function ChatContainer() {
       ) : (
         <>
           <MessageList messages={messages} />
+          {error && <div className={styles.error}>{error}</div>}
           <ChatInput {...inputProps} />
         </>
       )}

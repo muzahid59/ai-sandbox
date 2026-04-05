@@ -15,8 +15,8 @@ const MessageList = ({ messages }) => {
   return (
     <div className={styles.chatbox} ref={chatboxRef}>
       <div className={styles.inner}>
-        {messages.map((message, index) => (
-          <MessageBubble key={index} message={message} />
+        {messages.map((message) => (
+          <MessageBubble key={message.id} message={message} />
         ))}
         <div ref={chatEndRef} />
       </div>

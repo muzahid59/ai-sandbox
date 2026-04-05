@@ -32,34 +32,32 @@ const ChatInput = ({
     }
   }, []);
 
+  const refocusInput = useCallback(() => {
+    setTimeout(() => {
+      if (textareaRef.current) {
+        textareaRef.current.focus();
+        textareaRef.current.style.height = 'auto';
+      }
+    }, 0);
+  }, []);
+
+  const onSubmit = (e) => {
+    e.preventDefault();
+    handleSubmit(e);
+    refocusInput();
+  };
+
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSubmit(e);
-      // Refocus and reset height after submit
-      setTimeout(() => {
-        if (textareaRef.current) {
-          textareaRef.current.focus();
-          textareaRef.current.style.height = 'auto';
-        }
-      }, 0);
+      refocusInput();
     }
   };
 
   return (
     <div className={styles.inputWrapper}>
-      <form
-        onSubmit={(e) => {
-          handleSubmit(e);
-          setTimeout(() => {
-            if (textareaRef.current) {
-              textareaRef.current.focus();
-              textareaRef.current.style.height = 'auto';
-            }
-          }, 0);
-        }}
-        className={styles.inputContainer}
-      >
+      <form onSubmit={onSubmit} className={styles.inputContainer}>
         <textarea
           ref={textareaRef}
           value={inputValue}
@@ -93,6 +91,7 @@ const ChatInput = ({
             value={selectedModel}
             onChange={(e) => onModelChange(e.target.value)}
             className={styles.modelSelect}
+            aria-label="Select AI model"
           >
             {MODELS.map((model) => (
               <option key={model.id} value={model.id}>
@@ -106,6 +105,7 @@ const ChatInput = ({
               className={`${styles.toolBtn} ${isListening ? styles.listening : ''}`}
               onClick={isListening ? stopListening : startListening}
               title={isListening ? 'Stop listening' : 'Voice input'}
+              aria-label={isListening ? 'Stop listening' : 'Voice input'}
             >
               <svg
                 width="14"
@@ -131,6 +131,7 @@ const ChatInput = ({
                 className={styles.sendBtn}
                 disabled={!inputValue}
                 title="Send message"
+                aria-label="Send message"
               >
                 ↑
               </button>
