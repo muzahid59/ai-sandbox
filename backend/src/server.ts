@@ -3,6 +3,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import { authMiddleware } from './middleware/auth';
 import { threadRoutes } from './routes/threadRoutes';
+import { messageRoutes } from './routes/messageRoutes';
 
 dotenv.config();
 
@@ -22,6 +23,7 @@ app.use(legacyRoutes);
 // New API v1 routes (with auth)
 app.use('/api/v1', authMiddleware);
 app.use('/api/v1', threadRoutes);
+app.use('/api/v1', messageRoutes);
 
 app.get('/', (_req, res) => {
   res.send('Hi there! This is the AI sandbox server');
