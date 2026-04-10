@@ -21,7 +21,7 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    image: ai-sandbox-backend:latest  
+    image: ai-sandbox-backend:latest
     ports:
       - "5001:5001"
     restart: always
@@ -34,3 +34,19 @@ services:
       - "host.docker.internal:host-gateway"
     env_file:
       - ./backend/.env
+    depends_on:
+      - postgres
+
+  postgres:
+    image: postgres:16-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: ai_sandbox
+      POSTGRES_PASSWORD: ai_sandbox_dev
+      POSTGRES_DB: ai_sandbox
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata:

@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@google/generative-ai": "^0.9.0",
+    "@prisma/client": "^5.22.0",
     "axios": "^1.7.9",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
@@ -23,9 +24,15 @@
     "@eslint/js": "^9.2.0",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
+    "@types/jest": "^30.0.0",
     "@types/node": "^25.5.2",
+    "@types/supertest": "^7.2.0",
     "eslint": "^9.2.0",
     "globals": "^15.1.0",
+    "jest": "^30.3.0",
+    "prisma": "^5.22.0",
+    "supertest": "^7.2.2",
+    "ts-jest": "^29.4.9",
     "ts-node": "^10.9.2",
     "typescript": "^6.0.2"
   }
