@@ -1,6 +1,8 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import { authMiddleware } from './middleware/auth';
+import { threadRoutes } from './routes/threadRoutes';
 
 dotenv.config();
 
@@ -17,11 +19,13 @@ app.use(express.json({ limit: '20mb' }));
 // Legacy routes at root (backward compatible)
 app.use(legacyRoutes);
 
+// New API v1 routes (with auth)
+app.use('/api/v1', authMiddleware);
+app.use('/api/v1', threadRoutes);
+
 app.get('/', (_req, res) => {
   res.send('Hi there! This is the AI sandbox server');
 });
-
-// New /api/v1 routes will be added in later tasks
 
 export { app };
 
