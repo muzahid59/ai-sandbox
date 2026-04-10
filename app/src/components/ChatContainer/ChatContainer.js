@@ -1,80 +1,62 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { setOnNewMessage, listenMessage } from '../../fetch_message';
+import { fetchThread, createThread, sendMessage } from '../../api';
 import MessageList from '../MessageList/MessageList';
 import ChatInput from '../ChatInput/ChatInput';
 import styles from './ChatContainer.module.css';
 
-let nextMessageId = 1;
-
-function ChatContainer() {
+function ChatContainer({
+  activeThreadId,
+  onThreadCreated,
+  onThreadUpdated,
+}) {
   const [inputValue, setInputValue] = useState('');
   const [messages, setMessages] = useState([]);
   const [imageData, setImageData] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [isListening, setIsListening] = useState(false);
+  const [selectedModel, setSelectedModel] = useState('lama');
   const recognition = useRef(null);
   const fileInputRef = useRef();
-  const [selectedModel, setSelectedModel] = useState('lama');
-  const streamingIndexRef = useRef(null);
 
+  // Load thread messages when activeThreadId changes
   useEffect(() => {
-    setOnNewMessage((message) => {
-      const isError = message.done && message.text && message.text.startsWith('Error:');
-
-      if (isError) {
-        setError(message.text);
-        streamingIndexRef.current = null;
-        setIsLoading(false);
-        return;
-      }
-
-      if (message.text) {
-        setMessages((prev) => {
-          const updated = [...prev];
-          const idx = streamingIndexRef.current;
-          if (idx !== null && updated[idx]) {
-            updated[idx] = {
-              ...updated[idx],
-              text: updated[idx].text + message.text,
-            };
-          } else {
-            const newMsg = { ...message, id: nextMessageId++ };
-            updated.push(newMsg);
-            streamingIndexRef.current = updated.length - 1;
-          }
-          return updated;
-        });
-      }
-
-      if (message.done) {
-        streamingIndexRef.current = null;
-        setIsLoading(false);
-      }
-    });
-
-    return () => setOnNewMessage(() => {});
-  }, []);
-
-  const dispatchMessage = useCallback((message) => {
-    try {
-      setIsLoading(true);
+    if (!activeThreadId) {
+      setMessages([]);
       setError(null);
-      streamingIndexRef.current = null;
-      const msgWithId = { ...message, id: nextMessageId++ };
-      setMessages((prev) => [...prev, msgWithId]);
-      setInputValue('');
-      listenMessage(message);
-      setImageData(null);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
-    } catch (err) {
-      setError(err.message);
-      setIsLoading(false);
+      return;
     }
-  }, []);
 
+    let cancelled = false;
+
+    fetchThread(activeThreadId)
+      .then(({ thread, messages: threadMessages }) => {
+        if (cancelled) return;
+        setSelectedModel(thread.model);
+        setMessages(
+          threadMessages.map((m) => ({
+            id: m.id,
+            text: Array.isArray(m.content)
+              ? m.content
+                  .filter((b) => b.type === 'text')
+                  .map((b) => b.text)
+                  .join(' ')
+              : '',
+            sent: m.role === 'user',
+            done: true,
+          })),
+        );
+      })
+      .catch((err) => {
+        if (!cancelled) setError('Failed to load messages: ' + err.message);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeThreadId]);
+
+  // Speech recognition setup
   useEffect(() => {
     const SpeechRecognition =
       window.SpeechRecognition ||
@@ -120,6 +102,86 @@ function ChatContainer() {
     }
     setIsListening(false);
   };
+
+  const dispatchMessage = useCallback(
+    async (message) => {
+      try {
+        setIsLoading(true);
+        setError(null);
+
+        // Add user message to UI immediately (optimistic)
+        const tempUserId = 'temp-user-' + Date.now();
+        const tempAssistantId = 'temp-assistant-' + Date.now();
+
+        setMessages((prev) => [
+          ...prev,
+          { id: tempUserId, text: message.text, sent: true, done: true },
+        ]);
+        setInputValue('');
+        setImageData(null);
+        if (fileInputRef.current) fileInputRef.current.value = '';
+
+        // Create thread if needed (first message on welcome screen)
+        let threadId = activeThreadId;
+        if (!threadId) {
+          const thread = await createThread(selectedModel);
+          threadId = thread.id;
+          onThreadCreated?.(thread);
+        }
+
+        // Build content blocks for API
+        const content = [{ type: 'text', text: message.text }];
+        if (message.image) {
+          content.push({ type: 'image_url', url: message.image });
+        }
+
+        // Add assistant placeholder
+        setMessages((prev) => [
+          ...prev,
+          { id: tempAssistantId, text: '', sent: false, done: false },
+        ]);
+
+        // Stream response via SSE
+        await sendMessage(threadId, content, {
+          onCreated: (data) => {
+            // Replace temp IDs with real IDs from server
+            setMessages((prev) =>
+              prev.map((m) => {
+                if (m.id === tempUserId) return { ...m, id: data.user_msg_id };
+                if (m.id === tempAssistantId) return { ...m, id: data.assistant_msg_id };
+                return m;
+              }),
+            );
+          },
+          onDelta: (data) => {
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.id === data.msg_id || (!m.sent && !m.done)
+                  ? { ...m, text: m.text + data.text }
+                  : m,
+              ),
+            );
+          },
+          onDone: (data) => {
+            setMessages((prev) =>
+              prev.map((m) => (m.id === data.msg_id ? { ...m, done: true } : m)),
+            );
+            setIsLoading(false);
+            // Trigger title refresh in App
+            onThreadUpdated?.(threadId);
+          },
+          onError: (data) => {
+            setError(data.message || 'Something went wrong');
+            setIsLoading(false);
+          },
+        });
+      } catch (err) {
+        setError(err.message);
+        setIsLoading(false);
+      }
+    },
+    [activeThreadId, selectedModel, onThreadCreated, onThreadUpdated],
+  );
 
   const handleSubmit = (event) => {
     event.preventDefault();
@@ -167,7 +229,7 @@ function ChatContainer() {
     <div className={styles.container}>
       {messages.length === 0 ? (
         <div className={styles.welcomeScreen}>
-          <div className={styles.welcomeIcon}>✦</div>
+          <div className={styles.welcomeIcon}>&#10022;</div>
           <h1 className={styles.welcomeHeading}>How can I help you today?</h1>
           <ChatInput {...inputProps} />
         </div>
