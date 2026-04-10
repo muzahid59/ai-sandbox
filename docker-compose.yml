@@ -27,9 +27,10 @@ services:
     restart: always
     environment:
       - NODE_ENV=development
+      - DATABASE_URL=postgresql://ai_sandbox:ai_sandbox_dev@postgres:5432/ai_sandbox?schema=public
     volumes:
-      - ./backend:/backend  # Mount backend source code
-      - /backend/node_modules  # Prevent overwriting node_modules
+      - ./backend:/usr/src/app  # Mount backend source code
+      - /usr/src/app/node_modules  # Prevent overwriting node_modules
     extra_hosts:
       - "host.docker.internal:host-gateway"
     env_file:
