@@ -31,7 +31,7 @@ export async function handleListThreads(req: Request, res: Response) {
 }
 
 export async function handleGetThread(req: Request, res: Response) {
-  const thread = await getThreadById(req.params.id, req.user!.id);
+  const thread = await getThreadById(req.params.id as string, req.user!.id);
   if (!thread) {
     return res.status(404).json({ error: 'Thread not found' });
   }
@@ -43,7 +43,7 @@ export async function handleGetThread(req: Request, res: Response) {
 export async function handleUpdateThread(req: Request, res: Response) {
   try {
     const { title, status, system_prompt } = req.body;
-    const thread = await updateThread(req.params.id, req.user!.id, {
+    const thread = await updateThread(req.params.id as string, req.user!.id, {
       title,
       status,
       systemPrompt: system_prompt,
@@ -59,7 +59,7 @@ export async function handleUpdateThread(req: Request, res: Response) {
 
 export async function handleDeleteThread(req: Request, res: Response) {
   try {
-    const thread = await softDeleteThread(req.params.id, req.user!.id);
+    const thread = await softDeleteThread(req.params.id as string, req.user!.id);
     return res.json(thread);
   } catch (err: any) {
     if (err.message === 'Thread not found') {

@@ -20,7 +20,7 @@ function isReadableStream(obj: any): boolean {
 }
 
 export async function handleGetMessages(req: Request, res: Response) {
-  const thread = await getThreadById(req.params.id, req.user!.id);
+  const thread = await getThreadById(req.params.id as string, req.user!.id);
   if (!thread) {
     return res.status(404).json({ error: 'Thread not found' });
   }
@@ -33,7 +33,7 @@ export async function handleGetMessages(req: Request, res: Response) {
 }
 
 export async function handleSendMessage(req: Request, res: Response) {
-  const thread = await getThreadById(req.params.id, req.user!.id);
+  const thread = await getThreadById(req.params.id as string, req.user!.id);
   if (!thread) {
     return res.status(404).json({ error: 'Thread not found' });
   }
