@@ -1,0 +1,28 @@
+#!/bin/sh
+# Pre-commit hook: lint and format check for staged files
+
+set -e
+
+# Check if frontend files are staged
+FRONTEND_FILES=$(git diff --cached --name-only --diff-filter=ACM -- 'app/src/**/*.js' 'app/src/**/*.jsx' 2>/dev/null)
+
+if [ -n "$FRONTEND_FILES" ]; then
+  echo "Running frontend lint..."
+  cd app
+  npx eslint --no-error-on-unmatched-pattern $FRONTEND_FILES
+  echo "Frontend lint passed."
+  cd ..
+fi
+
+# Check if backend TS files are staged
+BACKEND_TS_FILES=$(git diff --cached --name-only --diff-filter=ACM -- 'backend/src/**/*.ts' 2>/dev/null)
+
+if [ -n "$BACKEND_TS_FILES" ]; then
+  echo "Running backend type check..."
+  cd backend
+  npx tsc --noEmit
+  echo "Backend type check passed."
+  cd ..
+fi
+
+echo "Pre-commit checks passed."

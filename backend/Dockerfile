@@ -27,4 +27,4 @@ COPY . .
 EXPOSE 5001
 
 # Run migrations and start the app
-CMD npx prisma migrate deploy && npm start
+CMD npx prisma migrate deploy && npm run dev

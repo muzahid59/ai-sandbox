@@ -1,0 +1,513 @@
+{
+  "info": {
+    "name": "AI Chat Thread API",
+    "description": "Chat thread backend API — threads, messages, streaming",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:5001",
+      "type": "string"
+    },
+    {
+      "key": "thread_id",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Threads",
+      "item": [
+        {
+          "name": "Create Thread",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "pm.test('Has thread id', () => pm.expect(res.id).to.be.a('string'));",
+                  "pm.test('Model matches', () => pm.expect(res.model).to.eql('lama'));",
+                  "pm.test('Status is active', () => pm.expect(res.status).to.eql('active'));",
+                  "// Save thread_id for subsequent requests",
+                  "pm.collectionVariables.set('thread_id', res.id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"model\": \"lama\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/threads",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "threads"]
+            }
+          }
+        },
+        {
+          "name": "Create Thread (with title + system prompt)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "pm.test('Title set', () => pm.expect(res.title).to.eql('TypeScript Help'));",
+                  "pm.test('System prompt set', () => pm.expect(res.systemPrompt).to.be.a('string'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"model\": \"lama\",\n  \"title\": \"TypeScript Help\",\n  \"system_prompt\": \"You are a TypeScript expert. Answer concisely.\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/threads",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "threads"]
+            }
+          }
+        },
+        {
+          "name": "Create Thread (missing model — 400)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Error message', () => pm.expect(pm.response.json().error).to.include('model'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/threads",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "threads"]
+            }
+          }
+        },
+        {
+          "name": "List Threads",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Returns array', () => pm.expect(pm.response.json()).to.be.an('array'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/v1/threads",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "threads"]
+            }
+          }
+        },
+        {
+          "name": "List Threads (with pagination)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Returns array', () => pm.expect(pm.response.json()).to.be.an('array'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/v1/threads?cursor={{thread_id}}&limit=5",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "threads"],
+              "query": [
+                { "key": "cursor", "value": "{{thread_id}}" },
+                { "key": "limit", "value": "5" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Thread (with messages)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Has thread', () => pm.expect(res.thread).to.be.an('object'));",
+                  "pm.test('Has messages', () => pm.expect(res.messages).to.be.an('array'));",
+                  "pm.test('Thread id matches', () => pm.expect(res.thread.id).to.eql(pm.collectionVariables.get('thread_id')));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/v1/threads/{{thread_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "threads", "{{thread_id}}"]
+            }
+          }
+        },
+        {
+          "name": "Get Thread (not found — 404)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 404', () => pm.response.to.have.status(404));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/v1/threads/00000000-0000-0000-0000-000000000000",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "threads", "00000000-0000-0000-0000-000000000000"]
+            }
+          }
+        },
+        {
+          "name": "Update Thread (title)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Title updated', () => pm.expect(res.title).to.eql('Renamed Chat'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Renamed Chat\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/threads/{{thread_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "threads", "{{thread_id}}"]
+            }
+          }
+        },
+        {
+          "name": "Update Thread (archive)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Status archived', () => pm.expect(res.status).to.eql('archived'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"archived\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/threads/{{thread_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "threads", "{{thread_id}}"]
+            }
+          }
+        },
+        {
+          "name": "Delete Thread (soft-delete)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Status deleted', () => pm.expect(res.status).to.eql('deleted'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{base_url}}/api/v1/threads/{{thread_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "threads", "{{thread_id}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Messages",
+      "item": [
+        {
+          "name": "Send Message (SSE stream)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// SSE responses are streamed — Postman shows raw text/event-stream",
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Content-Type is SSE', () => {",
+                  "  pm.expect(pm.response.headers.get('Content-Type')).to.include('text/event-stream');",
+                  "});",
+                  "pm.test('Has message_created event', () => {",
+                  "  pm.expect(pm.response.text()).to.include('message_created');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"content\": [\n    {\n      \"type\": \"text\",\n      \"text\": \"What is TypeScript?\"\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/threads/{{thread_id}}/messages",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "threads", "{{thread_id}}", "messages"]
+            }
+          }
+        },
+        {
+          "name": "Send Message (missing content — 400)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Error message', () => pm.expect(pm.response.json().error).to.include('content'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/threads/{{thread_id}}/messages",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "threads", "{{thread_id}}", "messages"]
+            }
+          }
+        },
+        {
+          "name": "Send Message (thread not found — 404)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 404', () => pm.response.to.have.status(404));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"content\": [\n    { \"type\": \"text\", \"text\": \"Hello\" }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/threads/00000000-0000-0000-0000-000000000000/messages",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "threads", "00000000-0000-0000-0000-000000000000", "messages"]
+            }
+          }
+        },
+        {
+          "name": "Get Messages (paginated)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Returns array', () => pm.expect(pm.response.json()).to.be.an('array'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/v1/threads/{{thread_id}}/messages",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "threads", "{{thread_id}}", "messages"]
+            }
+          }
+        },
+        {
+          "name": "Get Messages (with pagination params)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Returns array', () => pm.expect(pm.response.json()).to.be.an('array'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/v1/threads/{{thread_id}}/messages?limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "threads", "{{thread_id}}", "messages"],
+              "query": [
+                { "key": "limit", "value": "10" }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Legacy Endpoints",
+      "item": [
+        {
+          "name": "Health Check (GET /)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Server running', () => pm.expect(pm.response.text()).to.include('AI sandbox'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/",
+              "host": ["{{base_url}}"],
+              "path": [""]
+            }
+          }
+        },
+        {
+          "name": "Legacy Content Completion (SSE)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"text\": \"Hello, say hi back in one word\",\n  \"model\": \"lama\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/content-completion",
+              "host": ["{{base_url}}"],
+              "path": ["content-completion"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
