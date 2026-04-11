@@ -27,7 +27,7 @@ services:
     restart: always
     environment:
       - NODE_ENV=development
-      - DATABASE_URL=postgresql://ai_sandbox:ai_sandbox_dev@postgres:5432/ai_sandbox?schema=public
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-ai_sandbox}:${POSTGRES_PASSWORD:-ai_sandbox_dev}@postgres:5432/${POSTGRES_DB:-ai_sandbox}?schema=public
     volumes:
       - ./backend:/usr/src/app  # Mount backend source code
       - /usr/src/app/node_modules  # Prevent overwriting node_modules
@@ -43,9 +43,9 @@ services:
     ports:
       - "5433:5432"
     environment:
-      POSTGRES_USER: ai_sandbox
-      POSTGRES_PASSWORD: ai_sandbox_dev
-      POSTGRES_DB: ai_sandbox
+      POSTGRES_USER: ${POSTGRES_USER:-ai_sandbox}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ai_sandbox_dev}
+      POSTGRES_DB: ${POSTGRES_DB:-ai_sandbox}
     volumes:
       - pgdata:/var/lib/postgresql/data
 
