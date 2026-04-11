@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import './App.css';
 import ChatContainer from './components/ChatContainer/ChatContainer';
 import Sidebar from './components/Sidebar/Sidebar';
+import { fetchThreads, fetchThread, deleteThread } from './api';
 
 const SunIcon = () => (
   <svg
@@ -45,19 +46,75 @@ function App() {
   const [theme, setTheme] = useState(() => {
     return localStorage.getItem('theme') || 'light';
   });
+  const [threads, setThreads] = useState([]);
+  const [activeThreadId, setActiveThreadId] = useState(null);
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
     localStorage.setItem('theme', theme);
   }, [theme]);
 
+  // Fetch threads on mount
+  useEffect(() => {
+    fetchThreads()
+      .then(setThreads)
+      .catch((err) => console.error('Failed to load threads:', err));
+  }, []);
+
   const toggleTheme = () => {
     setTheme(theme === 'light' ? 'dark' : 'light');
   };
 
+  const handleNewChat = useCallback(() => {
+    setActiveThreadId(null);
+  }, []);
+
+  const handleSelectThread = useCallback((threadId) => {
+    setActiveThreadId(threadId);
+  }, []);
+
+  const handleDeleteThread = useCallback(
+    async (threadId) => {
+      try {
+        await deleteThread(threadId);
+        setThreads((prev) => prev.filter((t) => t.id !== threadId));
+        if (activeThreadId === threadId) {
+          setActiveThreadId(null);
+        }
+      } catch (err) {
+        console.error('Failed to delete thread:', err);
+      }
+    },
+    [activeThreadId]
+  );
+
+  // Called by ChatContainer when a new thread is created (first message)
+  const handleThreadCreated = useCallback((thread) => {
+    setThreads((prev) => [thread, ...prev]);
+    setActiveThreadId(thread.id);
+  }, []);
+
+  // Called by ChatContainer after a message completes — refresh thread title
+  const handleThreadUpdated = useCallback(async (threadId) => {
+    try {
+      const { thread } = await fetchThread(threadId);
+      setThreads((prev) =>
+        prev.map((t) => (t.id === threadId ? { ...t, title: thread.title } : t))
+      );
+    } catch (err) {
+      // silent — title refresh is not critical
+    }
+  }, []);
+
   return (
     <div className="App">
-      <Sidebar />
+      <Sidebar
+        threads={threads}
+        activeThreadId={activeThreadId}
+        onSelectThread={handleSelectThread}
+        onNewChat={handleNewChat}
+        onDeleteThread={handleDeleteThread}
+      />
       <div className="mainContent">
         <button
           className="themeToggle"
@@ -66,7 +123,11 @@ function App() {
         >
           {theme === 'light' ? <MoonIcon /> : <SunIcon />}
         </button>
-        <ChatContainer />
+        <ChatContainer
+          activeThreadId={activeThreadId}
+          onThreadCreated={handleThreadCreated}
+          onThreadUpdated={handleThreadUpdated}
+        />
       </div>
     </div>
   );

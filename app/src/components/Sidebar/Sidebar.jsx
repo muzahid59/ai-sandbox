@@ -112,19 +112,11 @@ const SidebarToggleIcon = () => (
   </svg>
 );
 
-const Sidebar = () => {
+const Sidebar = ({ threads = [], activeThreadId, onSelectThread, onNewChat, onDeleteThread }) => {
   const [collapsed, setCollapsed] = useState(false);
-
-  const recentChats = [
-    'React redesign project',
-    'API integration help',
-    'CSS variables guide',
-    'Streaming architecture',
-  ];
 
   return (
     <aside className={`${styles.sidebar} ${collapsed ? styles.collapsed : ''}`}>
-      {/* Collapsed: icons-only strip */}
       {collapsed ? (
         <div className={styles.collapsedContent}>
           <button
@@ -135,7 +127,7 @@ const Sidebar = () => {
             <SidebarToggleIcon />
           </button>
           <div className={styles.collapsedNav}>
-            <button className={styles.iconBtn} title="New chat">
+            <button className={styles.iconBtn} title="New chat" onClick={onNewChat}>
               <NewChatIcon />
             </button>
             <button className={styles.iconBtn} title="Search">
@@ -172,7 +164,7 @@ const Sidebar = () => {
           </div>
 
           <nav className={styles.nav}>
-            <button className={styles.navItem}>
+            <button className={styles.navItem} onClick={onNewChat}>
               <span className={styles.navIcon}>
                 <NewChatIcon />
               </span>
@@ -190,14 +182,33 @@ const Sidebar = () => {
 
           <div className={styles.recents}>
             <span className={styles.sectionLabel}>Recents</span>
-            {recentChats.map((chat, i) => (
-              <div key={i} className={styles.recentItem}>
+            {threads.map((thread) => (
+              <div
+                key={thread.id}
+                className={`${styles.recentItem} ${thread.id === activeThreadId ? styles.active : ''}`}
+                onClick={() => onSelectThread(thread.id)}
+              >
                 <span className={styles.recentIcon}>
                   <ChatIcon />
                 </span>
-                {chat}
+                <span className={styles.recentTitle}>
+                  {thread.title || 'New chat'}
+                </span>
+                <button
+                  className={styles.deleteBtn}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDeleteThread(thread.id);
+                  }}
+                  title="Delete"
+                >
+                  &times;
+                </button>
               </div>
             ))}
+            {threads.length === 0 && (
+              <div className={styles.emptyRecents}>No conversations yet</div>
+            )}
           </div>
 
           <div className={styles.userProfile}>

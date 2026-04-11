@@ -1,0 +1,65 @@
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum ThreadStatus {
+  active
+  archived
+  deleted
+}
+
+enum MessageRole {
+  user
+  assistant
+  system
+  tool
+}
+
+enum MessageStatus {
+  pending
+  streaming
+  complete
+  error
+}
+
+model Thread {
+  id           String       @id @default(uuid())
+  userId       String       @map("user_id")
+  title        String?
+  model        String
+  systemPrompt String?      @map("system_prompt")
+  tokenCount   Int          @default(0) @map("token_count")
+  status       ThreadStatus @default(active)
+  metadata     Json?
+  createdAt    DateTime     @default(now()) @map("created_at")
+  updatedAt    DateTime     @updatedAt @map("updated_at")
+  messages     Message[]
+
+  @@index([userId])
+  @@index([createdAt(sort: Desc)])
+  @@map("threads")
+}
+
+model Message {
+  id            String        @id @default(uuid())
+  threadId      String        @map("thread_id")
+  role          MessageRole
+  content       Json
+  status        MessageStatus @default(pending)
+  inputTokens   Int?          @map("input_tokens")
+  outputTokens  Int?          @map("output_tokens")
+  modelSnapshot String?       @map("model_snapshot")
+  stopReason    String?       @map("stop_reason")
+  createdAt     DateTime      @default(now()) @map("created_at")
+  completedAt   DateTime?     @map("completed_at")
+  thread        Thread        @relation(fields: [threadId], references: [id], onDelete: Cascade)
+
+  @@index([threadId, createdAt(sort: Desc)])
+  @@map("messages")
+}

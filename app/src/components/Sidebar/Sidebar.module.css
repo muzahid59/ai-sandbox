@@ -204,3 +204,42 @@
   color: var(--sidebar-text-active);
   white-space: nowrap;
 }
+
+.recentItem.active {
+  background-color: var(--sidebar-hover);
+  color: var(--sidebar-text-active);
+}
+
+.recentTitle {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.deleteBtn {
+  display: none;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 4px;
+  font-size: 16px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.deleteBtn:hover {
+  color: var(--text-100);
+  background-color: var(--sidebar-hover);
+}
+
+.recentItem:hover .deleteBtn {
+  display: block;
+}
+
+.emptyRecents {
+  font-size: 12px;
+  color: var(--text-muted);
+  padding: 8px 10px;
+}
