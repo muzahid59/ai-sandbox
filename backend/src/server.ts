@@ -4,8 +4,12 @@ import dotenv from 'dotenv';
 import { authMiddleware } from './middleware/auth';
 import { threadRoutes } from './routes/threadRoutes';
 import { messageRoutes } from './routes/messageRoutes';
+import { registerAllTools } from './tools';
 
 dotenv.config();
+
+// Register all available tools (calculator, etc.)
+registerAllTools();
 
 // Legacy routes (existing JS — kept working via allowJs)
 // eslint-disable-next-line @typescript-eslint/no-var-requires
