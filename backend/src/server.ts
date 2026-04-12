@@ -6,13 +6,14 @@ import { requestLogger } from './middleware/requestLogger';
 import { threadRoutes } from './routes/threadRoutes';
 import { messageRoutes } from './routes/messageRoutes';
 import { registerAllTools } from './tools';
+import { toolRegistry } from './services/toolRegistry';
 import logger from './config/logger';
 
 dotenv.config();
 
-// Register all available tools (calculator, etc.)
+// Register all available tools
 registerAllTools();
-logger.info({ tools: registerAllTools.length }, 'Tools registered');
+logger.info({ tools: toolRegistry.getDefinitions().map(t => t.name) }, 'Tools registered');
 
 // Legacy routes (existing JS — kept working via allowJs)
 // eslint-disable-next-line @typescript-eslint/no-var-requires
