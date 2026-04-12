@@ -23,10 +23,8 @@ function isReadableStream(obj: any): boolean {
 }
 
 function supportsToolCalling(aiService: any): boolean {
-  return (
-    typeof aiService.chatCompletion === 'function' &&
-    aiService.chatCompletion !== Object.getPrototypeOf(aiService).constructor.__proto__.prototype.chatCompletion
-  );
+  // Only true if the subclass overrides chatCompletion (not the base AIService stub)
+  return Object.getPrototypeOf(aiService).hasOwnProperty('chatCompletion');
 }
 
 export async function handleGetMessages(req: Request, res: Response) {
@@ -105,7 +103,7 @@ export async function handleSendMessage(req: Request, res: Response) {
 
     // Check if this AI service supports tool calling
     const tools = toolRegistry.getDefinitions();
-    const useToolCalling = tools.length > 0 && typeof aiService.chatCompletion === 'function';
+    const useToolCalling = tools.length > 0 && supportsToolCalling(aiService);
 
     log.info({ useToolCalling, toolCount: tools.length }, 'AI call starting');
 
@@ -128,6 +126,13 @@ export async function handleSendMessage(req: Request, res: Response) {
               .map((b: any) => b.text)
               .join(' '),
       }));
+
+      // Add system prompt for tool calling
+      messages.unshift({
+        role: 'system',
+        content:
+          'You are a helpful AI assistant. You have tools available. Rules: 1) Use tools when relevant — do not guess or make up answers. 2) Answer the user directly and concisely — no filler, no explaining your process, no mentioning code or programming languages. 3) Base your answer on tool results, not speculation.',
+      });
 
       // Add current user message
       messages.push({ role: 'user', content: userText });

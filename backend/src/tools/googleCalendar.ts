@@ -58,17 +58,23 @@ function getDateRange(input: Record<string, unknown>, defaultDays: number): { st
 
   let start: Date;
   if (input.start_date) {
-    start = new Date(input.start_date as string);
+    const parsed = new Date(input.start_date as string);
+    start = isNaN(parsed.getTime())
+      ? new Date(now.toLocaleString('en-US', { timeZone: timezone }))
+      : parsed;
   } else {
     start = new Date(now.toLocaleString('en-US', { timeZone: timezone }));
-    start.setHours(0, 0, 0, 0);
   }
+  start.setHours(0, 0, 0, 0);
 
   let end: Date;
   if (input.end_date) {
-    end = new Date(input.end_date as string);
+    const parsed = new Date(input.end_date as string);
+    end = isNaN(parsed.getTime()) ? new Date(start) : parsed;
   } else {
     end = new Date(start);
+  }
+  if (!input.end_date || isNaN(new Date(input.end_date as string).getTime())) {
     end.setDate(end.getDate() + defaultDays);
   }
 
