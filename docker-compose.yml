@@ -28,6 +28,7 @@ services:
     environment:
       - NODE_ENV=development
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
+      - SEARXNG_URL=http://searxng:8080
     volumes:
       - ./backend:/usr/src/app  # Mount backend source code
       - /usr/src/app/node_modules  # Prevent overwriting node_modules
