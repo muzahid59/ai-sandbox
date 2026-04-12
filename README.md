@@ -1,86 +1,127 @@
 # AI Sandbox
 
-AI Sandbox is a comprehensive toolkit that provides various AI-powered features. It's a great place to explore and experiment with AI technologies.
+A full-stack AI chat application with multi-model support, tool calling, and real-time web search. Chat with multiple AI models through a single interface -- the AI can search the web, fetch pages, and do calculations mid-conversation.
 
 ## Features
 
-1. **Text Completion**: Enhance your typing experience with AI-powered text completion. It predicts and suggests the next piece of text as you type.
-
-2. **Streaming Support**: Real-time data streaming is supported, allowing for dynamic and interactive user experiences.
-
-3. **Audio Input**: The application can take audio input, opening up possibilities for voice-activated commands or audio analysis.
-
-## Supported AI Services
-
-1. **OpenAI GPT**: Requires API key from OpenAI
-2. **Google Gemini**: Requires API key from Google AI Studio
-3. **Llama 3.2**: Runs locally through Ollama
-4. **DeepSeek-r1**: Runs locally through Ollama
+- **Multi-model chat** -- switch between OpenAI GPT, Google Gemini, Llama 3.2, and DeepSeek
+- **Tool calling** -- AI can search the web, fetch URLs, and evaluate math during a conversation
+- **Web search** -- powered by self-hosted SearXNG, no external API keys needed
+- **Streaming responses** -- real-time token-by-token output via SSE
+- **Threaded conversations** -- persistent chat history with PostgreSQL
+- **Voice input** -- speak your messages using Web Speech API
+- **Image support** -- attach images for vision-capable models
+- **Light/dark theme**
 
 ## Prerequisites
 
-1. **API Keys Setup**:
-   - Get OpenAI API key from [OpenAI Platform](https://platform.openai.com)
-   - Get Google API key from [Google AI Studio](https://makersuite.google.com/app/apikey)
+- [Docker & Docker Compose](https://docs.docker.com/get-docker/)
+- [Ollama](https://ollama.ai) (for local models)
 
-2. **Ollama Setup** (for Llama and DeepSeek):
-   - Install Ollama from [ollama.ai](https://ollama.ai)
-   - Pull the models:
-     ```bash
-     ollama pull llama3.2
-     ollama pull deepseek-r1:8b
-     ```
-   - Start Ollama service locally
+## Getting Started
 
-## How to Run
-
-### Local Development
-
-**Backend Setup**:
-   ```bash
-   # Navigate to backend directory
-   cd backend
-
-   # Copy environment file and update with your API keys
-   cp .env.example .env
-
-   # Install dependencies
-   npm install
-
-   # Start the server
-   npm start
-```
-**Frontend Setup**:
-   ```bash
-   # Navigate to frontend directory
-   cd app
-
-   # Install dependencies
-   npm install
-
-   # Start the server
-   npm start
-```
-
-### Docker Development
 ```bash
-# Build and start all services
-docker-compose up --build
-```
-## Access Points
-- Frontend: http://localhost:3000
-- Backend API: http://localhost:5001
-## Environment Variables
-Update the .env file in the backend directory with your API keys:
+# 1. Clone the repo
+git clone <repo-url>
+cd ai-sandbox
 
-```plaintext
-OPENAI_API_KEY=your_openai_key_here
-GOOGLE_API_KEY=your_google_key_here
- ```
+# 2. Set up environment
+cp .env.example .env
+cp backend/.env.example backend/.env
+# Edit backend/.env to add your API keys (optional -- local models work without them)
+
+# 3. Pull local models (optional)
+ollama pull llama3.2
+ollama pull deepseek-r1:8b
+
+# 4. Start all services
+docker-compose up --build
+
+# 5. Open http://localhost:3000
+```
+
+## Services
+
+| Service | URL | Description |
+|---------|-----|-------------|
+| Frontend | http://localhost:3000 | React chat interface |
+| Backend | http://localhost:5001 | Express API server |
+| PostgreSQL | localhost:5433 | Database |
+| SearXNG | http://localhost:8888 | Search engine (also has its own web UI) |
+
+## Supported Models
+
+| Model | Type | Requires |
+|-------|------|----------|
+| OpenAI GPT | Cloud | `OPENAI_API_KEY` in `backend/.env` |
+| Google Gemini | Cloud | `GOOGLE_API_KEY` in `backend/.env` |
+| Llama 3.2 | Local | Ollama running on port 11434 |
+| DeepSeek-r1 | Local | Ollama running on port 11434 |
+
+## AI Tools
+
+The AI can use these tools during a conversation (currently supported by Llama):
+
+| Tool | What it does |
+|------|-------------|
+| `web_search` | Searches the web via SearXNG and returns top results |
+| `fetch_url` | Fetches a web page and extracts the text content |
+| `calculator` | Evaluates math expressions |
+
+## Project Structure
+
+```
+ai-sandbox/
+├── app/              # React frontend
+├── backend/          # Express + TypeScript API
+│   ├── src/          # New TypeScript code
+│   └── services/     # AI model integrations
+├── searxng/          # SearXNG search engine config
+├── docs/             # Design docs & Postman collection
+└── docker-compose.yml
+```
+
+## Development
+
+**Backend:**
+```bash
+cd backend
+npm install
+npm run dev       # Start with auto-reload
+npm test          # Run tests
+```
+
+**Frontend:**
+```bash
+cd app
+npm install
+npm start         # Dev server with HMR
+npm run lint:fix  # Auto-fix lint issues
+```
+
+**Database:**
+```bash
+cd backend
+npx prisma migrate dev --name <name>   # Create migration
+npx prisma studio                      # Database GUI
+```
+
+## Environment Variables
+
+**`backend/.env`** (copy from `backend/.env.example`):
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `DATABASE_URL` | PostgreSQL connection string | Set by Docker |
+| `OPENAI_API_KEY` | OpenAI API key (optional) | -- |
+| `GOOGLE_API_KEY` | Google Gemini key (optional) | -- |
+| `SEARXNG_URL` | SearXNG instance URL | `http://localhost:8888` |
+| `LOG_LEVEL` | Logging level | `debug` |
+| `BASE_URL` | Frontend URL for CORS | `http://localhost:3000` |
 
 ## Notes
-- OpenAI and Google Gemini services require valid API keys in the .env file
-- Llama and DeepSeek services require Ollama to be running locally on port 11434
-- The application allows switching between different AI models through the interface
 
-Enjoy exploring the AI Sandbox
+- Local models (Llama, DeepSeek) require Ollama running on the host machine
+- SearXNG runs locally via Docker -- no search API keys needed
+- Tool calling currently works with Llama 3.2; other models use text-only mode
+- Auth is a hardcoded dev user -- not for production use
