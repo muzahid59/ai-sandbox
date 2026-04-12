@@ -1,6 +1,9 @@
 const  AIService  = require('./ai_services');
 const axios = require('axios');
 const { Transform } = require('stream');
+const logger = require('../src/config/logger').default;
+
+const log = logger.child({ service: 'LamaAI' });
 
 class LamaAI extends AIService {
   constructor(apiKey, baseUrl = 'http://host.docker.internal:11434/api') {
@@ -20,7 +23,7 @@ class LamaAI extends AIService {
             done: data.done || false
           });
         } catch (error) {
-          console.error("Error parsing chunk:", error);
+          log.error({ err: error }, 'Error parsing stream chunk');
         }
         callback();
       }
@@ -45,7 +48,7 @@ class LamaAI extends AIService {
       return parserStream;
 
     } catch (error) {
-      console.error("Error calling Lama AI Service:", error.message);
+      log.error({ err: error }, 'textCompletion failed');
       throw new Error("Failed to complete text request.");
     }
   }
@@ -128,7 +131,7 @@ class LamaAI extends AIService {
         stopReason: 'end_turn',
       };
     } catch (error) {
-      console.error('Error calling Ollama chatCompletion:', error.message);
+      log.error({ err: error }, 'chatCompletion failed');
       throw new Error('Failed to complete chat request with tools.');
     }
   }

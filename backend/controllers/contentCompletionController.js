@@ -1,7 +1,9 @@
 const { getAIService } = require('../services/ai_factory');
+const logger = require('../src/config/logger').default;
+const log = logger.child({ service: 'contentCompletion' });
 
 async function handleContentCompletion(req, res) {
-    console.log('handleContentCompletion', req.body);
+    log.info({ model: req.body.model }, 'Content completion request');
     const { text, model, image } = req.body;
     
     res.setHeader('Content-Type', 'text/event-stream');
@@ -30,13 +32,13 @@ async function handleContentCompletion(req, res) {
         });
 
         parserStream.on('error', (error) => {
-            console.error('Stream error:', error);
+            log.error({ err: error }, 'Stream error');
             res.write(`data: ${JSON.stringify({ error: error.message })}\n\n`);
             res.end();
         });
 
     } catch (error) {
-        console.error('Error:', error.message);
+        log.error({ err: error }, 'Content completion failed');
         const userMessage = error.message || 'Something went wrong. Please try again.';
         res.write(`data: ${JSON.stringify({ error: userMessage })}\n\n`);
         res.end();

@@ -1,5 +1,6 @@
 import { StructuredMessage, ToolCall, ToolDefinition, ToolResult } from '../types';
 import { toolRegistry } from './toolRegistry';
+import logger from '../config/logger';
 
 const MAX_TOOL_OUTPUT_LENGTH = 10_000;
 
@@ -27,10 +28,13 @@ export async function runAgenticLoop(
   callbacks: AgenticLoopCallbacks,
   maxIterations = 10,
 ): Promise<AgenticLoopResult> {
+  const log = logger.child({ component: 'agenticLoop' });
   const allRecords: ToolCallRecord[] = [];
   let finalText = '';
 
   for (let i = 0; i < maxIterations; i++) {
+    log.debug({ iteration: i + 1, messageCount: messages.length }, 'Loop iteration start');
+
     // 1. Call AI with messages + tool definitions
     const response = await aiService.chatCompletion({ messages, tools });
 
@@ -40,6 +44,7 @@ export async function runAgenticLoop(
       if (finalText) {
         callbacks.onDelta(finalText);
       }
+      log.debug({ iteration: i + 1 }, 'Loop complete — text response');
       break;
     }
 
@@ -64,6 +69,7 @@ export async function runAgenticLoop(
     // 4. Execute each tool call
     for (const toolCall of response.toolCalls) {
       callbacks.onToolUseStart(toolCall);
+      log.info({ tool: toolCall.name, input: toolCall.arguments }, 'Tool call start');
 
       const start = Date.now();
       const result = await toolRegistry.execute(toolCall.name, toolCall.arguments);
@@ -71,9 +77,11 @@ export async function runAgenticLoop(
 
       // Truncate output if too large
       if (result.output.length > MAX_TOOL_OUTPUT_LENGTH) {
+        log.warn({ tool: toolCall.name, originalLength: result.output.length }, 'Tool output truncated');
         result.output = result.output.substring(0, MAX_TOOL_OUTPUT_LENGTH) + '\n\n[Output truncated]';
       }
 
+      log.info({ tool: toolCall.name, durationMs, success: result.success }, 'Tool call end');
       allRecords.push({ call: toolCall, result, durationMs });
       callbacks.onToolUseResult(toolCall.id, toolCall.name, result);
 

@@ -2,6 +2,8 @@ const express = require('express');
 const router = express.Router();
 const multer  = require('multer');
 const path = require('path');
+const logger = require('../src/config/logger').default;
+const log = logger.child({ service: 'upload' });
 
 const storage = multer.diskStorage({
     destination: function(req, file, cb) {
@@ -16,7 +18,7 @@ const storage = multer.diskStorage({
 const upload = multer({ storage: storage});
 
 router.post('/upload', upload.single('image'), async (req, res) => {
-  console.log('upload request:', req.file);
+  log.info({ filename: req.file?.originalname }, 'File uploaded');
   const completion = { image: req.file.path };
   res.json(completion);
 });

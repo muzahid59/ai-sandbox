@@ -2,14 +2,17 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import { authMiddleware } from './middleware/auth';
+import { requestLogger } from './middleware/requestLogger';
 import { threadRoutes } from './routes/threadRoutes';
 import { messageRoutes } from './routes/messageRoutes';
 import { registerAllTools } from './tools';
+import logger from './config/logger';
 
 dotenv.config();
 
 // Register all available tools (calculator, etc.)
 registerAllTools();
+logger.info({ tools: registerAllTools.length }, 'Tools registered');
 
 // Legacy routes (existing JS — kept working via allowJs)
 // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -20,6 +23,7 @@ const port = process.env.PORT || 5001;
 
 app.use(cors());
 app.use(express.json({ limit: '20mb' }));
+app.use(requestLogger);
 
 // Legacy routes at root (backward compatible)
 app.use(legacyRoutes);
@@ -37,6 +41,6 @@ export { app };
 
 if (require.main === module) {
   app.listen(port, () => {
-    console.log(`Server running at http://localhost:${port}/`);
+    logger.info({ port }, 'Server running');
   });
 }

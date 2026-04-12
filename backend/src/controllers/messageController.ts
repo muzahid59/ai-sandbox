@@ -11,6 +11,7 @@ import { contextService } from '../services/contextService';
 import { ContentBlock, StructuredMessage, ToolCall, ToolResult } from '../types';
 import { toolRegistry } from '../services/toolRegistry';
 import { runAgenticLoop } from '../services/toolExecutor';
+import logger from '../config/logger';
 import prisma from '../config/database';
 
 // Import legacy AI factory (JS)
@@ -52,6 +53,8 @@ export async function handleSendMessage(req: Request, res: Response) {
     return res.status(400).json({ error: 'content is required and must be a non-empty array' });
   }
 
+  const log = (req.log || logger).child({ threadId: thread.id, model: thread.model });
+
   // 1. Persist user message
   const userMessage = await createMessage({
     threadId: thread.id,
@@ -68,6 +71,8 @@ export async function handleSendMessage(req: Request, res: Response) {
     status: 'streaming',
     modelSnapshot: thread.model,
   });
+
+  log.info({ userMsgId: userMessage.id, assistantMsgId: assistantMessage.id }, 'Message pair created');
 
   // 3. Set SSE headers
   res.setHeader('Content-Type', 'text/event-stream');
@@ -89,15 +94,20 @@ export async function handleSendMessage(req: Request, res: Response) {
       .map((b) => b.text)
       .join(' ');
 
+    log.debug({ userText }, 'User message received');
+
     const apiKey = process.env[`${thread.model.toUpperCase()}_API_KEY`] || '';
     const aiService = getAIService(apiKey, thread.model);
 
     let fullText = '';
     let toolCallCount = 0;
+    const startTime = Date.now();
 
     // Check if this AI service supports tool calling
     const tools = toolRegistry.getDefinitions();
     const useToolCalling = tools.length > 0 && typeof aiService.chatCompletion === 'function';
+
+    log.info({ useToolCalling, toolCount: tools.length }, 'AI call starting');
 
     if (useToolCalling) {
       // ─── Agentic path: structured messages + tool calling ───
@@ -215,6 +225,13 @@ export async function handleSendMessage(req: Request, res: Response) {
       }
     }
 
+    const durationMs = Date.now() - startTime;
+    log.info(
+      { durationMs, toolCallCount, responseLength: fullText.length },
+      'AI call complete',
+    );
+    log.debug({ responseText: fullText }, 'AI response');
+
     // 7. Persist assistant message
     await updateMessageStatus(assistantMessage.id, 'complete', {
       content: [{ type: 'text', text: fullText }],
@@ -249,6 +266,7 @@ export async function handleSendMessage(req: Request, res: Response) {
     );
     res.end();
   } catch (error: any) {
+    log.error({ err: error }, 'Message handling failed');
     await updateMessageStatus(assistantMessage.id, 'error').catch(() => {});
 
     res.write(
