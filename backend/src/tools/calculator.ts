@@ -1,5 +1,5 @@
 import { evaluate } from 'mathjs';
-import { ToolDefinition, ToolResult } from '../types';
+import { LegacyToolDefinition as ToolDefinition, LegacyToolResult as ToolResult } from '../types';
 
 export const definition: ToolDefinition = {
   name: 'calculator',

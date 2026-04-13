@@ -1,4 +1,4 @@
-import { ToolDefinition, ToolResult, ToolHandler } from '../types';
+import { LegacyToolDefinition as ToolDefinition, LegacyToolResult as ToolResult, ToolHandler } from '../types';
 
 interface RegisteredTool {
   definition: ToolDefinition;

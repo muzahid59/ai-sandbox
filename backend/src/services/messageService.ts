@@ -1,12 +1,12 @@
 import prisma from '../config/database';
 import { Message } from '@prisma/client';
-import { ContentBlock } from '../types';
+import { ContentBlock, ContentBlockParam } from '../types';
 
 export async function createMessage(data: {
   id?: string;
   threadId: string;
   role: 'user' | 'assistant' | 'system' | 'tool';
-  content: ContentBlock[];
+  content: (ContentBlock | ContentBlockParam)[];
   status?: 'pending' | 'streaming' | 'complete' | 'error';
   modelSnapshot?: string;
 }): Promise<Message> {

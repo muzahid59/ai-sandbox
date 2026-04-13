@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { ToolDefinition, ToolResult } from '../types';
+import { LegacyToolDefinition as ToolDefinition, LegacyToolResult as ToolResult } from '../types';
 import logger from '../config/logger';
 
 const log = logger.child({ tool: 'web_search' });

@@ -1,4 +1,4 @@
-import { StructuredMessage, ToolCall, ToolDefinition, ToolResult } from '../types';
+import { StructuredMessage, ToolCall, LegacyToolDefinition as ToolDefinition, LegacyToolResult as ToolResult } from '../types';
 import { toolRegistry } from './toolRegistry';
 import logger from '../config/logger';
 

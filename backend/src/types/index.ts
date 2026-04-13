@@ -1,59 +1,13 @@
-export interface ContentBlock {
-  type: 'text' | 'image_url' | 'tool_use' | 'tool_result';
-  text?: string;
-  url?: string;
-  mime?: string;
-  id?: string;
-  name?: string;
-  input?: unknown;
-  tool_use_id?: string;
-  content?: string;
-}
+export * from './content';
+export * from './messages';
+export * from './events';
+
+// ─── Auth ───
 
 export interface AuthUser {
   id: string;
   email: string;
 }
-
-// ─── Tool Calling Types ───
-
-export interface ToolDefinition {
-  name: string;
-  description: string;
-  parameters: Record<string, unknown>; // JSON Schema
-  timeoutMs?: number;
-}
-
-export interface ToolResult {
-  success: boolean;
-  output: string;
-}
-
-export interface ToolCall {
-  id: string;
-  name: string;
-  arguments: Record<string, unknown>;
-}
-
-export interface StructuredMessage {
-  role: 'system' | 'user' | 'assistant' | 'tool';
-  content: string | ContentBlock[];
-  tool_calls?: ToolCall[];
-}
-
-export interface ChatCompletionOptions {
-  messages: StructuredMessage[];
-  tools?: ToolDefinition[];
-  model?: string;
-}
-
-export interface ChatCompletionResult {
-  text: string;
-  toolCalls: ToolCall[];
-  stopReason: 'end_turn' | 'tool_use' | 'max_tokens';
-}
-
-export type ToolHandler = (input: Record<string, unknown>) => Promise<ToolResult>;
 
 // Augment Express Request to include user
 declare global {
@@ -63,3 +17,26 @@ declare global {
     }
   }
 }
+
+// ─── Backward-compatible aliases (removed as consumers migrate) ───
+
+import { MessageParam, ToolResult as NewToolResult, ToolDefinition as NewToolDefinition } from './messages';
+
+/** @deprecated Use MessageParam */
+export type StructuredMessage = MessageParam;
+
+/** @deprecated Use ToolDefinition with input_schema */
+export interface LegacyToolDefinition {
+  name: string;
+  description: string;
+  parameters: Record<string, unknown>;
+  timeoutMs?: number;
+}
+
+/** @deprecated Use ToolResult with is_error */
+export interface LegacyToolResult {
+  success: boolean;
+  output: string;
+}
+
+export type ToolHandler = (input: Record<string, unknown>) => Promise<LegacyToolResult>;

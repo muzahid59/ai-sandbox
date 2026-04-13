@@ -8,7 +8,8 @@ import {
   incrementThreadTokens,
 } from '../services/messageService';
 import { contextService } from '../services/contextService';
-import { ContentBlock, StructuredMessage, ToolCall, ToolResult } from '../types';
+import { StructuredMessage, ToolCall, LegacyToolResult as ToolResult } from '../types';
+import { ContentBlockParam } from '../types/content';
 import { toolRegistry } from '../services/toolRegistry';
 import { runAgenticLoop } from '../services/toolExecutor';
 import logger from '../config/logger';
@@ -46,7 +47,7 @@ export async function handleSendMessage(req: Request, res: Response) {
     return res.status(404).json({ error: 'Thread not found' });
   }
 
-  const { content } = req.body as { content?: ContentBlock[] };
+  const { content } = req.body as { content?: ContentBlockParam[] };
   if (!content || !Array.isArray(content) || content.length === 0) {
     return res.status(400).json({ error: 'content is required and must be a non-empty array' });
   }
