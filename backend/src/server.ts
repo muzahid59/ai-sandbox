@@ -16,10 +16,6 @@ dotenv.config();
 registerAllTools();
 logger.info({ tools: toolRegistry.getDefinitions().map(t => t.name) }, 'Tools registered');
 
-// Legacy routes (existing JS — kept working via allowJs)
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const legacyRoutes = require('../routes');
-
 const app = express();
 const port = process.env.PORT || 5001;
 
@@ -27,10 +23,7 @@ app.use(cors());
 app.use(express.json({ limit: '20mb' }));
 app.use(requestLogger);
 
-// Legacy routes at root (backward compatible)
-app.use(legacyRoutes);
-
-// New API v1 routes (with auth)
+// API v1 routes (with auth)
 app.use('/api/v1', authMiddleware);
 app.use('/api/v1', threadRoutes);
 app.use('/api/v1', messageRoutes);
