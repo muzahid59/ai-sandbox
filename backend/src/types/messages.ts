@@ -1,4 +1,4 @@
-import { ContentBlock, ContentBlockParam, ToolUseBlock } from './content';
+import { ContentBlock, ContentBlockParam } from './content';
 
 // ─── Stop Reasons ───
 

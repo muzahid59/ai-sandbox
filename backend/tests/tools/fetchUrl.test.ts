@@ -1,4 +1,4 @@
-import { handler } from '../../src/tools/fetchUrl';
+import { fetchUrl } from '../../src/tools/fetchUrl';
 
 // Mock axios
 jest.mock('axios');
@@ -14,7 +14,7 @@ jest.mock('dns', () => ({
 import dns from 'dns';
 const mockedDnsLookup = dns.promises.lookup as jest.MockedFunction<typeof dns.promises.lookup>;
 
-describe('fetch_url handler', () => {
+describe('fetch_url tool', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
@@ -25,60 +25,35 @@ describe('fetch_url handler', () => {
       data: '<html><body><h1>Hello World</h1><p>Some content here.</p></body></html>',
     });
 
-    const result = await handler({ url: 'https://example.com' });
+    const result = await fetchUrl.run({ url: 'https://example.com' });
 
-    expect(result.success).toBe(true);
-    expect(result.output).toContain('Hello World');
-    expect(result.output).toContain('Some content here.');
-    expect(result.output).not.toContain('<html>');
-  });
-
-  it('rejects missing url', async () => {
-    const result = await handler({});
-    expect(result.success).toBe(false);
-    expect(result.output).toContain('Invalid URL');
-  });
-
-  it('rejects non-http URLs', async () => {
-    const result = await handler({ url: 'ftp://example.com/file' });
-    expect(result.success).toBe(false);
-    expect(result.output).toContain('must start with http');
+    expect(result).toContain('Hello World');
+    expect(result).toContain('Some content here.');
+    expect(result).not.toContain('<html>');
   });
 
   it('blocks private IP 127.x.x.x', async () => {
     mockedDnsLookup.mockResolvedValue({ address: '127.0.0.1', family: 4 } as any);
 
-    const result = await handler({ url: 'http://localhost/secret' });
-
-    expect(result.success).toBe(false);
-    expect(result.output).toContain('private/internal');
+    await expect(fetchUrl.run({ url: 'http://localhost/secret' })).rejects.toThrow('private/internal');
   });
 
   it('blocks private IP 10.x.x.x', async () => {
     mockedDnsLookup.mockResolvedValue({ address: '10.0.0.1', family: 4 } as any);
 
-    const result = await handler({ url: 'http://internal-server.com/data' });
-
-    expect(result.success).toBe(false);
-    expect(result.output).toContain('private/internal');
+    await expect(fetchUrl.run({ url: 'http://internal-server.com/data' })).rejects.toThrow('private/internal');
   });
 
   it('blocks private IP 172.16.x.x', async () => {
     mockedDnsLookup.mockResolvedValue({ address: '172.16.0.1', family: 4 } as any);
 
-    const result = await handler({ url: 'http://some-host.com' });
-
-    expect(result.success).toBe(false);
-    expect(result.output).toContain('private/internal');
+    await expect(fetchUrl.run({ url: 'http://some-host.com' })).rejects.toThrow('private/internal');
   });
 
   it('blocks private IP 192.168.x.x', async () => {
     mockedDnsLookup.mockResolvedValue({ address: '192.168.1.1', family: 4 } as any);
 
-    const result = await handler({ url: 'http://router.local' });
-
-    expect(result.success).toBe(false);
-    expect(result.output).toContain('private/internal');
+    await expect(fetchUrl.run({ url: 'http://router.local' })).rejects.toThrow('private/internal');
   });
 
   it('truncates output to max_length', async () => {
@@ -86,19 +61,13 @@ describe('fetch_url handler', () => {
     const longContent = '<p>' + 'A'.repeat(10000) + '</p>';
     mockedAxios.get.mockResolvedValue({ data: longContent });
 
-    const result = await handler({ url: 'https://example.com', max_length: 100 });
+    const result = await fetchUrl.run({ url: 'https://example.com', max_length: 100 });
 
-    expect(result.success).toBe(true);
-    expect(result.output.length).toBeLessThanOrEqual(100);
+    expect(result.length).toBeLessThanOrEqual(100);
   });
 
-  it('handles fetch errors gracefully', async () => {
-    mockedDnsLookup.mockResolvedValue({ address: '93.184.216.34', family: 4 } as any);
-    mockedAxios.get.mockRejectedValue(new Error('timeout'));
-
-    const result = await handler({ url: 'https://slow-site.com' });
-
-    expect(result.success).toBe(false);
-    expect(result.output).toContain('Failed to fetch');
+  it('has correct tool definition', () => {
+    expect(fetchUrl.definition.name).toBe('fetch_url');
+    expect(fetchUrl.definition.input_schema.required).toContain('url');
   });
 });

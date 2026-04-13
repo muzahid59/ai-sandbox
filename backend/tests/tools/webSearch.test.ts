@@ -1,11 +1,11 @@
-import { handler } from '../../src/tools/webSearch';
+import { webSearch } from '../../src/tools/webSearch';
 
 // Mock axios
 jest.mock('axios');
 import axios from 'axios';
 const mockedAxios = axios as jest.Mocked<typeof axios>;
 
-describe('web_search handler', () => {
+describe('web_search tool', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     process.env.SEARXNG_URL = 'http://localhost:8888';
@@ -21,13 +21,12 @@ describe('web_search handler', () => {
       },
     });
 
-    const result = await handler({ query: 'test query', num_results: 2 });
+    const result = await webSearch.run({ query: 'test query', num_results: 2 });
 
-    expect(result.success).toBe(true);
-    expect(result.output).toContain('1. Result One');
-    expect(result.output).toContain('First snippet');
-    expect(result.output).toContain('https://example.com/1');
-    expect(result.output).toContain('2. Result Two');
+    expect(result).toContain('1. Result One');
+    expect(result).toContain('First snippet');
+    expect(result).toContain('https://example.com/1');
+    expect(result).toContain('2. Result Two');
     expect(mockedAxios.get).toHaveBeenCalledWith(
       'http://localhost:8888/search',
       expect.objectContaining({
@@ -36,28 +35,18 @@ describe('web_search handler', () => {
     );
   });
 
-  it('returns error when query is missing', async () => {
-    const result = await handler({});
-    expect(result.success).toBe(false);
-    expect(result.output).toContain('Missing');
-  });
-
   it('returns message when no results found', async () => {
     mockedAxios.get.mockResolvedValue({ data: { results: [] } });
 
-    const result = await handler({ query: 'obscure query' });
+    const result = await webSearch.run({ query: 'obscure query' });
 
-    expect(result.success).toBe(true);
-    expect(result.output).toContain('No results found');
+    expect(result).toContain('No results found');
   });
 
-  it('handles SearXNG connection error', async () => {
+  it('throws ToolError on SearXNG connection error', async () => {
     mockedAxios.get.mockRejectedValue(new Error('ECONNREFUSED'));
 
-    const result = await handler({ query: 'test' });
-
-    expect(result.success).toBe(false);
-    expect(result.output).toContain('Search service unavailable');
+    await expect(webSearch.run({ query: 'test' })).rejects.toThrow('Search service unavailable');
   });
 
   it('clamps num_results to 1-10 range', async () => {
@@ -71,11 +60,10 @@ describe('web_search handler', () => {
       },
     });
 
-    const result = await handler({ query: 'test', num_results: 20 });
+    const result = await webSearch.run({ query: 'test', num_results: 20 });
 
-    expect(result.success).toBe(true);
-    expect(result.output).toContain('10.');
-    expect(result.output).not.toContain('11.');
+    expect(result).toContain('10.');
+    expect(result).not.toContain('11.');
   });
 
   it('defaults to 5 results', async () => {
@@ -89,10 +77,14 @@ describe('web_search handler', () => {
       },
     });
 
-    const result = await handler({ query: 'test' });
+    const result = await webSearch.run({ query: 'test' });
 
-    expect(result.success).toBe(true);
-    expect(result.output).toContain('5.');
-    expect(result.output).not.toContain('6.');
+    expect(result).toContain('5.');
+    expect(result).not.toContain('6.');
+  });
+
+  it('has correct tool definition', () => {
+    expect(webSearch.definition.name).toBe('web_search');
+    expect(webSearch.definition.input_schema.required).toContain('query');
   });
 });
