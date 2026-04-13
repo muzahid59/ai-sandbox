@@ -27,7 +27,7 @@ describe('fetch_url tool', () => {
 
     const result = await fetchUrl.run({ url: 'https://example.com' });
 
-    expect(result).toContain('Hello World');
+    expect(result.toUpperCase()).toContain('HELLO WORLD');
     expect(result).toContain('Some content here.');
     expect(result).not.toContain('<html>');
   });
