@@ -18,12 +18,19 @@ function ChatContainer({
   const [selectedModel, setSelectedModel] = useState('lama');
   const recognition = useRef(null);
   const fileInputRef = useRef();
+  const skipNextFetchRef = useRef(false);
 
   // Load thread messages when activeThreadId changes
   useEffect(() => {
     if (!activeThreadId) {
       setMessages([]);
       setError(null);
+      return;
+    }
+
+    // Skip fetch when thread was just created — we're mid-stream
+    if (skipNextFetchRef.current) {
+      skipNextFetchRef.current = false;
       return;
     }
 
@@ -126,6 +133,7 @@ function ChatContainer({
         if (!threadId) {
           const thread = await createThread(selectedModel);
           threadId = thread.id;
+          skipNextFetchRef.current = true;
           onThreadCreated?.(thread);
         }
 
@@ -156,15 +164,13 @@ function ChatContainer({
           onDelta: (data) => {
             setMessages((prev) =>
               prev.map((m) =>
-                m.id === data.msg_id || (!m.sent && !m.done)
-                  ? { ...m, text: m.text + data.text }
-                  : m,
+                !m.sent && !m.done ? { ...m, text: m.text + data.text } : m,
               ),
             );
           },
-          onDone: (data) => {
+          onDone: () => {
             setMessages((prev) =>
-              prev.map((m) => (m.id === data.msg_id ? { ...m, done: true } : m)),
+              prev.map((m) => (!m.sent && !m.done ? { ...m, done: true } : m)),
             );
             setIsLoading(false);
             // Trigger title refresh in App

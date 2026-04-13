@@ -58,17 +58,17 @@ export async function sendMessage(threadId, content, { onCreated, onDelta, onDon
           try {
             const data = JSON.parse(line.slice(5));
             switch (data.type) {
-              case 'message_created':
+              case 'message_start':
                 onCreated?.(data);
                 break;
-              case 'delta':
-                onDelta?.(data);
+              case 'content_block_delta':
+                onDelta?.({ text: data.delta?.text || '' });
                 break;
-              case 'done':
+              case 'message_stop':
                 onDone?.(data);
                 break;
               case 'error':
-                onError?.(data);
+                onError?.(data.error || data);
                 break;
               default:
                 break;
