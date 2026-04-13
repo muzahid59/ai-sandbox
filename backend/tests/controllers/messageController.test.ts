@@ -16,8 +16,8 @@ const mockContextService = {
   estimateTokens: jest.fn(),
 };
 
-const mockAIFactory = {
-  getAIService: jest.fn(),
+const mockChatService = {
+  processMessage: jest.fn(),
 };
 
 jest.mock('../../src/services/threadService', () => mockThreadService);
@@ -26,7 +26,7 @@ jest.mock('../../src/services/contextService', () => ({
   contextService: mockContextService,
   ContextService: jest.fn(),
 }));
-jest.mock('../../services/ai_factory', () => mockAIFactory);
+jest.mock('../../src/services/chatService', () => mockChatService);
 
 // Mock prisma for title update
 const mockPrisma = {
