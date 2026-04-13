@@ -1,5 +1,6 @@
 require('dotenv').config();
 const express = require('express');
+const logger = require('./src/config/logger').default;
 const app = express();
 const port = 5001;
 const cors = require('cors');
@@ -14,5 +15,5 @@ app.get('/', (req, res) => {
 })
 
 app.listen(port, () => {
-  console.log(`Server running at http://localhost:${port}/`);
+  logger.info({ port }, 'Server running');
 });

@@ -28,6 +28,7 @@ services:
     environment:
       - NODE_ENV=development
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
+      - SEARXNG_URL=http://searxng:8080
     volumes:
       - ./backend:/usr/src/app  # Mount backend source code
       - /usr/src/app/node_modules  # Prevent overwriting node_modules
@@ -38,6 +39,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      searxng:
+        condition: service_started
 
   postgres:
     image: postgres:16-alpine
@@ -54,6 +57,16 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+
+  searxng:
+    image: searxng/searxng:latest
+    ports:
+      - "8888:8080"
+    volumes:
+      - ./searxng:/etc/searxng
+    environment:
+      - SEARXNG_BASE_URL=http://localhost:8888/
+    restart: always
 
 volumes:
   pgdata:

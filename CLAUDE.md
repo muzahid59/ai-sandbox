@@ -25,7 +25,7 @@ npm run format     # Prettier format (src/**/*.{js,jsx,css,md})
 
 ### Docker
 ```bash
-docker-compose up --build   # Build and start all services (frontend, backend, postgres)
+docker-compose up --build   # Build and start all services (frontend, backend, postgres, searxng)
 docker-compose down -v      # Stop and remove containers + volumes (fresh start)
 ```
 
@@ -40,10 +40,11 @@ npx prisma studio                      # Open database GUI
 
 ## Architecture
 
-Monorepo with two services + database:
+Monorepo with three services + database:
 - **`app/`** — React 18 frontend (port 3000)
 - **`backend/`** — Express.js + TypeScript API server (port 5001)
 - **PostgreSQL 16** — Database via Docker (port 5433 on host, 5432 internally)
+- **SearXNG** — Self-hosted meta-search engine (port 8888 on host, 8080 internally)
 
 ### Backend
 
@@ -73,11 +74,27 @@ Hybrid JS/TS codebase. New code in `backend/src/` (TypeScript), legacy code in `
 
 **Context Service** (`backend/src/services/contextService.ts`): In-memory context window cache (Map with 10-min TTL). Builds conversation context from recent messages with token budget.
 
+**Tool Calling:** AI models can call tools mid-conversation via an agentic loop. Tools are registered at startup in `backend/src/tools/index.ts`.
+
+| Tool | File | Description |
+|------|------|-------------|
+| `calculator` | `backend/src/tools/calculator.ts` | Evaluate math expressions via mathjs |
+| `web_search` | `backend/src/tools/webSearch.ts` | Search the web via SearXNG JSON API |
+| `fetch_url` | `backend/src/tools/fetchUrl.ts` | Fetch a URL and extract plain text (with SSRF protection) |
+
+- **Tool Registry** (`backend/src/services/toolRegistry.ts`): Singleton that stores tool definitions and handlers with timeout-based execution.
+- **Agentic Loop** (`backend/src/services/toolExecutor.ts`): Loops up to 10 iterations — calls AI, executes any requested tools, feeds results back to AI until it produces a final text response.
+- Adding a new tool: create a file in `backend/src/tools/` exporting `definition` (ToolDefinition) and `handler` (async function returning ToolResult), then register it in `backend/src/tools/index.ts`.
+
+**Logging:** Structured JSON logging via pino (`backend/src/config/logger.ts`). Pretty-printed in development, JSON in production. Request logging via pino-http middleware (`backend/src/middleware/requestLogger.ts`). Sensitive fields (apiKey, authorization, cookie) are redacted. Set `LOG_LEVEL` in `.env` (default: `debug` in dev, `info` in prod).
+
 **SSE Format** (new `/api/v1` endpoints):
 ```
 data: {"type": "message_created", "user_msg_id": "...", "assistant_msg_id": "..."}
 data: {"type": "delta", "text": "chunk", "msg_id": "..."}
-data: {"type": "done", "msg_id": "...", "stop_reason": "end_turn"}
+data: {"type": "tool_use_start", "tool_call_id": "...", "name": "...", "arguments": {...}}
+data: {"type": "tool_use_result", "tool_call_id": "...", "name": "...", "success": true, "output": "..."}
+data: {"type": "done", "msg_id": "...", "stop_reason": "end_turn", "tool_calls_count": 0}
 data: {"type": "error", "code": "...", "message": "...", "retryable": true}
 ```
 
@@ -108,6 +125,8 @@ Backend requires `backend/.env` (copy from `backend/.env.example`):
 - `GOOGLE_API_KEY` — For Google Gemini
 - `DEEP_SEEK_API_KEY` — For DeepSeek (cloud)
 - `BASE_URL` — Frontend URL for CORS (default: `http://localhost:3000`)
+- `SEARXNG_URL` — SearXNG instance URL (default: `http://localhost:8888`, Docker override: `http://searxng:8080`)
+- `LOG_LEVEL` — Logging level: `debug`, `info`, `warn`, `error` (default: `debug` in dev)
 
 Llama and DeepSeek local models require Ollama running on port 11434. Docker uses `host.docker.internal` to reach the host Ollama instance.
 

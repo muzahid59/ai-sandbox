@@ -1,11 +1,13 @@
 const fs = require('fs');
 const path = require('path');
+const logger = require('../src/config/logger').default;
+const log = logger.child({ service: 'utils' });
 const scriptDir = path.dirname(__filename);
 
 
 function fileToGenerativePart(path, mimeType) {
   if (!fs.existsSync(path)) {
-    console.error(`File not found: ${path}`);
+    log.error({ path }, 'File not found');
     return null;
   }
 

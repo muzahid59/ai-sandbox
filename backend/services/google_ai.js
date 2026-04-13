@@ -1,6 +1,8 @@
 const AIService = require('./ai_services');
 const { GoogleGenerativeAI } = require("@google/generative-ai");
-const { fileUtils } = require('./utils')
+const { fileUtils } = require('./utils');
+const logger = require('../src/config/logger').default;
+const log = logger.child({ service: 'GoogleAI' });
 
 class GoogleAI extends AIService {
     constructor(apiKey) {
@@ -16,19 +18,16 @@ class GoogleAI extends AIService {
       const imageParts = [fileUtils(imagePath, "image/png")];
       const result = await model.generateContent([finalPrompt, ...imageParts]);
       const response = result.response;
-      console.log("Image Completion Response:", JSON.stringify(response, null, 2));
+      log.debug('Image completion response received');
       const text = response.text();
       return text;
     }
 
     async textCompletion(prompt) {
-      console.log('prompt', prompt);
-      // gemini-pro-vision
       const model = this.genAI.getGenerativeModel({ model: "gemini-pro"});
-      console.log('model', model);
       const result = await model.generateContent(prompt);
       const response = result.response;
-      console.log("Text Completion Response:", JSON.stringify(response, null, 2));
+      log.debug('Text completion response received');
       return response.text();
     }
   }

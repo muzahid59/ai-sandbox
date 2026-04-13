@@ -59,7 +59,30 @@ model Message {
   createdAt     DateTime      @default(now()) @map("created_at")
   completedAt   DateTime?     @map("completed_at")
   thread        Thread        @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  toolCalls     ToolCall[]
 
   @@index([threadId, createdAt(sort: Desc)])
   @@map("messages")
+}
+
+enum ToolCallStatus {
+  pending
+  running
+  success
+  error
+}
+
+model ToolCall {
+  id         String         @id @default(uuid())
+  messageId  String         @map("message_id")
+  name       String
+  arguments  Json
+  result     Json?
+  status     ToolCallStatus @default(pending)
+  durationMs Int?           @map("duration_ms")
+  createdAt  DateTime       @default(now()) @map("created_at")
+  message    Message        @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@index([messageId])
+  @@map("tool_calls")
 }

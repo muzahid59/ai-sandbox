@@ -1,6 +1,8 @@
 const AIService = require('./ai_services');
 const axios = require('axios');
 const { Transform } = require('stream');
+const logger = require('../src/config/logger').default;
+const log = logger.child({ service: 'DeepSeekAI' });
 
 class DeepSeekAI extends AIService {
   constructor(apiKey, baseUrl = 'http://host.docker.internal:11434/api') {
@@ -20,7 +22,7 @@ class DeepSeekAI extends AIService {
             done: data.done || false
           });
         } catch (error) {
-          console.error("Error parsing chunk:", error);
+          log.error({ err: error }, 'Error parsing stream chunk');
         }
         callback();
       }
@@ -49,7 +51,7 @@ class DeepSeekAI extends AIService {
       return parserStream;
   
     } catch (error) {
-      console.error("Error calling DeepSeek AI Service:", error.message);
+      log.error({ err: error }, 'textCompletion failed');
       throw new Error("Failed to complete text request with DeepSeek.");
     }
   }
