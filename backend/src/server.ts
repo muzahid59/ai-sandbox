@@ -3,6 +3,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import { authMiddleware } from './middleware/auth';
 import { requestLogger } from './middleware/requestLogger';
+import { errorHandler } from './middleware/errorHandler';
 import { threadRoutes } from './routes/threadRoutes';
 import { messageRoutes } from './routes/messageRoutes';
 import { registerAllTools } from './tools';
@@ -37,6 +38,9 @@ app.use('/api/v1', messageRoutes);
 app.get('/', (_req, res) => {
   res.send('Hi there! This is the AI sandbox server');
 });
+
+// Centralized error handler (must be after all routes)
+app.use(errorHandler);
 
 export { app };
 
