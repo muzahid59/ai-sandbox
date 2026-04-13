@@ -1,18 +1,18 @@
-import { LegacyToolDefinition as ToolDefinition, LegacyToolResult as ToolResult, ToolHandler } from '../types';
+import { ToolDefinition, ToolResult } from '../types/messages';
+import { RunnableTool } from '../tools/types';
+import { ToolError } from '../errors';
+import logger from '../config/logger';
 
-interface RegisteredTool {
-  definition: ToolDefinition;
-  handler: ToolHandler;
-}
+const log = logger.child({ component: 'toolRegistry' });
 
 class ToolRegistry {
-  private tools = new Map<string, RegisteredTool>();
+  private tools = new Map<string, RunnableTool>();
 
-  register(definition: ToolDefinition, handler: ToolHandler): void {
-    if (this.tools.has(definition.name)) {
-      throw new Error(`Tool "${definition.name}" is already registered`);
+  register(tool: RunnableTool): void {
+    if (this.tools.has(tool.definition.name)) {
+      throw new Error(`Tool "${tool.definition.name}" is already registered`);
     }
-    this.tools.set(definition.name, { definition, handler });
+    this.tools.set(tool.definition.name, tool);
   }
 
   getDefinitions(): ToolDefinition[] {
@@ -26,21 +26,32 @@ class ToolRegistry {
   async execute(name: string, input: Record<string, unknown>): Promise<ToolResult> {
     const tool = this.tools.get(name);
     if (!tool) {
-      return { success: false, output: `Unknown tool: ${name}` };
+      return { output: `Unknown tool: ${name}`, is_error: true };
     }
 
-    const timeout = tool.definition.timeoutMs ?? 30_000;
+    const timeout = tool.timeoutMs ?? 30_000;
+
+    // Validate input with Zod
+    const parsed = tool.schema.safeParse(input);
+    if (!parsed.success) {
+      const errors = parsed.error.issues.map((i) => i.message).join(', ');
+      return { output: `Invalid input: ${errors}`, is_error: true };
+    }
 
     try {
-      const result = await Promise.race([
-        tool.handler(input),
-        new Promise<ToolResult>((_, reject) =>
+      const output = await Promise.race([
+        tool.run(parsed.data),
+        new Promise<never>((_, reject) =>
           setTimeout(() => reject(new Error(`Tool "${name}" timed out after ${timeout}ms`)), timeout),
         ),
       ]);
-      return result;
+      return { output, is_error: false };
     } catch (error: any) {
-      return { success: false, output: `Tool error: ${error.message}` };
+      if (error instanceof ToolError) {
+        return { output: error.content, is_error: true };
+      }
+      log.error({ err: error, tool: name }, 'Tool execution failed');
+      return { output: `Tool error: ${error.message}`, is_error: true };
     }
   }
 }
