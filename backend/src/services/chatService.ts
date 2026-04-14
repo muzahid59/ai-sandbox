@@ -20,17 +20,12 @@ export interface ChatResult {
 
 export async function processMessage(
   thread: Thread,
-  userContent: ContentBlockParam[],
+  _userContent: ContentBlockParam[],
   callbacks: AgenticLoopCallbacks,
 ): Promise<ChatResult> {
   const provider = createProvider(thread.model);
   const tools = toolRegistry.getDefinitions();
   const startTime = Date.now();
-
-  const userText = userContent
-    .filter((b): b is { type: 'text'; text: string } => b.type === 'text')
-    .map((b) => b.text)
-    .join(' ');
 
   log.info({ model: thread.model, provider: provider.name, toolCount: tools.length }, 'Processing message');
 
@@ -51,9 +46,8 @@ export async function processMessage(
           .join(' '),
   }));
 
-  // System prompt + current user message
+  // Add system prompt at the beginning
   messages.unshift({ role: 'system', content: SYSTEM_PROMPT });
-  messages.push({ role: 'user', content: userText });
 
   // All providers now implement chatCompletion — use the agentic loop
   const loopResult = await runAgenticLoop(provider, messages, tools, callbacks);
