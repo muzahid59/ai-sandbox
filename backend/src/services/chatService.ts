@@ -40,6 +40,13 @@ export interface ChatResult {
   durationMs: number;
 }
 
+// Models that don't support tool calling (should use simple prompt)
+const NO_TOOL_MODELS = ['gemma'];
+
+const SIMPLE_PROMPT = `You are a helpful AI assistant. Current date: ${new Date().toISOString().split('T')[0]}. User timezone: Asia/Dhaka (UTC+6).
+
+Answer questions directly and concisely based on your knowledge. If you don't know current information (today's news, live events, real-time data), say "I don't have access to current [X]" - don't make up answers.`;
+
 export async function processMessage(
   thread: Thread,
   _userContent: ContentBlockParam[],
@@ -68,11 +75,15 @@ export async function processMessage(
           .join(' '),
   }));
 
-  // Add system prompt at the beginning
-  messages.unshift({ role: 'system', content: SYSTEM_PROMPT });
+  // Use simple prompt for models that don't support tools
+  const supportsTools = !NO_TOOL_MODELS.some((m) => thread.model.includes(m));
+  const systemPrompt = supportsTools ? SYSTEM_PROMPT : SIMPLE_PROMPT;
+  messages.unshift({ role: 'system', content: systemPrompt });
 
   // All providers now implement chatCompletion — use the agentic loop
-  const loopResult = await runAgenticLoop(provider, messages, tools, callbacks);
+  // Only pass tools to models that support them
+  const effectiveTools = supportsTools ? tools : [];
+  const loopResult = await runAgenticLoop(provider, messages, effectiveTools, callbacks);
 
   const durationMs = Date.now() - startTime;
   log.info(
