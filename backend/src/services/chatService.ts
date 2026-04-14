@@ -2,9 +2,8 @@ import { Thread } from '@prisma/client';
 import { createProvider } from '../providers';
 import { toolRegistry } from './toolRegistry';
 import { runAgenticLoop, AgenticLoopCallbacks, AgenticLoopResult } from './toolExecutor';
-import { MessageParam } from '../types/messages';
 import { ContentBlockParam } from '../types/content';
-import prisma from '../config/database';
+import { contextService } from './contextService';
 import logger from '../config/logger';
 
 const log = logger.child({ service: 'chat' });
@@ -58,22 +57,8 @@ export async function processMessage(
 
   log.info({ model: thread.model, provider: provider.name, toolCount: tools.length }, 'Processing message');
 
-  // Build message history from DB
-  const dbMessages = await prisma.message.findMany({
-    where: { threadId: thread.id, status: 'complete' },
-    orderBy: { createdAt: 'asc' },
-    take: 50,
-  });
-
-  const messages: MessageParam[] = dbMessages.map((m) => ({
-    role: m.role as MessageParam['role'],
-    content: typeof m.content === 'string'
-      ? m.content
-      : (m.content as any[])
-          .filter((b: any) => b.type === 'text')
-          .map((b: any) => b.text)
-          .join(' '),
-  }));
+  // Build message history using contextService (with token budgeting and caching)
+  const messages = await contextService.buildContextWindow(thread.id);
 
   // Use simple prompt for models that don't support tools
   const supportsTools = !NO_TOOL_MODELS.some((m) => thread.model.includes(m));
