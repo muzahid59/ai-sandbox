@@ -28,6 +28,17 @@ export class ContextService {
       take: 100,
     });
 
+    log.debug({
+      threadId,
+      dbMessageCount: dbMessages.length,
+      messages: dbMessages.map(m => ({
+        id: m.id,
+        role: m.role,
+        contentType: typeof m.content,
+        contentPreview: JSON.stringify(m.content).substring(0, 150)
+      }))
+    }, 'Messages fetched from DB');
+
     if (dbMessages.length === 0) return [];
 
     // Reverse to chronological order
@@ -51,7 +62,7 @@ export class ContextService {
     const merged = this.dedupeById([...window, ...minMessages]);
 
     // Convert to MessageParam[] format
-    const messages: MessageParam[] = merged.map((m) => ({
+    const rawMessages: MessageParam[] = merged.map((m) => ({
       role: m.role as MessageParam['role'],
       content: typeof m.content === 'string'
         ? m.content
@@ -60,6 +71,36 @@ export class ContextService {
             .map((b: any) => b.text)
             .join(' '),
     }));
+
+    // Enforce role alternation (user → assistant → user)
+    // Remove consecutive messages with the same role
+    const messages: MessageParam[] = [];
+    for (let i = 0; i < rawMessages.length; i++) {
+      const current = rawMessages[i];
+      const previous = messages[messages.length - 1];
+
+      if (!previous || previous.role !== current.role) {
+        messages.push(current);
+      } else {
+        // Skip consecutive same-role messages (merge or ignore)
+        const contentPreview = typeof current.content === 'string'
+          ? current.content.substring(0, 50)
+          : String(current.content).substring(0, 50);
+        log.warn({
+          threadId,
+          skippedRole: current.role,
+          skippedContent: contentPreview,
+        }, 'Skipped consecutive message with same role');
+      }
+    }
+
+    // Ensure last message is from user (required by LLM APIs)
+    if (messages.length > 0 && messages[messages.length - 1].role !== 'user') {
+      log.warn({
+        threadId,
+        lastRole: messages[messages.length - 1].role,
+      }, 'Last message is not from user - this may cause LLM errors');
+    }
 
     // Calculate token usage
     const totalTokens = messages.reduce((sum, m) => {

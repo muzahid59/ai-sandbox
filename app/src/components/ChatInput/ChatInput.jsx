@@ -1,4 +1,4 @@
-import React, { useRef, useCallback } from 'react';
+import React, { useRef, useCallback, useState, useEffect } from 'react';
 import styles from './ChatInput.module.css';
 
 const MODELS = [
@@ -7,6 +7,13 @@ const MODELS = [
   { id: 'lama', name: 'Llama 3.2' },
   { id: 'deepseek', name: 'DeepSeek-r1' },
   { id: 'gemma', name: 'Gemma 3 4B' },
+];
+
+const TOOLS = [
+  { id: 'calculator', name: 'Calculator' },
+  { id: 'web_search', name: 'Web Search' },
+  { id: 'fetch_url', name: 'Fetch URL' },
+  { id: 'google_calendar', name: 'Google Calendar' },
 ];
 
 const ChatInput = ({
@@ -22,8 +29,26 @@ const ChatInput = ({
   imageData,
   selectedModel,
   onModelChange,
+  selectedTools,
+  onToolsChange,
 }) => {
   const textareaRef = useRef(null);
+  const toolModalRef = useRef(null);
+  const [showToolModal, setShowToolModal] = useState(false);
+
+  // Close modal on click outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (toolModalRef.current && !toolModalRef.current.contains(event.target)) {
+        setShowToolModal(false);
+      }
+    };
+
+    if (showToolModal) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [showToolModal]);
 
   const autoResize = useCallback(() => {
     const el = textareaRef.current;
@@ -100,6 +125,26 @@ const ChatInput = ({
               </option>
             ))}
           </select>
+          <button
+            type="button"
+            className={`${styles.toolBtn} ${selectedTools.length < TOOLS.length ? styles.toolsCustomized : ''}`}
+            onClick={() => setShowToolModal(!showToolModal)}
+            title="Configure tools"
+            aria-label="Configure tools"
+          >
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
+            </svg>
+          </button>
           <div className={styles.toolbarRight}>
             <button
               type="button"
@@ -140,6 +185,57 @@ const ChatInput = ({
           </div>
         </div>
       </form>
+
+      {showToolModal && (
+        <div ref={toolModalRef} className={styles.toolModal}>
+          <div className={styles.toolModalHeader}>
+            <h3>Select Tools</h3>
+            <button
+              type="button"
+              onClick={() => setShowToolModal(false)}
+              className={styles.modalClose}
+              aria-label="Close"
+            >
+              ×
+            </button>
+          </div>
+          <div className={styles.toolModalBody}>
+            {TOOLS.map((tool) => (
+              <label key={tool.id} className={styles.toolCheckbox}>
+                <input
+                  type="checkbox"
+                  checked={selectedTools.includes(tool.id)}
+                  onChange={(e) => {
+                    if (e.target.checked) {
+                      onToolsChange([...selectedTools, tool.id]);
+                    } else {
+                      onToolsChange(selectedTools.filter((t) => t !== tool.id));
+                    }
+                  }}
+                />
+                <span>{tool.name}</span>
+              </label>
+            ))}
+          </div>
+          <div className={styles.toolModalFooter}>
+            <button
+              type="button"
+              onClick={() => onToolsChange(TOOLS.map((t) => t.id))}
+              className={styles.modalBtnSecondary}
+            >
+              Select All
+            </button>
+            <button
+              type="button"
+              onClick={() => onToolsChange([])}
+              className={styles.modalBtnSecondary}
+            >
+              Clear All
+            </button>
+          </div>
+        </div>
+      )}
+
       <p className={styles.disclaimer}>AI can make mistakes. Please double-check responses.</p>
     </div>
   );

@@ -30,12 +30,12 @@ export async function deleteThread(threadId) {
   return res.json();
 }
 
-export async function sendMessage(threadId, content, { onCreated, onDelta, onDone, onError }) {
+export async function sendMessage(threadId, content, tools, { onCreated, onDelta, onDone, onError }) {
   try {
     const res = await fetch(`${API_URL}/api/v1/threads/${threadId}/messages`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ content }),
+      body: JSON.stringify({ content, tools }),
     });
 
     if (!res.ok) throw new Error(`Server error: ${res.status}`);
