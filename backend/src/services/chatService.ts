@@ -10,7 +10,7 @@ import logger from '../config/logger';
 const log = logger.child({ service: 'chat' });
 
 const SYSTEM_PROMPT =
-  'You are a helpful AI assistant. You have tools available. Rules: 1) Use tools when relevant — do not guess or make up answers. 2) Answer the user directly and concisely — no filler, no explaining your process, no mentioning code or programming languages. 3) Base your answer on tool results, not speculation.';
+  'You are a helpful AI assistant. You have tools available. Rules: 1) Use tools when relevant — do not guess or make up answers. 2) Answer the user directly and concisely — no filler, no explaining your process, no mentioning code or programming languages. 3) Base your answer on tool results, not speculation. Context: User timezone is Asia/Dhaka (UTC+6). Current date/time is dynamically determined by the system.';
 
 export interface ChatResult {
   text: string;

@@ -96,15 +96,15 @@ export const googleCalendar: RunnableTool<z.infer<typeof schema>> = {
   definition: {
     name: 'google_calendar',
     description:
-      'Read events from Google Calendar. Use when the user asks about their schedule, upcoming meetings, availability, or calendar events.',
+      'Read events from Google Calendar. Use when the user asks about their schedule, upcoming meetings, availability, or calendar events. User timezone is Asia/Dhaka.',
     input_schema: {
       type: 'object',
       properties: {
         action: { type: 'string', description: 'Action: "list" (events in date range), "search" (by keyword), "busy" (free/busy status)' },
-        start_date: { type: 'string', description: 'Start date in ISO 8601 format. Defaults to today.' },
-        end_date: { type: 'string', description: 'End date in ISO 8601 format. Defaults to start_date + 1 day.' },
+        start_date: { type: 'string', description: 'Start date in ISO 8601 format (e.g. "2026-04-14T00:00:00+06:00"). If not provided, defaults to today.' },
+        end_date: { type: 'string', description: 'End date in ISO 8601 format (e.g. "2026-04-15T23:59:59+06:00"). If not provided, defaults to start_date + 1 day.' },
         query: { type: 'string', description: 'Search keyword. Used with "search" action.' },
-        timezone: { type: 'string', description: 'IANA timezone (e.g. "Asia/Dhaka"). Defaults to Asia/Dhaka.' },
+        timezone: { type: 'string', description: 'IANA timezone. Leave empty to use default (Asia/Dhaka).' },
       },
       required: ['action'],
     },
