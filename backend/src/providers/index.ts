@@ -20,6 +20,12 @@ const MODEL_REGISTRY: Record<string, ModelConfig> = {
     displayName: 'DeepSeek R1 8B',
     capabilities: { chatCompletion: true, streaming: true, imageAnalysis: false },
   },
+  gemma: {
+    provider: 'ollama',
+    model: 'gemma3:4b',
+    displayName: 'Gemma 3 4B',
+    capabilities: { chatCompletion: true, streaming: true, imageAnalysis: false },
+  },
   openai: {
     provider: 'openai',
     model: 'gpt-4o-mini',

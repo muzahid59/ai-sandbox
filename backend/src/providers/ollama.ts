@@ -8,6 +8,9 @@ const log = logger.child({ provider: 'ollama' });
 
 const OLLAMA_BASE_URL = process.env.OLLAMA_URL || 'http://host.docker.internal:11434/api';
 
+// Models that support tool calling in Ollama
+const TOOL_CAPABLE_MODELS = ['llama3.2', 'llama3.1', 'mistral', 'mixtral', 'qwen2.5'];
+
 /**
  * Unified Ollama provider — handles llama, deepseek, mistral, and any
  * model available via the Ollama API.
@@ -28,8 +31,9 @@ export class OllamaProvider implements AIProvider {
     const { messages, tools } = options;
     const model = options.model || this.model;
 
-    // Convert tool definitions to Ollama format
-    const ollamaTools = tools && tools.length > 0
+    // Only send tools to models that support them
+    const supportsTools = TOOL_CAPABLE_MODELS.some((m) => model.includes(m));
+    const ollamaTools = supportsTools && tools && tools.length > 0
       ? tools.map((t) => ({
           type: 'function' as const,
           function: {

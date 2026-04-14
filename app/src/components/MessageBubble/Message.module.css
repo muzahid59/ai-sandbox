@@ -108,3 +108,17 @@
   padding: 4px 16px;
   color: var(--text-200);
 }
+
+/* Error message styling */
+.error .message-bubble {
+  background-color: rgba(239, 68, 68, 0.1) !important;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 12px;
+  padding: 12px 16px !important;
+  color: #ef4444 !important;
+  font-family: var(--font-sans) !important;
+}
+
+.error .message-bubble p {
+  color: #ef4444 !important;
+}

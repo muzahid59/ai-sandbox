@@ -6,6 +6,7 @@ const MODELS = [
   { id: 'google', name: 'Google Gemini' },
   { id: 'lama', name: 'Llama 3.2' },
   { id: 'deepseek', name: 'DeepSeek-r1' },
+  { id: 'gemma', name: 'Gemma 3 4B' },
 ];
 
 const ChatInput = ({

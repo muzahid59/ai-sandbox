@@ -9,8 +9,30 @@ import logger from '../config/logger';
 
 const log = logger.child({ service: 'chat' });
 
-const SYSTEM_PROMPT =
-  'You are a helpful AI assistant. You have tools available. Rules: 1) Use tools when relevant — do not guess or make up answers. 2) Answer the user directly and concisely — no filler, no explaining your process, no mentioning code or programming languages. 3) Base your answer on tool results, not speculation.';
+const SYSTEM_PROMPT = `You are a helpful AI assistant with tools. Current date: ${new Date().toISOString().split('T')[0]}. User timezone: Asia/Dhaka (UTC+6).
+
+CRITICAL RULES - FOLLOW EXACTLY:
+
+1. NEVER use your training data for current information (news, events, weather, calendar, stock prices, sports scores)
+
+2. For ANY current/real-time query, you MUST use the appropriate tool:
+   - News/current events → web_search
+   - Calendar/schedule → google_calendar
+   - Websites/URLs → fetch_url
+   - Math calculations → calculator
+
+3. When a tool returns results, you MUST use those results in your answer:
+   - If web_search returns results → summarize the search results
+   - If tool succeeds → base your answer on the tool output
+   - NEVER say "I don't have access" after receiving tool results
+
+4. ONLY say "I don't have access to [X]" if:
+   - You tried a tool and it FAILED with an error
+   - No tool exists for the request
+
+5. Answer directly from tool results - no filler, no explaining your process
+
+REMEMBER: If you call a tool and it succeeds, you MUST use its results in your response. Don't ignore successful tool outputs.`;
 
 export interface ChatResult {
   text: string;
@@ -18,19 +40,21 @@ export interface ChatResult {
   durationMs: number;
 }
 
+// Models that don't support tool calling (should use simple prompt)
+const NO_TOOL_MODELS = ['gemma'];
+
+const SIMPLE_PROMPT = `You are a helpful AI assistant. Current date: ${new Date().toISOString().split('T')[0]}. User timezone: Asia/Dhaka (UTC+6).
+
+Answer questions directly and concisely based on your knowledge. If you don't know current information (today's news, live events, real-time data), say "I don't have access to current [X]" - don't make up answers.`;
+
 export async function processMessage(
   thread: Thread,
-  userContent: ContentBlockParam[],
+  _userContent: ContentBlockParam[],
   callbacks: AgenticLoopCallbacks,
 ): Promise<ChatResult> {
   const provider = createProvider(thread.model);
   const tools = toolRegistry.getDefinitions();
   const startTime = Date.now();
-
-  const userText = userContent
-    .filter((b): b is { type: 'text'; text: string } => b.type === 'text')
-    .map((b) => b.text)
-    .join(' ');
 
   log.info({ model: thread.model, provider: provider.name, toolCount: tools.length }, 'Processing message');
 
@@ -51,12 +75,15 @@ export async function processMessage(
           .join(' '),
   }));
 
-  // System prompt + current user message
-  messages.unshift({ role: 'system', content: SYSTEM_PROMPT });
-  messages.push({ role: 'user', content: userText });
+  // Use simple prompt for models that don't support tools
+  const supportsTools = !NO_TOOL_MODELS.some((m) => thread.model.includes(m));
+  const systemPrompt = supportsTools ? SYSTEM_PROMPT : SIMPLE_PROMPT;
+  messages.unshift({ role: 'system', content: systemPrompt });
 
   // All providers now implement chatCompletion — use the agentic loop
-  const loopResult = await runAgenticLoop(provider, messages, tools, callbacks);
+  // Only pass tools to models that support them
+  const effectiveTools = supportsTools ? tools : [];
+  const loopResult = await runAgenticLoop(provider, messages, effectiveTools, callbacks);
 
   const durationMs = Date.now() - startTime;
   log.info(

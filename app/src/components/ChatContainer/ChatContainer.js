@@ -13,7 +13,6 @@ function ChatContainer({
   const [messages, setMessages] = useState([]);
   const [imageData, setImageData] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState(null);
   const [isListening, setIsListening] = useState(false);
   const [selectedModel, setSelectedModel] = useState('lama');
   const recognition = useRef(null);
@@ -24,7 +23,6 @@ function ChatContainer({
   useEffect(() => {
     if (!activeThreadId) {
       setMessages([]);
-      setError(null);
       return;
     }
 
@@ -55,7 +53,9 @@ function ChatContainer({
         );
       })
       .catch((err) => {
-        if (!cancelled) setError('Failed to load messages: ' + err.message);
+        if (!cancelled) {
+          console.error('Failed to load messages:', err);
+        }
       });
 
     return () => {
@@ -114,7 +114,6 @@ function ChatContainer({
     async (message) => {
       try {
         setIsLoading(true);
-        setError(null);
 
         // Add user message to UI immediately (optimistic)
         const tempUserId = 'temp-user-' + Date.now();
@@ -177,12 +176,26 @@ function ChatContainer({
             onThreadUpdated?.(threadId);
           },
           onError: (data) => {
-            setError(data.message || 'Something went wrong');
+            // Show error as assistant message instead of inline error
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.id === tempAssistantId
+                  ? { ...m, text: `❌ Error: ${data.message || 'Something went wrong'}`, done: true, isError: true }
+                  : m,
+              ),
+            );
             setIsLoading(false);
           },
         });
       } catch (err) {
-        setError(err.message);
+        // Show error as assistant message instead of inline error
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === tempAssistantId
+              ? { ...m, text: `❌ Error: ${err.message || 'Failed to send message'}`, done: true, isError: true }
+              : m,
+          ),
+        );
         setIsLoading(false);
       }
     },
@@ -242,7 +255,6 @@ function ChatContainer({
       ) : (
         <>
           <MessageList messages={messages} />
-          {error && <div className={styles.error}>{error}</div>}
           <ChatInput {...inputProps} />
         </>
       )}

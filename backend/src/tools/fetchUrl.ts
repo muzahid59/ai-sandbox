@@ -10,7 +10,7 @@ const log = logger.child({ tool: 'fetch_url' });
 
 const schema = z.object({
   url: z.string().url().describe('The URL to fetch'),
-  max_length: z.number().min(500).max(20000).default(5000).optional(),
+  max_length: z.coerce.number().min(500).max(20000).default(5000).optional(),
 });
 
 function isPrivateIP(ip: string): boolean {
