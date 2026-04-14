@@ -15,7 +15,7 @@ export const webSearch: RunnableTool<z.infer<typeof schema>> = {
   definition: {
     name: 'web_search',
     description:
-      'Search the web for current information. Use this when the user asks about recent events, news, real-time data, or anything that may have changed after your training cutoff.',
+      'Search the web for current information. REQUIRED for: news, current events, today\'s headlines, weather, sports scores, stock prices, recent developments, or any time-sensitive query. Do NOT answer these queries from memory - you MUST use this tool.',
     input_schema: {
       type: 'object',
       properties: {

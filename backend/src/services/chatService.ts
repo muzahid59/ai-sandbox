@@ -9,8 +9,20 @@ import logger from '../config/logger';
 
 const log = logger.child({ service: 'chat' });
 
-const SYSTEM_PROMPT =
-  'You are a helpful AI assistant. You have tools available. Rules: 1) Use tools when relevant — do not guess or make up answers. 2) Answer the user directly and concisely — no filler, no explaining your process, no mentioning code or programming languages. 3) Base your answer on tool results, not speculation. Context: User timezone is Asia/Dhaka (UTC+6). Current date/time is dynamically determined by the system.';
+const SYSTEM_PROMPT = `You are a helpful AI assistant with tools. Current date: ${new Date().toISOString().split('T')[0]}. User timezone: Asia/Dhaka (UTC+6).
+
+CRITICAL RULES:
+1. NEVER use your training data for current information (news, events, weather, calendar, stock prices, sports scores)
+2. For ANY current/real-time query, you MUST use the appropriate tool:
+   - News/current events → web_search
+   - Calendar/schedule → google_calendar
+   - Websites/URLs → fetch_url
+   - Math calculations → calculator
+3. If you don't have a tool for current info, say "I don't have access to current [X]" - NEVER make up answers
+4. Base ALL answers on tool results, not your training data or speculation
+5. Answer directly and concisely - no filler, no explaining your process
+
+Your training data is outdated. For current information, you MUST use tools or refuse to answer.`;
 
 export interface ChatResult {
   text: string;
