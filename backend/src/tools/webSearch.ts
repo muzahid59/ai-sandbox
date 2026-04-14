@@ -8,7 +8,7 @@ const log = logger.child({ tool: 'web_search' });
 
 const schema = z.object({
   query: z.string().describe('The search query'),
-  num_results: z.number().min(1).max(10).default(5).optional(),
+  num_results: z.coerce.number().min(1).max(10).default(5).optional(),
 });
 
 export const webSearch: RunnableTool<z.infer<typeof schema>> = {
@@ -19,7 +19,7 @@ export const webSearch: RunnableTool<z.infer<typeof schema>> = {
     input_schema: {
       type: 'object',
       properties: {
-        query: { type: 'string', description: 'The search query' },
+        query: { type: 'string', description: 'The search query. For news, use specific queries like "latest news April 2026" or "today\'s headlines" instead of vague terms like "today".' },
         num_results: { type: 'number', description: 'Number of results to return (1-10, default 5)' },
       },
       required: ['query'],
