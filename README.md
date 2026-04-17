@@ -1,11 +1,13 @@
 # AI Sandbox
 
-A full-stack AI chat application with multi-model support, tool calling, and real-time web search. Chat with multiple AI models through a single interface -- the AI can search the web, fetch pages, and do calculations mid-conversation.
+A full-stack AI chat application with multi-model support, tool calling, and real-time web search. Chat with multiple AI models through a single interface -- the AI can search the web, fetch pages, check your calendar, and do calculations mid-conversation.
 
 ## Features
 
-- **Multi-model chat** -- switch between OpenAI GPT, Google Gemini, Llama 3.2, and DeepSeek
-- **Tool calling** -- AI can search the web, fetch URLs, and evaluate math during a conversation
+- **Multi-model chat** -- switch between OpenAI GPT, Google Gemini, Llama 3.2, Gemma 3 4B, and DeepSeek
+- **Tool calling** -- AI can search the web, fetch URLs, check Google Calendar, get current date/time, and evaluate math during a conversation
+- **Intelligent context management** -- in-memory context service with token budgeting and 10-min TTL cache
+- **Tool selection UI** -- choose which tools the AI can use per thread via modal interface
 - **Web search** -- powered by self-hosted SearXNG, no external API keys needed
 - **Streaming responses** -- real-time token-by-token output via SSE
 - **Threaded conversations** -- persistent chat history with PostgreSQL
@@ -51,22 +53,27 @@ docker-compose up --build
 
 ## Supported Models
 
-| Model | Type | Requires |
-|-------|------|----------|
-| OpenAI GPT | Cloud | `OPENAI_API_KEY` in `backend/.env` |
-| Google Gemini | Cloud | `GOOGLE_API_KEY` in `backend/.env` |
-| Llama 3.2 | Local | Ollama running on port 11434 |
-| DeepSeek-r1 | Local | Ollama running on port 11434 |
+| Model | Type | Tool Calling | Requires |
+|-------|------|--------------|----------|
+| OpenAI GPT | Cloud | ✓ | `OPENAI_API_KEY` in `backend/.env` |
+| Google Gemini | Cloud | ✓ | `GOOGLE_API_KEY` in `backend/.env` |
+| Llama 3.2 | Local | ✓ | Ollama running on port 11434 |
+| Gemma 3 4B | Local | ✗ | Ollama running on port 11434 |
+| DeepSeek-r1 | Local | ✗ | Ollama running on port 11434 |
 
 ## AI Tools
 
-The AI can use these tools during a conversation (currently supported by Llama):
+The AI can use these tools during a conversation (supported by models with tool calling enabled):
 
 | Tool | What it does |
 |------|-------------|
+| `get_current_date` | Returns the current date and time (prevents AI from using outdated training data) |
 | `web_search` | Searches the web via SearXNG and returns top results |
 | `fetch_url` | Fetches a web page and extracts the text content |
-| `calculator` | Evaluates math expressions |
+| `google_calendar` | Retrieves events from your Google Calendar (requires OAuth setup) |
+| `calculator` | Evaluates math expressions via mathjs |
+
+**Note:** Tools can be selected per-thread via the frontend tool selection UI.
 
 ## Project Structure
 
