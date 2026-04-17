@@ -86,6 +86,13 @@ export async function runAgenticLoop(
         result.output = result.output.substring(0, MAX_TOOL_OUTPUT_LENGTH) + '\n\n[Output truncated]';
       }
 
+      // Log tool output for debugging summarization
+      log.debug({
+        tool: toolCall.name,
+        outputPreview: result.output.substring(0, 500),
+        outputLength: result.output.length
+      }, 'Tool output preview');
+
       log.info({ tool: toolCall.name, durationMs, is_error: result.is_error }, 'Tool call end');
       callbacks.onToolUseResult(toolCall.id, toolCall.name, result);
 

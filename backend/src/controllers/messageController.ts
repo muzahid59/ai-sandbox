@@ -33,7 +33,7 @@ export async function handleSendMessage(req: Request, res: Response) {
     return res.status(404).json({ error: 'Thread not found' });
   }
 
-  const { content } = req.body as { content?: ContentBlockParam[] };
+  const { content, tools: selectedTools } = req.body as { content?: ContentBlockParam[]; tools?: string[] };
   if (!content || !Array.isArray(content) || content.length === 0) {
     return res.status(400).json({ error: 'content is required and must be a non-empty array' });
   }
@@ -75,7 +75,7 @@ export async function handleSendMessage(req: Request, res: Response) {
 
   try {
     // 4. Delegate to ChatService
-    const result = await processMessage(thread, content, {
+    const result = await processMessage(thread, content, selectedTools, {
       onDelta: (text: string) => {
         res.write(`data: ${JSON.stringify({ type: 'content_block_delta', index: 0, delta: { type: 'text_delta', text } })}\n\n`);
       },

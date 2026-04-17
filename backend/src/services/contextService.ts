@@ -1,7 +1,11 @@
 import prisma from '../config/database';
+import { MessageParam } from '../types/messages';
+import logger from '../config/logger';
+
+const log = logger.child({ service: 'contextService' });
 
 interface CacheEntry {
-  prompt: string;
+  messages: MessageParam[];
   timestamp: number;
 }
 
@@ -9,24 +13,36 @@ export class ContextService {
   private cache = new Map<string, CacheEntry>();
   private ttlMs = 10 * 60 * 1000; // 10 minutes
 
-  async buildContextWindow(threadId: string, maxTokens = 100_000): Promise<string> {
+  async buildContextWindow(threadId: string, maxTokens = 100_000): Promise<MessageParam[]> {
     // Check cache
     const cached = this.cache.get(threadId);
     if (cached && Date.now() - cached.timestamp < this.ttlMs) {
-      return cached.prompt;
+      log.debug({ threadId, messageCount: cached.messages.length }, 'Context cache hit');
+      return cached.messages;
     }
 
     // Fetch from DB (newest first)
-    const messages = await prisma.message.findMany({
+    const dbMessages = await prisma.message.findMany({
       where: { threadId, status: 'complete' },
       orderBy: { createdAt: 'desc' },
       take: 100,
     });
 
-    if (messages.length === 0) return '';
+    log.debug({
+      threadId,
+      dbMessageCount: dbMessages.length,
+      messages: dbMessages.map(m => ({
+        id: m.id,
+        role: m.role,
+        contentType: typeof m.content,
+        contentPreview: JSON.stringify(m.content).substring(0, 150)
+      }))
+    }, 'Messages fetched from DB');
+
+    if (dbMessages.length === 0) return [];
 
     // Reverse to chronological order
-    const chronological = messages.reverse();
+    const chronological = dbMessages.reverse();
 
     // Token budget: walk from newest, keep what fits
     const reserveForCompletion = 4096;
@@ -45,19 +61,76 @@ export class ContextService {
     const minMessages = chronological.slice(-4);
     const merged = this.dedupeById([...window, ...minMessages]);
 
-    // Format as prompt string
-    const prompt = merged
-      .map((m) => `${m.role}: ${this.extractText(m.content as any[])}`)
-      .join('\n\n');
+    // Convert to MessageParam[] format
+    const rawMessages: MessageParam[] = merged.map((m) => ({
+      role: m.role as MessageParam['role'],
+      content: typeof m.content === 'string'
+        ? m.content
+        : (m.content as any[])
+            .filter((b: any) => b.type === 'text')
+            .map((b: any) => b.text)
+            .join(' '),
+    }));
+
+    // Enforce role alternation (user → assistant → user)
+    // Remove consecutive messages with the same role
+    const messages: MessageParam[] = [];
+    for (let i = 0; i < rawMessages.length; i++) {
+      const current = rawMessages[i];
+      const previous = messages[messages.length - 1];
+
+      if (!previous || previous.role !== current.role) {
+        messages.push(current);
+      } else {
+        // Skip consecutive same-role messages (merge or ignore)
+        const contentPreview = typeof current.content === 'string'
+          ? current.content.substring(0, 50)
+          : String(current.content).substring(0, 50);
+        log.warn({
+          threadId,
+          skippedRole: current.role,
+          skippedContent: contentPreview,
+        }, 'Skipped consecutive message with same role');
+      }
+    }
+
+    // Ensure last message is from user (required by LLM APIs)
+    if (messages.length > 0 && messages[messages.length - 1].role !== 'user') {
+      log.warn({
+        threadId,
+        lastRole: messages[messages.length - 1].role,
+      }, 'Last message is not from user - this may cause LLM errors');
+    }
+
+    // Calculate token usage
+    const totalTokens = messages.reduce((sum, m) => {
+      const text = typeof m.content === 'string' ? m.content : String(m.content);
+      return sum + this.estimateTokens(text);
+    }, 0);
+
+    log.info(
+      {
+        threadId,
+        totalMessages: dbMessages.length,
+        includedMessages: messages.length,
+        estimatedTokens: totalTokens,
+        tokenBudget: maxTokens - 4096,
+      },
+      'Context window built',
+    );
 
     // Cache
-    this.cache.set(threadId, { prompt, timestamp: Date.now() });
+    this.cache.set(threadId, { messages, timestamp: Date.now() });
 
-    return prompt;
+    return messages;
   }
 
   invalidate(threadId: string) {
+    const existed = this.cache.has(threadId);
     this.cache.delete(threadId);
+    if (existed) {
+      log.debug({ threadId }, 'Context cache invalidated');
+    }
   }
 
   estimateTokens(text: string): number {

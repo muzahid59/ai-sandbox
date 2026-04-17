@@ -15,6 +15,7 @@ function ChatContainer({
   const [isLoading, setIsLoading] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [selectedModel, setSelectedModel] = useState('lama');
+  const [selectedTools, setSelectedTools] = useState(['calculator', 'web_search', 'fetch_url', 'google_calendar']);
   const recognition = useRef(null);
   const fileInputRef = useRef();
   const skipNextFetchRef = useRef(false);
@@ -149,7 +150,7 @@ function ChatContainer({
         ]);
 
         // Stream response via SSE
-        await sendMessage(threadId, content, {
+        await sendMessage(threadId, content, selectedTools, {
           onCreated: (data) => {
             // Replace temp IDs with real IDs from server
             setMessages((prev) =>
@@ -199,7 +200,7 @@ function ChatContainer({
         setIsLoading(false);
       }
     },
-    [activeThreadId, selectedModel, onThreadCreated, onThreadUpdated],
+    [activeThreadId, selectedModel, selectedTools, onThreadCreated, onThreadUpdated],
   );
 
   const handleSubmit = (event) => {
@@ -242,6 +243,8 @@ function ChatContainer({
     imageData,
     selectedModel,
     onModelChange: setSelectedModel,
+    selectedTools,
+    onToolsChange: setSelectedTools,
   };
 
   return (
