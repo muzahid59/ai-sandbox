@@ -30,7 +30,7 @@ export async function deleteThread(threadId) {
   return res.json();
 }
 
-export async function sendMessage(threadId, content, tools, { onCreated, onDelta, onDone, onError }) {
+export async function sendMessage(threadId, content, tools, { onCreated, onDelta, onDone, onError, onToolUseStart, onToolUseResult }) {
   try {
     const res = await fetch(`${API_URL}/api/v1/threads/${threadId}/messages`, {
       method: 'POST',
@@ -63,6 +63,14 @@ export async function sendMessage(threadId, content, tools, { onCreated, onDelta
                 break;
               case 'content_block_delta':
                 onDelta?.({ text: data.delta?.text || '' });
+                break;
+              case 'content_block_start':
+                // Tool use started (optional callback for UI indicators)
+                onToolUseStart?.(data.content_block);
+                break;
+              case 'content_block_stop':
+                // Tool use result (optional callback for UI indicators)
+                onToolUseResult?.(data.tool_result);
                 break;
               case 'message_stop':
                 onDone?.(data);

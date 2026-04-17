@@ -44,6 +44,13 @@ export class OllamaProvider implements AIProvider {
         }))
       : undefined;
 
+    log.debug({
+      model,
+      supportsTools,
+      toolsProvided: tools?.length || 0,
+      ollamaToolsCount: ollamaTools?.length || 0,
+    }, 'Tool support check');
+
     // Convert messages to Ollama chat format
     const ollamaMessages = messages.map((msg) => {
       const formatted: { role: string; content: string } = { role: msg.role, content: '' };
