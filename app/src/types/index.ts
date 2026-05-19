@@ -40,7 +40,7 @@ export interface StreamCallbacks {
 }
 
 export interface ChatContainerProps {
-  activeThreadId: string | null;
+  threadId: string | undefined;
   onThreadCreated?: (thread: Thread) => void;
   onThreadUpdated?: (threadId: string) => void;
 }
@@ -72,7 +72,7 @@ export interface MessageListProps {
 
 export interface SidebarProps {
   threads: Thread[];
-  activeThreadId: string | null;
+  activeThreadId: string | undefined;
   onSelectThread: (threadId: string) => void;
   onNewChat: () => void;
   onDeleteThread: (threadId: string) => void;
