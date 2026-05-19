@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import './App.css';
-import ChatContainer from './components/ChatContainer/ChatContainer';
-import Sidebar from './components/Sidebar/Sidebar';
-import { fetchThreads, fetchThread, deleteThread } from './api';
+import ChatLayout from './components/ChatLayout/ChatLayout';
+import { fetchThreads, deleteThread } from './api';
 import type { Thread } from './types';
 
 const SunIcon: React.FC = () => (
@@ -48,7 +48,6 @@ function App() {
     return localStorage.getItem('theme') || 'light';
   });
   const [threads, setThreads] = useState<Thread[]>([]);
-  const [activeThreadId, setActiveThreadId] = useState<string | null>(null);
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
@@ -65,36 +64,22 @@ function App() {
     setTheme(theme === 'light' ? 'dark' : 'light');
   };
 
-  const handleNewChat = useCallback(() => {
-    setActiveThreadId(null);
+  const handleDeleteThread = useCallback(async (threadId: string) => {
+    try {
+      await deleteThread(threadId);
+      setThreads((prev) => prev.filter((t) => t.id !== threadId));
+    } catch (err) {
+      console.error('Failed to delete thread:', err);
+    }
   }, []);
-
-  const handleSelectThread = useCallback((threadId: string) => {
-    setActiveThreadId(threadId);
-  }, []);
-
-  const handleDeleteThread = useCallback(
-    async (threadId: string) => {
-      try {
-        await deleteThread(threadId);
-        setThreads((prev) => prev.filter((t) => t.id !== threadId));
-        if (activeThreadId === threadId) {
-          setActiveThreadId(null);
-        }
-      } catch (err) {
-        console.error('Failed to delete thread:', err);
-      }
-    },
-    [activeThreadId]
-  );
 
   const handleThreadCreated = useCallback((thread: Thread) => {
     setThreads((prev) => [thread, ...prev]);
-    setActiveThreadId(thread.id);
   }, []);
 
   const handleThreadUpdated = useCallback(async (threadId: string) => {
     try {
+      const { fetchThread } = await import('./api');
       const { thread } = await fetchThread(threadId);
       setThreads((prev) =>
         prev.map((t) => (t.id === threadId ? { ...t, title: thread.title } : t))
@@ -104,29 +89,32 @@ function App() {
     }
   }, []);
 
+  const themeToggle = (
+    <button
+      className="themeToggle"
+      onClick={toggleTheme}
+      title={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
+    >
+      {theme === 'light' ? <MoonIcon /> : <SunIcon />}
+    </button>
+  );
+
+  const layoutProps = {
+    threads,
+    onThreadCreated: handleThreadCreated,
+    onThreadUpdated: handleThreadUpdated,
+    onDeleteThread: handleDeleteThread,
+    themeToggle,
+  };
+
   return (
     <div className="App">
-      <Sidebar
-        threads={threads}
-        activeThreadId={activeThreadId}
-        onSelectThread={handleSelectThread}
-        onNewChat={handleNewChat}
-        onDeleteThread={handleDeleteThread}
-      />
-      <div className="mainContent">
-        <button
-          className="themeToggle"
-          onClick={toggleTheme}
-          title={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
-        >
-          {theme === 'light' ? <MoonIcon /> : <SunIcon />}
-        </button>
-        <ChatContainer
-          activeThreadId={activeThreadId}
-          onThreadCreated={handleThreadCreated}
-          onThreadUpdated={handleThreadUpdated}
-        />
-      </div>
+      <Routes>
+        <Route path="/" element={<Navigate to="/chat/new" replace />} />
+        <Route path="/chat/new" element={<ChatLayout {...layoutProps} />} />
+        <Route path="/chat/:threadId" element={<ChatLayout {...layoutProps} />} />
+        <Route path="*" element={<Navigate to="/chat/new" replace />} />
+      </Routes>
     </div>
   );
 }
