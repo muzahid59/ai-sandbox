@@ -20,7 +20,7 @@ describe('ContextService', () => {
   });
 
   describe('buildContextWindow', () => {
-    it('returns messages formatted as prompt string', async () => {
+    it('returns messages in chronological order as MessageParam[]', async () => {
       mockPrisma.message.findMany.mockResolvedValue([
         { id: 'm2', role: 'assistant', content: [{ type: 'text', text: 'Hi!' }], createdAt: new Date('2026-01-02') },
         { id: 'm1', role: 'user', content: [{ type: 'text', text: 'Hello' }], createdAt: new Date('2026-01-01') },
@@ -28,17 +28,17 @@ describe('ContextService', () => {
 
       const result = await ctx.buildContextWindow('tid-1');
 
-      // Reversed to chronological, formatted as role: content
-      expect(result).toContain('user: Hello');
-      expect(result).toContain('assistant: Hi!');
-      expect(result.indexOf('user: Hello')).toBeLessThan(result.indexOf('assistant: Hi!'));
+      expect(result).toEqual([
+        { role: 'user', content: 'Hello' },
+        { role: 'assistant', content: 'Hi!' },
+      ]);
     });
 
-    it('returns empty string for empty thread', async () => {
+    it('returns empty array for empty thread', async () => {
       mockPrisma.message.findMany.mockResolvedValue([]);
 
       const result = await ctx.buildContextWindow('tid-1');
-      expect(result).toBe('');
+      expect(result).toEqual([]);
     });
 
     it('serves from cache on second call within TTL', async () => {
@@ -49,7 +49,6 @@ describe('ContextService', () => {
       await ctx.buildContextWindow('tid-1');
       await ctx.buildContextWindow('tid-1');
 
-      // DB queried only once — second call served from cache
       expect(mockPrisma.message.findMany).toHaveBeenCalledTimes(1);
     });
 

@@ -2,32 +2,36 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { fetchThread, createThread, sendMessage } from '../../api';
 import MessageList from '../MessageList/MessageList';
 import ChatInput from '../ChatInput/ChatInput';
+import type { UIMessage, ChatContainerProps } from '../../types';
 import styles from './ChatContainer.module.css';
 
-function ChatContainer({
+interface DispatchPayload {
+  text: string;
+  image: string | null;
+}
+
+const ChatContainer: React.FC<ChatContainerProps> = ({
   activeThreadId,
   onThreadCreated,
   onThreadUpdated,
-}) {
+}) => {
   const [inputValue, setInputValue] = useState('');
-  const [messages, setMessages] = useState([]);
-  const [imageData, setImageData] = useState(null);
+  const [messages, setMessages] = useState<UIMessage[]>([]);
+  const [imageData, setImageData] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [selectedModel, setSelectedModel] = useState('lama');
   const [selectedTools, setSelectedTools] = useState(['calculator', 'web_search', 'fetch_url', 'google_calendar']);
-  const recognition = useRef(null);
-  const fileInputRef = useRef();
+  const recognition = useRef<SpeechRecognition | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const skipNextFetchRef = useRef(false);
 
-  // Load thread messages when activeThreadId changes
   useEffect(() => {
     if (!activeThreadId) {
       setMessages([]);
       return;
     }
 
-    // Skip fetch when thread was just created — we're mid-stream
     if (skipNextFetchRef.current) {
       skipNextFetchRef.current = false;
       return;
@@ -45,7 +49,7 @@ function ChatContainer({
             text: Array.isArray(m.content)
               ? m.content
                   .filter((b) => b.type === 'text')
-                  .map((b) => b.text)
+                  .map((b) => b.text ?? '')
                   .join(' ')
               : '',
             sent: m.role === 'user',
@@ -53,7 +57,7 @@ function ChatContainer({
           })),
         );
       })
-      .catch((err) => {
+      .catch((err: unknown) => {
         if (!cancelled) {
           console.error('Failed to load messages:', err);
         }
@@ -64,22 +68,21 @@ function ChatContainer({
     };
   }, [activeThreadId]);
 
-  // Speech recognition setup
   useEffect(() => {
-    const SpeechRecognition =
+    const SpeechRecognitionCtor =
       window.SpeechRecognition ||
       window.webkitSpeechRecognition ||
       window.mozSpeechRecognition ||
       window.msSpeechRecognition;
 
-    if (!SpeechRecognition) return;
+    if (!SpeechRecognitionCtor) return;
 
-    recognition.current = new SpeechRecognition();
+    recognition.current = new SpeechRecognitionCtor();
     recognition.current.lang = 'en-US';
     recognition.current.interimResults = true;
     recognition.current.continuous = true;
 
-    recognition.current.onresult = (event) => {
+    recognition.current.onresult = (event: SpeechRecognitionEvent) => {
       const transcript = Array.from(event.results)
         .map((result) => result[0].transcript)
         .join('');
@@ -112,23 +115,21 @@ function ChatContainer({
   };
 
   const dispatchMessage = useCallback(
-    async (message) => {
+    async (payload: DispatchPayload) => {
+      const tempAssistantId = 'temp-assistant-' + Date.now();
       try {
         setIsLoading(true);
 
-        // Add user message to UI immediately (optimistic)
         const tempUserId = 'temp-user-' + Date.now();
-        const tempAssistantId = 'temp-assistant-' + Date.now();
 
         setMessages((prev) => [
           ...prev,
-          { id: tempUserId, text: message.text, sent: true, done: true },
+          { id: tempUserId, text: payload.text, sent: true, done: true },
         ]);
         setInputValue('');
         setImageData(null);
         if (fileInputRef.current) fileInputRef.current.value = '';
 
-        // Create thread if needed (first message on welcome screen)
         let threadId = activeThreadId;
         if (!threadId) {
           const thread = await createThread(selectedModel);
@@ -137,26 +138,22 @@ function ChatContainer({
           onThreadCreated?.(thread);
         }
 
-        // Build content blocks for API
-        const content = [{ type: 'text', text: message.text }];
-        if (message.image) {
-          content.push({ type: 'image_url', url: message.image });
+        const content: Array<{ type: string; text?: string; url?: string }> = [{ type: 'text', text: payload.text }];
+        if (payload.image) {
+          content.push({ type: 'image_url', url: payload.image });
         }
 
-        // Add assistant placeholder
         setMessages((prev) => [
           ...prev,
           { id: tempAssistantId, text: '', sent: false, done: false },
         ]);
 
-        // Stream response via SSE
         await sendMessage(threadId, content, selectedTools, {
           onCreated: (data) => {
-            // Replace temp IDs with real IDs from server
             setMessages((prev) =>
               prev.map((m) => {
-                if (m.id === tempUserId) return { ...m, id: data.user_msg_id };
-                if (m.id === tempAssistantId) return { ...m, id: data.assistant_msg_id };
+                if (m.id === tempUserId) return { ...m, id: (data as Record<string, string>).user_msg_id };
+                if (m.id === tempAssistantId) return { ...m, id: (data as Record<string, string>).assistant_msg_id };
                 return m;
               }),
             );
@@ -173,15 +170,13 @@ function ChatContainer({
               prev.map((m) => (!m.sent && !m.done ? { ...m, done: true } : m)),
             );
             setIsLoading(false);
-            // Trigger title refresh in App
-            onThreadUpdated?.(threadId);
+            onThreadUpdated?.(threadId!);
           },
           onError: (data) => {
-            // Show error as assistant message instead of inline error
             setMessages((prev) =>
               prev.map((m) =>
                 m.id === tempAssistantId
-                  ? { ...m, text: `❌ Error: ${data.message || 'Something went wrong'}`, done: true, isError: true }
+                  ? { ...m, text: `Error: ${data.message || 'Something went wrong'}`, done: true, isError: true }
                   : m,
               ),
             );
@@ -189,11 +184,11 @@ function ChatContainer({
           },
         });
       } catch (err) {
-        // Show error as assistant message instead of inline error
+        const msg = err instanceof Error ? err.message : 'Failed to send message';
         setMessages((prev) =>
           prev.map((m) =>
             m.id === tempAssistantId
-              ? { ...m, text: `❌ Error: ${err.message || 'Failed to send message'}`, done: true, isError: true }
+              ? { ...m, text: `Error: ${msg}`, done: true, isError: true }
               : m,
           ),
         );
@@ -203,7 +198,7 @@ function ChatContainer({
     [activeThreadId, selectedModel, selectedTools, onThreadCreated, onThreadUpdated],
   );
 
-  const handleSubmit = (event) => {
+  const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
     if (!inputValue) return;
 
@@ -214,17 +209,15 @@ function ChatContainer({
     dispatchMessage({
       text: inputValue,
       image: imageData,
-      sent: true,
-      model: selectedModel,
     });
   };
 
-  const handleImageChange = (event) => {
-    const file = event.target.files[0];
+  const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        setImageData(reader.result);
+        setImageData(reader.result as string);
       };
       reader.readAsDataURL(file);
     }
@@ -263,6 +256,6 @@ function ChatContainer({
       )}
     </div>
   );
-}
+};
 
 export default ChatContainer;

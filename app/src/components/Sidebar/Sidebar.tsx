@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
+import type { SidebarProps } from '../../types';
 import styles from './Sidebar.module.css';
 
-const NewChatIcon = () => (
+const NewChatIcon: React.FC = () => (
   <svg
     width="18"
     height="18"
@@ -17,7 +18,7 @@ const NewChatIcon = () => (
   </svg>
 );
 
-const SearchIcon = () => (
+const SearchIcon: React.FC = () => (
   <svg
     width="18"
     height="18"
@@ -33,7 +34,7 @@ const SearchIcon = () => (
   </svg>
 );
 
-const ChatIcon = () => (
+const ChatIcon: React.FC = () => (
   <svg
     width="18"
     height="18"
@@ -48,7 +49,7 @@ const ChatIcon = () => (
   </svg>
 );
 
-const ProjectsIcon = () => (
+const ProjectsIcon: React.FC = () => (
   <svg
     width="18"
     height="18"
@@ -64,7 +65,7 @@ const ProjectsIcon = () => (
   </svg>
 );
 
-const ArtifactsIcon = () => (
+const ArtifactsIcon: React.FC = () => (
   <svg
     width="18"
     height="18"
@@ -80,7 +81,7 @@ const ArtifactsIcon = () => (
   </svg>
 );
 
-const CodeIcon = () => (
+const CodeIcon: React.FC = () => (
   <svg
     width="18"
     height="18"
@@ -96,7 +97,7 @@ const CodeIcon = () => (
   </svg>
 );
 
-const SidebarToggleIcon = () => (
+const SidebarToggleIcon: React.FC = () => (
   <svg
     width="18"
     height="18"
@@ -112,7 +113,7 @@ const SidebarToggleIcon = () => (
   </svg>
 );
 
-const Sidebar = ({ threads = [], activeThreadId, onSelectThread, onNewChat, onDeleteThread }) => {
+const Sidebar: React.FC<SidebarProps> = ({ threads = [], activeThreadId, onSelectThread, onNewChat, onDeleteThread }) => {
   const [collapsed, setCollapsed] = useState(false);
 
   return (
@@ -196,7 +197,7 @@ const Sidebar = ({ threads = [], activeThreadId, onSelectThread, onNewChat, onDe
                 </span>
                 <button
                   className={styles.deleteBtn}
-                  onClick={(e) => {
+                  onClick={(e: React.MouseEvent) => {
                     e.stopPropagation();
                     onDeleteThread(thread.id);
                   }}

@@ -7,8 +7,11 @@ RUN apk add --no-cache openssl
 # Set working directory
 WORKDIR /usr/src/app
 
+# Copy shared types first
+COPY shared/types /usr/src/shared/types
+
 # Copy package files
-COPY package*.json ./
+COPY backend/package*.json ./
 
 # Install dependencies
 RUN npm install
@@ -17,11 +20,11 @@ RUN npm install
 RUN npm install -g nodemon
 
 # Copy prisma schema and generate client
-COPY prisma ./prisma
+COPY backend/prisma ./prisma
 RUN npx prisma generate
 
 # Copy app files
-COPY . .
+COPY backend/ .
 
 # Expose port 5001
 EXPOSE 5001

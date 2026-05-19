@@ -1,12 +1,47 @@
+import type { Thread } from './types';
+
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001';
 
-export async function fetchThreads() {
+interface ContentBlock {
+  type: string;
+  text?: string;
+  url?: string;
+}
+
+interface SSECallbacks {
+  onCreated?: (data: Record<string, unknown>) => void;
+  onDelta?: (data: { text: string }) => void;
+  onDone?: (data: Record<string, unknown>) => void;
+  onError?: (data: { message: string }) => void;
+  onToolUseStart?: (data: Record<string, unknown>) => void;
+  onToolUseResult?: (data: Record<string, unknown>) => void;
+}
+
+interface FetchThreadsResponse {
+  id: string;
+  title: string;
+  status: string;
+  model: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface FetchThreadResponse {
+  thread: Thread;
+  messages: Array<{
+    id: string;
+    role: string;
+    content: ContentBlock[];
+  }>;
+}
+
+export async function fetchThreads(): Promise<FetchThreadsResponse[]> {
   const res = await fetch(`${API_URL}/api/v1/threads`);
   if (!res.ok) throw new Error(`Failed to fetch threads: ${res.status}`);
   return res.json();
 }
 
-export async function createThread(model) {
+export async function createThread(model: string): Promise<Thread> {
   const res = await fetch(`${API_URL}/api/v1/threads`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -16,13 +51,13 @@ export async function createThread(model) {
   return res.json();
 }
 
-export async function fetchThread(threadId) {
+export async function fetchThread(threadId: string): Promise<FetchThreadResponse> {
   const res = await fetch(`${API_URL}/api/v1/threads/${threadId}`);
   if (!res.ok) throw new Error(`Failed to fetch thread: ${res.status}`);
   return res.json();
 }
 
-export async function deleteThread(threadId) {
+export async function deleteThread(threadId: string): Promise<{ success: boolean }> {
   const res = await fetch(`${API_URL}/api/v1/threads/${threadId}`, {
     method: 'DELETE',
   });
@@ -30,7 +65,13 @@ export async function deleteThread(threadId) {
   return res.json();
 }
 
-export async function sendMessage(threadId, content, tools, { onCreated, onDelta, onDone, onError, onToolUseStart, onToolUseResult }) {
+export async function sendMessage(
+  threadId: string,
+  content: ContentBlock[],
+  tools: string[],
+  callbacks: SSECallbacks,
+): Promise<void> {
+  const { onCreated, onDelta, onDone, onError, onToolUseStart, onToolUseResult } = callbacks;
   try {
     const res = await fetch(`${API_URL}/api/v1/threads/${threadId}/messages`, {
       method: 'POST',
@@ -40,7 +81,7 @@ export async function sendMessage(threadId, content, tools, { onCreated, onDelta
 
     if (!res.ok) throw new Error(`Server error: ${res.status}`);
 
-    const reader = res.body.getReader();
+    const reader = res.body!.getReader();
     const decoder = new TextDecoder();
     let buffer = '';
 
@@ -65,11 +106,9 @@ export async function sendMessage(threadId, content, tools, { onCreated, onDelta
                 onDelta?.({ text: data.delta?.text || '' });
                 break;
               case 'content_block_start':
-                // Tool use started (optional callback for UI indicators)
                 onToolUseStart?.(data.content_block);
                 break;
               case 'content_block_stop':
-                // Tool use result (optional callback for UI indicators)
                 onToolUseResult?.(data.tool_result);
                 break;
               case 'message_stop':
@@ -81,13 +120,14 @@ export async function sendMessage(threadId, content, tools, { onCreated, onDelta
               default:
                 break;
             }
-          } catch (e) {
+          } catch {
             // skip malformed SSE chunks
           }
         }
       }
     }
   } catch (error) {
-    onError?.({ message: error.message });
+    const msg = error instanceof Error ? error.message : 'Unknown error';
+    onError?.({ message: msg });
   }
 }

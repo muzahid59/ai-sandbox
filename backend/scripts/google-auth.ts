@@ -1,26 +1,9 @@
-#!/usr/bin/env node
+#!/usr/bin/env ts-node
 
-/**
- * One-time setup script to generate a Google OAuth2 refresh token.
- *
- * Prerequisites:
- *   1. Create a project at https://console.cloud.google.com
- *   2. Enable the Google Calendar API
- *   3. Create OAuth credentials (Desktop app type)
- *   4. Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET in backend/.env
- *
- * Usage:
- *   cd backend && node scripts/google-auth.js
- *
- * The script will:
- *   1. Open your browser to the Google consent screen
- *   2. Capture the authorization code via local callback
- *   3. Print the refresh token to add to your .env file
- */
-
-require('dotenv').config();
-const { google } = require('googleapis');
-const http = require('http');
+import 'dotenv/config';
+import { google } from 'googleapis';
+import http from 'http';
+import { exec } from 'child_process';
 
 const CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
@@ -42,13 +25,11 @@ const authUrl = oauth2Client.generateAuthUrl({
 console.log('\n=== Google Calendar OAuth Setup ===\n');
 console.log('Opening browser for authorization...\n');
 
-// Open browser
-const open = process.platform === 'darwin' ? 'open' : process.platform === 'win32' ? 'start' : 'xdg-open';
-require('child_process').exec(`${open} "${authUrl}"`);
+const openCmd = process.platform === 'darwin' ? 'open' : process.platform === 'win32' ? 'start' : 'xdg-open';
+exec(`${openCmd} "${authUrl}"`);
 
-// Start local server to capture the callback
-const server = http.createServer(async (req, res) => {
-  if (!req.url.startsWith('/callback')) {
+const server = http.createServer(async (req: http.IncomingMessage, res: http.ServerResponse) => {
+  if (!req.url?.startsWith('/callback')) {
     res.writeHead(404);
     res.end();
     return;
@@ -77,7 +58,8 @@ const server = http.createServer(async (req, res) => {
   } catch (error) {
     res.writeHead(500);
     res.end('Failed to exchange code for token');
-    console.error('Error exchanging code:', error.message);
+    const msg = error instanceof Error ? error.message : 'Unknown error';
+    console.error('Error exchanging code:', msg);
     server.close();
     process.exit(1);
   }

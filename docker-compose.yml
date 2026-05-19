@@ -3,8 +3,8 @@ version: '3.8'
 services:
   frontend:
     build:
-      context: ./app
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: app/Dockerfile
     image: ai-sandbox-frontend:latest
     ports:
       - "3000:3000"
@@ -12,15 +12,16 @@ services:
     environment:
       - NODE_ENV=development
     volumes:
-      - ./app:/app  # Mount frontend source code
-      - /app/node_modules  # Prevent overwriting node_modules
+      - ./app:/usr/src/app  # Mount frontend source code
+      - ./shared:/usr/src/shared  # Mount shared types
+      - /usr/src/app/node_modules  # Prevent overwriting node_modules
     depends_on:
       - backend
 
   backend:
     build:
-      context: ./backend
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: backend/Dockerfile
     image: ai-sandbox-backend:latest
     ports:
       - "5001:5001"
@@ -31,6 +32,7 @@ services:
       - SEARXNG_URL=http://searxng:8080
     volumes:
       - ./backend:/usr/src/app  # Mount backend source code
+      - ./shared:/usr/src/shared  # Mount shared types
       - /usr/src/app/node_modules  # Prevent overwriting node_modules
     extra_hosts:
       - "host.docker.internal:host-gateway"

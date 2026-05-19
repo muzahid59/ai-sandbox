@@ -56,7 +56,7 @@ function getDateRange(startDate: string | undefined, endDate: string | undefined
   return { start: start.toISOString(), end: end.toISOString() };
 }
 
-function formatTime(dateTime: string | undefined, date: string | undefined, timezone: string): string {
+function formatTime(dateTime: string | null | undefined, date: string | null | undefined, timezone: string): string {
   if (date) return 'All day';
   if (!dateTime) return 'Unknown time';
   return new Date(dateTime).toLocaleString('en-US', {
@@ -71,11 +71,11 @@ function formatTime(dateTime: string | undefined, date: string | undefined, time
 }
 
 interface CalendarEvent {
-  summary?: string;
-  start?: { dateTime?: string; date?: string };
-  end?: { dateTime?: string; date?: string };
-  location?: string;
-  description?: string;
+  summary?: string | null;
+  start?: { dateTime?: string | null; date?: string | null } | null;
+  end?: { dateTime?: string | null; date?: string | null } | null;
+  location?: string | null;
+  description?: string | null;
 }
 
 function formatEvents(events: CalendarEvent[], timezone: string): string {
