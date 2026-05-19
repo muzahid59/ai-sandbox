@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { fetchThread, createThread, sendMessage } from '../../api';
 import MessageList from '../MessageList/MessageList';
 import ChatInput from '../ChatInput/ChatInput';
@@ -11,10 +12,11 @@ interface DispatchPayload {
 }
 
 const ChatContainer: React.FC<ChatContainerProps> = ({
-  activeThreadId,
+  threadId,
   onThreadCreated,
   onThreadUpdated,
 }) => {
+  const navigate = useNavigate();
   const [inputValue, setInputValue] = useState('');
   const [messages, setMessages] = useState<UIMessage[]>([]);
   const [imageData, setImageData] = useState<string | null>(null);
@@ -22,12 +24,15 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
   const [isListening, setIsListening] = useState(false);
   const [selectedModel, setSelectedModel] = useState('lama');
   const [selectedTools, setSelectedTools] = useState(['calculator', 'web_search', 'fetch_url', 'google_calendar']);
+  const [threadNotFound, setThreadNotFound] = useState(false);
   const recognition = useRef<SpeechRecognition | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const skipNextFetchRef = useRef(false);
 
   useEffect(() => {
-    if (!activeThreadId) {
+    setThreadNotFound(false);
+
+    if (!threadId) {
       setMessages([]);
       return;
     }
@@ -39,7 +44,7 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
 
     let cancelled = false;
 
-    fetchThread(activeThreadId)
+    fetchThread(threadId)
       .then(({ thread, messages: threadMessages }) => {
         if (cancelled) return;
         setSelectedModel(thread.model);
@@ -58,15 +63,21 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
         );
       })
       .catch((err: unknown) => {
-        if (!cancelled) {
-          console.error('Failed to load messages:', err);
-        }
+        if (cancelled) return;
+        console.error('Failed to load thread:', err);
+        setThreadNotFound(true);
+        const timer = setTimeout(() => {
+          if (!cancelled) {
+            navigate('/chat/new', { replace: true });
+          }
+        }, 3000);
+        return () => clearTimeout(timer);
       });
 
     return () => {
       cancelled = true;
     };
-  }, [activeThreadId]);
+  }, [threadId, navigate]);
 
   useEffect(() => {
     const SpeechRecognitionCtor =
@@ -130,10 +141,10 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
         setImageData(null);
         if (fileInputRef.current) fileInputRef.current.value = '';
 
-        let threadId = activeThreadId;
-        if (!threadId) {
+        let currentThreadId = threadId;
+        if (!currentThreadId) {
           const thread = await createThread(selectedModel);
-          threadId = thread.id;
+          currentThreadId = thread.id;
           skipNextFetchRef.current = true;
           onThreadCreated?.(thread);
         }
@@ -148,7 +159,7 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
           { id: tempAssistantId, text: '', sent: false, done: false },
         ]);
 
-        await sendMessage(threadId, content, selectedTools, {
+        await sendMessage(currentThreadId, content, selectedTools, {
           onCreated: (data) => {
             setMessages((prev) =>
               prev.map((m) => {
@@ -170,7 +181,7 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
               prev.map((m) => (!m.sent && !m.done ? { ...m, done: true } : m)),
             );
             setIsLoading(false);
-            onThreadUpdated?.(threadId!);
+            onThreadUpdated?.(currentThreadId!);
           },
           onError: (data) => {
             setMessages((prev) =>
@@ -195,7 +206,7 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
         setIsLoading(false);
       }
     },
-    [activeThreadId, selectedModel, selectedTools, onThreadCreated, onThreadUpdated],
+    [threadId, selectedModel, selectedTools, onThreadCreated, onThreadUpdated],
   );
 
   const handleSubmit = (event: React.FormEvent) => {
@@ -239,6 +250,18 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
     selectedTools,
     onToolsChange: setSelectedTools,
   };
+
+  if (threadNotFound) {
+    return (
+      <div className={styles.container}>
+        <div className={styles.errorScreen}>
+          <div className={styles.errorIcon}>&#9888;</div>
+          <h1 className={styles.errorHeading}>Thread not found</h1>
+          <p className={styles.errorSubtext}>Redirecting to a new chat...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={styles.container}>
