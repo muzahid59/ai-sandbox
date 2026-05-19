@@ -1,4 +1,5 @@
 import React, { useRef, useCallback, useState, useEffect } from 'react';
+import type { ChatInputProps } from '../../types';
 import styles from './ChatInput.module.css';
 
 const MODELS = [
@@ -16,7 +17,7 @@ const TOOLS = [
   { id: 'google_calendar', name: 'Google Calendar' },
 ];
 
-const ChatInput = ({
+const ChatInput: React.FC<ChatInputProps> = ({
   inputValue,
   setInputValue,
   handleSubmit,
@@ -32,14 +33,13 @@ const ChatInput = ({
   selectedTools,
   onToolsChange,
 }) => {
-  const textareaRef = useRef(null);
-  const toolModalRef = useRef(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const toolModalRef = useRef<HTMLDivElement>(null);
   const [showToolModal, setShowToolModal] = useState(false);
 
-  // Close modal on click outside
   useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (toolModalRef.current && !toolModalRef.current.contains(event.target)) {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (toolModalRef.current && !toolModalRef.current.contains(event.target as Node)) {
         setShowToolModal(false);
       }
     };
@@ -67,16 +67,16 @@ const ChatInput = ({
     }, 0);
   }, []);
 
-  const onSubmit = (e) => {
+  const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     handleSubmit(e);
     refocusInput();
   };
 
-  const handleKeyDown = (e) => {
+  const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      handleSubmit(e);
+      handleSubmit(e as unknown as React.FormEvent);
       refocusInput();
     }
   };
@@ -108,7 +108,7 @@ const ChatInput = ({
           <button
             type="button"
             className={`${styles.toolBtn} ${imageData ? styles.attached : ''}`}
-            onClick={() => fileInputRef.current.click()}
+            onClick={() => fileInputRef.current?.click()}
             title="Attach image"
           >
             +

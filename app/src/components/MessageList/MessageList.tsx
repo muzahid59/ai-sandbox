@@ -1,10 +1,11 @@
 import React, { useEffect, useRef } from 'react';
 import MessageBubble from '../MessageBubble/MessageBubble';
+import type { MessageListProps } from '../../types';
 import styles from './MessageList.module.css';
 
-const MessageList = ({ messages }) => {
-  const chatEndRef = useRef(null);
-  const chatboxRef = useRef(null);
+const MessageList: React.FC<MessageListProps> = ({ messages }) => {
+  const chatEndRef = useRef<HTMLDivElement>(null);
+  const chatboxRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (chatEndRef.current) {

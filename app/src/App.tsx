@@ -3,8 +3,9 @@ import './App.css';
 import ChatContainer from './components/ChatContainer/ChatContainer';
 import Sidebar from './components/Sidebar/Sidebar';
 import { fetchThreads, fetchThread, deleteThread } from './api';
+import type { Thread } from './types';
 
-const SunIcon = () => (
+const SunIcon: React.FC = () => (
   <svg
     width="18"
     height="18"
@@ -27,7 +28,7 @@ const SunIcon = () => (
   </svg>
 );
 
-const MoonIcon = () => (
+const MoonIcon: React.FC = () => (
   <svg
     width="18"
     height="18"
@@ -46,19 +47,18 @@ function App() {
   const [theme, setTheme] = useState(() => {
     return localStorage.getItem('theme') || 'light';
   });
-  const [threads, setThreads] = useState([]);
-  const [activeThreadId, setActiveThreadId] = useState(null);
+  const [threads, setThreads] = useState<Thread[]>([]);
+  const [activeThreadId, setActiveThreadId] = useState<string | null>(null);
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
     localStorage.setItem('theme', theme);
   }, [theme]);
 
-  // Fetch threads on mount
   useEffect(() => {
     fetchThreads()
-      .then(setThreads)
-      .catch((err) => console.error('Failed to load threads:', err));
+      .then((data) => setThreads(data as Thread[]))
+      .catch((err: unknown) => console.error('Failed to load threads:', err));
   }, []);
 
   const toggleTheme = () => {
@@ -69,12 +69,12 @@ function App() {
     setActiveThreadId(null);
   }, []);
 
-  const handleSelectThread = useCallback((threadId) => {
+  const handleSelectThread = useCallback((threadId: string) => {
     setActiveThreadId(threadId);
   }, []);
 
   const handleDeleteThread = useCallback(
-    async (threadId) => {
+    async (threadId: string) => {
       try {
         await deleteThread(threadId);
         setThreads((prev) => prev.filter((t) => t.id !== threadId));
@@ -88,20 +88,18 @@ function App() {
     [activeThreadId]
   );
 
-  // Called by ChatContainer when a new thread is created (first message)
-  const handleThreadCreated = useCallback((thread) => {
+  const handleThreadCreated = useCallback((thread: Thread) => {
     setThreads((prev) => [thread, ...prev]);
     setActiveThreadId(thread.id);
   }, []);
 
-  // Called by ChatContainer after a message completes — refresh thread title
-  const handleThreadUpdated = useCallback(async (threadId) => {
+  const handleThreadUpdated = useCallback(async (threadId: string) => {
     try {
       const { thread } = await fetchThread(threadId);
       setThreads((prev) =>
         prev.map((t) => (t.id === threadId ? { ...t, title: thread.title } : t))
       );
-    } catch (err) {
+    } catch {
       // silent — title refresh is not critical
     }
   }, []);

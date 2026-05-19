@@ -18,9 +18,9 @@ npm run start:legacy  # Start legacy JS server (index.js)
 npm start          # Start React dev server on port 3000 (DISABLE_ESLINT_PLUGIN=true)
 npm run build      # Production build
 npm test           # Run Jest tests
-npm run lint       # ESLint check (src/**/*.{js,jsx})
+npm run lint       # ESLint check (src/**/*.{ts,tsx})
 npm run lint:fix   # ESLint auto-fix
-npm run format     # Prettier format (src/**/*.{js,jsx,css,md})
+npm run format     # Prettier format (src/**/*.{ts,tsx,css,md})
 ```
 
 ### Docker
@@ -48,7 +48,7 @@ Monorepo with three services + database:
 
 ### Backend
 
-Hybrid JS/TS codebase. New code in `backend/src/` (TypeScript), legacy code in `backend/controllers/`, `backend/routes/`, `backend/services/` (JavaScript). `tsconfig.json` uses `allowJs: true` for coexistence.
+Fully TypeScript codebase with `strict: true`. All code in `backend/src/` (TypeScript). Legacy JavaScript services in `backend/controllers/`, `backend/routes/`, `backend/services/` still exist but are loaded via `allowJs` in the runtime (ts-node).
 
 **Entry point:** `backend/src/server.ts` — mounts legacy routes and new `/api/v1` routes.
 
@@ -100,20 +100,24 @@ data: {"type": "error", "code": "...", "message": "...", "retryable": true}
 
 ### Frontend
 
-**State Architecture:** Thread state (`threads[]`, `activeThreadId`) lives in `App.js` and flows down as props.
+Fully TypeScript with `strict: true`. All components use typed props via interfaces in `app/src/types/index.ts`. Shared types imported from `@shared/types` path alias (maps to `../shared/types/`).
+
+**State Architecture:** Thread state (`threads[]`, `activeThreadId`) lives in `App.tsx` and flows down as props.
 
 ```
-App.js (threads[], activeThreadId, thread CRUD handlers)
-  ├── Sidebar (threads, activeThreadId, onSelectThread, onNewChat, onDeleteThread)
-  └── ChatContainer (activeThreadId, onThreadCreated, onThreadUpdated)
-        ├── MessageList (messages)
-        ├── MessageBubble (message)
-        └── ChatInput (inputValue, model, handlers)
+App.tsx (threads: Thread[], activeThreadId: string | null, thread CRUD handlers)
+  ├── Sidebar (SidebarProps)
+  └── ChatContainer (ChatContainerProps)
+        ├── MessageList (MessageListProps)
+        ├── MessageBubble (MessageBubbleProps)
+        └── ChatInput (ChatInputProps)
 ```
 
-**`api.js`** — API client for thread/message REST calls and SSE streaming. Replaces `fetch_message.js` for new endpoints.
+**`api.ts`** — API client for thread/message REST calls and SSE streaming. Replaces `fetch_message.ts` for new endpoints.
 
-**`fetch_message.js`** — Legacy SSE client for `/content-completion`. Kept for backward compatibility but no longer used by ChatContainer.
+**`fetch_message.ts`** — Legacy SSE client for `/content-completion`. Kept for backward compatibility but no longer used by ChatContainer.
+
+**Shared Types** (`shared/types/`): Thread, Message, and SSE event types shared between frontend and backend via tsconfig path aliases (`@shared/*`).
 
 **Styling**: CSS Modules per component (e.g., `ChatInput.module.css`). Prettier config in `app/.prettierrc` (single quotes, trailing commas, 100 print width).
 
@@ -135,3 +139,9 @@ Llama and DeepSeek local models require Ollama running on port 11434. Docker use
 **Backend:** Jest + ts-jest + supertest. Tests in `backend/tests/`. Config in `backend/jest.config.ts`.
 
 **Postman collection:** `docs/postman/chat-thread-api.postman_collection.json` — covers all thread/message API endpoints.
+
+<!-- SPECKIT START -->
+For additional context about technologies to be used, project structure,
+shell commands, and other important information, read the current plan
+at `specs/001-convert-js-to-ts/plan.md`
+<!-- SPECKIT END -->

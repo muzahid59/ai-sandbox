@@ -1,12 +1,26 @@
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001';
 
-let onNewMessage = () => {};
+interface LegacyMessage {
+  text: string;
+  sent: boolean;
+  done: boolean;
+}
 
-export function setOnNewMessage(callback) {
+type MessageCallback = (message: LegacyMessage) => void;
+
+let onNewMessage: MessageCallback = () => {};
+
+export function setOnNewMessage(callback: MessageCallback): void {
   onNewMessage = callback;
 }
 
-export async function listenMessage(message) {
+interface LegacyRequest {
+  text: string;
+  image?: string;
+  model: string;
+}
+
+export async function listenMessage(message: LegacyRequest): Promise<void> {
   try {
     const response = await fetch(`${API_URL}/content-completion`, {
       method: 'POST',
@@ -24,7 +38,7 @@ export async function listenMessage(message) {
       throw new Error(`Server error: ${response.status}`);
     }
 
-    const reader = response.body.getReader();
+    const reader = response.body!.getReader();
     const decoder = new TextDecoder();
     let buffer = '';
 
@@ -51,13 +65,14 @@ export async function listenMessage(message) {
             if (data.text) {
               onNewMessage({ text: data.text, sent: false, done: false });
             }
-          } catch (e) {
+          } catch {
             // skip malformed SSE chunks
           }
         }
       }
     }
   } catch (error) {
-    onNewMessage({ text: 'Error: ' + error.message, sent: false, done: true });
+    const msg = error instanceof Error ? error.message : 'Unknown error';
+    onNewMessage({ text: 'Error: ' + msg, sent: false, done: true });
   }
 }
