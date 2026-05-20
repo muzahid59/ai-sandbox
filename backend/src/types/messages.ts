@@ -51,6 +51,7 @@ export interface ChatCompletionOptions {
   messages: MessageParam[];
   tools?: ToolDefinition[];
   model?: string;
+  onDelta?: (text: string) => void;
 }
 
 export interface ChatCompletionResult {
