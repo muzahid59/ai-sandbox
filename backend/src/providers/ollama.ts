@@ -28,10 +28,9 @@ export class OllamaProvider implements AIProvider {
   }
 
   async chatCompletion(options: ChatCompletionOptions): Promise<ChatCompletionResult> {
-    const { messages, tools } = options;
+    const { messages, tools, onDelta } = options;
     const model = options.model || this.model;
 
-    // Only send tools to models that support them
     const supportsTools = TOOL_CAPABLE_MODELS.some((m) => model.includes(m));
     const ollamaTools = supportsTools && tools && tools.length > 0
       ? tools.map((t) => ({
@@ -51,7 +50,6 @@ export class OllamaProvider implements AIProvider {
       ollamaToolsCount: ollamaTools?.length || 0,
     }, 'Tool support check');
 
-    // Convert messages to Ollama chat format
     const ollamaMessages = messages.map((msg) => {
       const formatted: { role: string; content: string } = { role: msg.role, content: '' };
 
@@ -63,7 +61,6 @@ export class OllamaProvider implements AIProvider {
           .map((b) => b.text);
         formatted.content = textParts.join(' ');
 
-        // Handle tool_result → role: tool
         const toolResult = msg.content.find((b) => b.type === 'tool_result');
         if (toolResult && 'content' in toolResult) {
           formatted.role = 'tool';
@@ -78,48 +75,80 @@ export class OllamaProvider implements AIProvider {
       const request: Record<string, unknown> = {
         model,
         messages: ollamaMessages,
-        stream: false,
+        stream: true,
       };
 
       if (ollamaTools) {
         request.tools = ollamaTools;
       }
 
-      const response = await axios.post(`${OLLAMA_BASE_URL}/chat`, request);
-      const msg = response.data.message;
+      const response = await axios.post(`${OLLAMA_BASE_URL}/chat`, request, {
+        responseType: 'stream',
+      });
 
-      // Build content blocks from response
-      const contentBlocks: ContentBlock[] = [];
-      const toolCalls: ToolCall[] = [];
+      return new Promise((resolve, reject) => {
+        let accumulatedText = '';
+        let buffer = '';
 
-      if (msg.content) {
-        contentBlocks.push({ type: 'text', text: msg.content });
-      }
+        response.data.on('data', (chunk: Buffer) => {
+          buffer += chunk.toString();
+          const lines = buffer.split('\n');
+          buffer = lines.pop() ?? '';
 
-      if (msg.tool_calls && msg.tool_calls.length > 0) {
-        for (let i = 0; i < msg.tool_calls.length; i++) {
-          const tc = msg.tool_calls[i];
-          const toolCall: ToolCall = {
-            id: `call_${Date.now()}_${i}`,
-            name: tc.function.name,
-            arguments: tc.function.arguments,
-          };
-          toolCalls.push(toolCall);
-          contentBlocks.push({
-            type: 'tool_use',
-            id: toolCall.id,
-            name: toolCall.name,
-            input: toolCall.arguments,
-          });
-        }
-      }
+          for (const line of lines) {
+            if (!line.trim()) continue;
+            try {
+              const parsed = JSON.parse(line);
+              const textChunk: string = parsed.message?.content ?? '';
 
-      return {
-        text: msg.content || '',
-        contentBlocks,
-        toolCalls,
-        stopReason: toolCalls.length > 0 ? 'tool_use' : 'end_turn',
-      };
+              if (textChunk) {
+                accumulatedText += textChunk;
+                onDelta?.(textChunk);
+              }
+
+              if (parsed.done) {
+                const contentBlocks: ContentBlock[] = [];
+                const toolCalls: ToolCall[] = [];
+
+                if (accumulatedText) {
+                  contentBlocks.push({ type: 'text', text: accumulatedText });
+                }
+
+                const rawToolCalls = parsed.message?.tool_calls ?? [];
+                for (let i = 0; i < rawToolCalls.length; i++) {
+                  const tc = rawToolCalls[i];
+                  const toolCall: ToolCall = {
+                    id: `call_${Date.now()}_${i}`,
+                    name: tc.function.name,
+                    arguments: tc.function.arguments,
+                  };
+                  toolCalls.push(toolCall);
+                  contentBlocks.push({
+                    type: 'tool_use',
+                    id: toolCall.id,
+                    name: toolCall.name,
+                    input: toolCall.arguments,
+                  });
+                }
+
+                resolve({
+                  text: accumulatedText,
+                  contentBlocks,
+                  toolCalls,
+                  stopReason: toolCalls.length > 0 ? 'tool_use' : 'end_turn',
+                });
+              }
+            } catch (err) {
+              log.error({ err, line }, 'Error parsing stream chunk');
+            }
+          }
+        });
+
+        response.data.on('error', (err: Error) => {
+          log.error({ err, model }, 'Stream error');
+          reject(new Error(`Ollama chat completion failed: ${err.message}`));
+        });
+      });
     } catch (error: any) {
       log.error({ err: error, model }, 'chatCompletion failed');
       throw new Error(`Ollama chat completion failed: ${error.message}`);
