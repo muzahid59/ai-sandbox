@@ -89,6 +89,14 @@ export class OllamaProvider implements AIProvider {
       return new Promise((resolve, reject) => {
         let accumulatedText = '';
         let buffer = '';
+        let settled = false;
+
+        const settle = (fn: () => void) => {
+          if (!settled) {
+            settled = true;
+            fn();
+          }
+        };
 
         response.data.on('data', (chunk: Buffer) => {
           buffer += chunk.toString();
@@ -101,41 +109,43 @@ export class OllamaProvider implements AIProvider {
               const parsed = JSON.parse(line);
               const textChunk: string = parsed.message?.content ?? '';
 
-              if (textChunk) {
+              if (textChunk && !settled) {
                 accumulatedText += textChunk;
                 onDelta?.(textChunk);
               }
 
               if (parsed.done) {
-                const contentBlocks: ContentBlock[] = [];
-                const toolCalls: ToolCall[] = [];
+                settle(() => {
+                  const contentBlocks: ContentBlock[] = [];
+                  const toolCalls: ToolCall[] = [];
 
-                if (accumulatedText) {
-                  contentBlocks.push({ type: 'text', text: accumulatedText });
-                }
+                  if (accumulatedText) {
+                    contentBlocks.push({ type: 'text', text: accumulatedText });
+                  }
 
-                const rawToolCalls = parsed.message?.tool_calls ?? [];
-                for (let i = 0; i < rawToolCalls.length; i++) {
-                  const tc = rawToolCalls[i];
-                  const toolCall: ToolCall = {
-                    id: `call_${Date.now()}_${i}`,
-                    name: tc.function.name,
-                    arguments: tc.function.arguments,
-                  };
-                  toolCalls.push(toolCall);
-                  contentBlocks.push({
-                    type: 'tool_use',
-                    id: toolCall.id,
-                    name: toolCall.name,
-                    input: toolCall.arguments,
+                  const rawToolCalls = parsed.message?.tool_calls ?? [];
+                  for (let i = 0; i < rawToolCalls.length; i++) {
+                    const tc = rawToolCalls[i];
+                    const toolCall: ToolCall = {
+                      id: `call_${Date.now()}_${i}`,
+                      name: tc.function.name,
+                      arguments: tc.function.arguments,
+                    };
+                    toolCalls.push(toolCall);
+                    contentBlocks.push({
+                      type: 'tool_use',
+                      id: toolCall.id,
+                      name: toolCall.name,
+                      input: toolCall.arguments,
+                    });
+                  }
+
+                  resolve({
+                    text: accumulatedText,
+                    contentBlocks,
+                    toolCalls,
+                    stopReason: toolCalls.length > 0 ? 'tool_use' : 'end_turn',
                   });
-                }
-
-                resolve({
-                  text: accumulatedText,
-                  contentBlocks,
-                  toolCalls,
-                  stopReason: toolCalls.length > 0 ? 'tool_use' : 'end_turn',
                 });
               }
             } catch (err) {
@@ -144,9 +154,13 @@ export class OllamaProvider implements AIProvider {
           }
         });
 
+        response.data.on('end', () => {
+          settle(() => reject(new Error('Ollama stream ended without done:true')));
+        });
+
         response.data.on('error', (err: Error) => {
           log.error({ err, model }, 'Stream error');
-          reject(new Error(`Ollama chat completion failed: ${err.message}`));
+          settle(() => reject(new Error(`Ollama chat completion failed: ${err.message}`)));
         });
       });
     } catch (error: any) {
