@@ -84,6 +84,7 @@ export class OllamaProvider implements AIProvider {
 
       const response = await axios.post(`${OLLAMA_BASE_URL}/chat`, request, {
         responseType: 'stream',
+        timeout: process.env.OLLAMA_TIMEOUT_MS ? Number(process.env.OLLAMA_TIMEOUT_MS) : 120_000,
       });
 
       return new Promise((resolve, reject) => {
