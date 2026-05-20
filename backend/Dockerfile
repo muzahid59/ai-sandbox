@@ -1,5 +1,5 @@
-# Use Node 18 as base image
-FROM node:18-alpine
+# Use Node 22 as base image
+FROM node:22-alpine
 
 # Install OpenSSL (required by Prisma on Alpine)
 RUN apk add --no-cache openssl
@@ -30,4 +30,4 @@ COPY backend/ .
 EXPOSE 5001
 
 # Run migrations and start the app
-CMD npx prisma migrate deploy && npm run dev
+CMD sh -c "until npx prisma migrate deploy; do echo 'DB not ready, retrying in 3s...'; sleep 3; done && npm run dev"

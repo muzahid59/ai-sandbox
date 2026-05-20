@@ -1,5 +1,5 @@
-# Use Node 18 LTS
-FROM node:18-alpine
+# Use Node 22 LTS
+FROM node:22-alpine
 
 # Set working directory
 WORKDIR /usr/src/app
