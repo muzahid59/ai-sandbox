@@ -45,23 +45,33 @@ export async function runAgenticLoop(
   for (let i = 0; i < maxIterations; i++) {
     log.debug({ iteration: i + 1, messageCount: messages.length }, 'Loop iteration start');
 
-    // 1. Call provider with messages + tool definitions
-    const response = await provider.chatCompletion({ messages, tools });
+    // Track whether the provider called onDelta per-token (streaming providers like Ollama)
+    let providerCalledOnDelta = false;
+    const trackedOnDelta = (text: string) => {
+      providerCalledOnDelta = true;
+      callbacks.onDelta(text);
+    };
+
+    // 1. Call provider with messages + tool definitions + onDelta tracker
+    const response = await provider.chatCompletion({ messages, tools, onDelta: trackedOnDelta });
 
     // 2. If no tool calls → done
     if (response.stopReason !== 'tool_use' || response.toolCalls.length === 0) {
       finalText = response.text;
-      if (finalText) {
+      // Only emit if provider did not already stream tokens per-chunk
+      if (!providerCalledOnDelta && finalText) {
         callbacks.onDelta(finalText);
       }
       log.debug({ iteration: i + 1 }, 'Loop complete — text response');
       break;
     }
 
-    // Stream any partial text before tool calls
+    // Stream any partial text before tool calls (only if provider didn't stream it)
     if (response.text) {
       finalText += response.text;
-      callbacks.onDelta(response.text);
+      if (!providerCalledOnDelta) {
+        callbacks.onDelta(response.text);
+      }
     }
 
     // 3. Append assistant message with content blocks
