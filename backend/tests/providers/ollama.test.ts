@@ -103,6 +103,36 @@ describe('OllamaProvider.chatCompletion (streaming)', () => {
     expect(result.contentBlocks.some((b) => b.type === 'tool_use')).toBe(true);
   });
 
+  it('parses structured tool_calls from non-done chunks (real Ollama format)', async () => {
+    mockedAxios.post.mockImplementation(() =>
+      makeStream([
+        {
+          message: {
+            role: 'assistant',
+            content: '',
+            tool_calls: [
+              { function: { name: 'get_current_date', arguments: {} } },
+            ],
+          },
+          done: false,
+        },
+        { message: { role: 'assistant', content: '' }, done: true, done_reason: 'stop' },
+      ]),
+    );
+
+    const deltas: string[] = [];
+    const result = await provider.chatCompletion({
+      messages: [{ role: 'user', content: 'hello' }],
+      tools: [{ name: 'get_current_date', description: 'Get date', input_schema: { type: 'object', properties: {} } }],
+      onDelta: (t) => deltas.push(t),
+    });
+
+    expect(result.stopReason).toBe('tool_use');
+    expect(result.toolCalls).toHaveLength(1);
+    expect(result.toolCalls[0].name).toBe('get_current_date');
+    expect(deltas).toEqual([]);
+  });
+
   it('rejects when the stream emits an error', async () => {
     const stream = new PassThrough();
     mockedAxios.post.mockResolvedValue({ data: stream });
@@ -124,6 +154,50 @@ describe('OllamaProvider.chatCompletion (streaming)', () => {
     await expect(
       provider.chatCompletion({ messages: [{ role: 'user', content: 'hi' }] }),
     ).rejects.toThrow('Ollama stream ended without done:true');
+  });
+
+  it('does not leak text-embedded tool call JSON via onDelta when tools are provided', async () => {
+    mockedAxios.post.mockImplementation(() =>
+      makeStream([
+        { message: { role: 'assistant', content: '{"name": "get_current_date", "parameters": {}}' }, done: false },
+        { message: { role: 'assistant', content: '' }, done: true },
+      ]),
+    );
+
+    const deltas: string[] = [];
+    const result = await provider.chatCompletion({
+      messages: [{ role: 'user', content: 'hello' }],
+      tools: [{ name: 'get_current_date', description: 'Get date', input_schema: { type: 'object', properties: {} } }],
+      onDelta: (t) => deltas.push(t),
+    });
+
+    expect(deltas).toEqual([]);
+    expect(result.stopReason).toBe('tool_use');
+    expect(result.toolCalls).toHaveLength(1);
+    expect(result.toolCalls[0].name).toBe('get_current_date');
+    expect(result.text).toBe('');
+  });
+
+  it('emits buffered text via onDelta after done chunk when tools are provided but response is text', async () => {
+    mockedAxios.post.mockImplementation(() =>
+      makeStream([
+        { message: { role: 'assistant', content: 'What can I' }, done: false },
+        { message: { role: 'assistant', content: ' help you with?' }, done: false },
+        { message: { role: 'assistant', content: '' }, done: true },
+      ]),
+    );
+
+    const deltas: string[] = [];
+    const result = await provider.chatCompletion({
+      messages: [{ role: 'user', content: 'hello' }],
+      tools: [{ name: 'get_current_date', description: 'Get date', input_schema: { type: 'object', properties: {} } }],
+      onDelta: (t) => deltas.push(t),
+    });
+
+    expect(deltas).toEqual(['What can I help you with?']);
+    expect(result.text).toBe('What can I help you with?');
+    expect(result.stopReason).toBe('end_turn');
+    expect(result.toolCalls).toHaveLength(0);
   });
 
   it('uses stream:true in the axios request', async () => {

@@ -51,7 +51,10 @@ export class OllamaProvider implements AIProvider {
     }, 'Tool support check');
 
     const ollamaMessages = messages.map((msg) => {
-      const formatted: { role: string; content: string } = { role: msg.role, content: '' };
+      const formatted: { role: string; content: string; tool_calls?: { function: { name: string; arguments: Record<string, unknown> } }[] } = {
+        role: msg.role,
+        content: '',
+      };
 
       if (typeof msg.content === 'string') {
         formatted.content = msg.content;
@@ -64,8 +67,15 @@ export class OllamaProvider implements AIProvider {
         const toolResult = msg.content.find((b) => b.type === 'tool_result');
         if (toolResult && 'content' in toolResult) {
           formatted.role = 'tool';
-          formatted.content = toolResult.content || '';
+          formatted.content = (toolResult as { content?: string }).content || '';
         }
+      }
+
+      // Preserve tool_calls on assistant messages so Ollama can track the tool-call/result turn
+      if (msg.tool_calls && msg.tool_calls.length > 0) {
+        formatted.tool_calls = msg.tool_calls.map((tc) => ({
+          function: { name: tc.name, arguments: tc.arguments },
+        }));
       }
 
       return formatted;
@@ -82,6 +92,8 @@ export class OllamaProvider implements AIProvider {
         request.tools = ollamaTools;
       }
 
+      log.debug({ model, messageRoles: ollamaMessages.map(m => m.role), messages: ollamaMessages }, 'Sending to Ollama');
+
       const response = await axios.post(`${OLLAMA_BASE_URL}/chat`, request, {
         responseType: 'stream',
         timeout: process.env.OLLAMA_TIMEOUT_MS ? Number(process.env.OLLAMA_TIMEOUT_MS) : 120_000,
@@ -91,6 +103,7 @@ export class OllamaProvider implements AIProvider {
         let accumulatedText = '';
         let buffer = '';
         let settled = false;
+        const streamToolCalls: { function: { name: string; arguments: Record<string, unknown> } }[] = [];
 
         const settle = (fn: () => void) => {
           if (!settled) {
@@ -112,19 +125,55 @@ export class OllamaProvider implements AIProvider {
 
               if (textChunk && !settled) {
                 accumulatedText += textChunk;
-                onDelta?.(textChunk);
+                if (!ollamaTools) {
+                  onDelta?.(textChunk);
+                }
+              }
+
+              if (parsed.message?.tool_calls && !settled) {
+                streamToolCalls.push(...parsed.message.tool_calls);
               }
 
               if (parsed.done) {
+                log.debug({
+                  model,
+                  doneContent: parsed.message?.content,
+                  doneToolCalls: parsed.message?.tool_calls,
+                  doneReason: parsed.done_reason,
+                  accumulatedTextLength: accumulatedText.length,
+                }, 'Ollama done chunk');
+
                 settle(() => {
                   const contentBlocks: ContentBlock[] = [];
                   const toolCalls: ToolCall[] = [];
 
-                  if (accumulatedText) {
-                    contentBlocks.push({ type: 'text', text: accumulatedText });
+                  // Structured tool_calls accumulated from all chunks (including this done chunk)
+                  let rawToolCalls: { function: { name: string; arguments: Record<string, unknown> } }[] =
+                    [...streamToolCalls];
+
+                  // Fallback: some Ollama versions/models emit tool calls as JSON text content
+                  // instead of structured tool_calls. Detect and convert.
+                  if (accumulatedText && rawToolCalls.length === 0) {
+                    try {
+                      const maybeCall = JSON.parse(accumulatedText.trim());
+                      const args = maybeCall.parameters ?? maybeCall.arguments;
+                      if (typeof maybeCall.name === 'string' && args !== undefined) {
+                        rawToolCalls = [{ function: { name: maybeCall.name, arguments: args } }];
+                        accumulatedText = ''; // was a tool call, not user-visible text
+                        log.debug({ toolName: maybeCall.name }, 'Detected text-embedded tool call');
+                      }
+                    } catch {
+                      // not JSON — treat as normal text
+                    }
                   }
 
-                  const rawToolCalls = parsed.message?.tool_calls ?? [];
+                  if (accumulatedText) {
+                    contentBlocks.push({ type: 'text', text: accumulatedText });
+                    if (ollamaTools) {
+                      onDelta?.(accumulatedText);
+                    }
+                  }
+
                   for (let i = 0; i < rawToolCalls.length; i++) {
                     const tc = rawToolCalls[i];
                     const toolCall: ToolCall = {
