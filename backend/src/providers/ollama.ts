@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { Transform } from 'stream';
 import { AIProvider, ProviderCapabilities } from './types';
-import { ChatCompletionOptions, ChatCompletionResult, MessageParam, ToolCall, ContentBlock } from '../types';
+import { ChatCompletionOptions, ChatCompletionResult, ToolCall, ContentBlock } from '../types';
 import logger from '../config/logger';
 
 const log = logger.child({ provider: 'ollama' });
