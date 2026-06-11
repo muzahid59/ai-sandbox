@@ -1,5 +1,6 @@
 const mockThreadService = {
   getThreadById: jest.fn(),
+  incrementThreadTokens: jest.fn(),
 };
 
 const mockMessageService = {
@@ -7,7 +8,6 @@ const mockMessageService = {
   getByThread: jest.fn(),
   updateMessageStatus: jest.fn(),
   countByThread: jest.fn(),
-  incrementThreadTokens: jest.fn(),
 };
 
 const mockContextService = {
@@ -40,12 +40,14 @@ jest.mock('../../src/config/database', () => ({
 import request from 'supertest';
 import express from 'express';
 import { authMiddleware } from '../../src/middleware/auth';
+import { errorHandler } from '../../src/middleware/errorHandler';
 import { messageRoutes } from '../../src/routes/messageRoutes';
 
 const app = express();
 app.use(express.json());
 app.use(authMiddleware);
 app.use('/api/v1', messageRoutes);
+app.use(errorHandler);
 
 const USER_ID = '00000000-0000-0000-0000-000000000001';
 

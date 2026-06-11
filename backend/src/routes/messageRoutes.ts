@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { asyncHandler } from '../middleware/asyncHandler';
 import {
   handleSendMessage,
   handleGetMessages,
@@ -6,7 +7,7 @@ import {
 
 const router = Router();
 
-router.post('/threads/:id/messages', handleSendMessage);
-router.get('/threads/:id/messages', handleGetMessages);
+router.post('/threads/:id/messages', asyncHandler(handleSendMessage));
+router.get('/threads/:id/messages', asyncHandler(handleGetMessages));
 
 export { router as messageRoutes };

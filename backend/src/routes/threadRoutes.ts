@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { asyncHandler } from '../middleware/asyncHandler';
 import {
   handleCreateThread,
   handleListThreads,
@@ -9,10 +10,10 @@ import {
 
 const router = Router();
 
-router.post('/threads', handleCreateThread);
-router.get('/threads', handleListThreads);
-router.get('/threads/:id', handleGetThread);
-router.patch('/threads/:id', handleUpdateThread);
-router.delete('/threads/:id', handleDeleteThread);
+router.post('/threads', asyncHandler(handleCreateThread));
+router.get('/threads', asyncHandler(handleListThreads));
+router.get('/threads/:id', asyncHandler(handleGetThread));
+router.patch('/threads/:id', asyncHandler(handleUpdateThread));
+router.delete('/threads/:id', asyncHandler(handleDeleteThread));
 
 export { router as threadRoutes };

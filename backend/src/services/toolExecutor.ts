@@ -84,26 +84,25 @@ export async function runAgenticLoop(
     // 4. Execute ALL tool calls in parallel (Anthropic pattern)
     const toolCallPromises = response.toolCalls.map(async (toolCall): Promise<ToolCallRecord> => {
       callbacks.onToolUseStart(toolCall);
-      log.info({ tool: toolCall.name, input: toolCall.arguments }, 'Tool call start');
+      const inputSize = JSON.stringify(toolCall.arguments).length;
+      log.info({ tool: toolCall.name, inputSize }, 'Tool call start');
 
       const start = Date.now();
       const result = await toolRegistry.execute(toolCall.name, toolCall.arguments);
       const durationMs = Date.now() - start;
 
-      // Truncate output if too large
       if (result.output.length > MAX_TOOL_OUTPUT_LENGTH) {
         log.warn({ tool: toolCall.name, originalLength: result.output.length }, 'Tool output truncated');
         result.output = result.output.substring(0, MAX_TOOL_OUTPUT_LENGTH) + '\n\n[Output truncated]';
       }
 
-      // Log tool output for debugging summarization
-      log.debug({
+      log.info({
         tool: toolCall.name,
-        outputPreview: result.output.substring(0, 500),
-        outputLength: result.output.length
-      }, 'Tool output preview');
-
-      log.info({ tool: toolCall.name, durationMs, is_error: result.is_error }, 'Tool call end');
+        durationMs,
+        inputSize,
+        outputSize: result.output.length,
+        success: !result.is_error,
+      }, 'Tool call end');
       callbacks.onToolUseResult(toolCall.id, toolCall.name, result);
 
       return { call: toolCall, result, durationMs };

@@ -19,7 +19,7 @@
 
 **Purpose**: Create new directory structure for modules introduced by this refactor
 
-- [ ] T001 Create new directories: backend/src/prompts/, backend/src/sse/, backend/tests/sse/
+- [X] T001 Create new directories: backend/src/prompts/, backend/src/sse/, backend/tests/sse/
 
 ---
 
@@ -29,18 +29,18 @@
 
 **Serves**: US5 (SSEWriter, SSE types), US6 (PromptLoader, prompt files), US2 (shared conversion utils), US4 (ProviderRegistration types), US3 (correlation ID propagation), US1 (incrementThreadTokens relocation)
 
-- [ ] T002 [P] Define ProviderRegistration, ModelConfig, and ProviderCapabilities interfaces with register() export convention in backend/src/providers/types.ts
-- [ ] T003 [P] Create SSE event type definitions (MessageStartEvent, DeltaEvent, ToolUseStartEvent, ToolUseResultEvent, MessageStopEvent, ErrorEvent) in backend/src/sse/types.ts
-- [ ] T004 [P] Create shared message conversion utilities (extractTextContent, mapToolResult, buildToolCallContentBlock) in backend/src/providers/utils.ts
-- [ ] T005 [P] Create default tool-capable system prompt as a parameterized template literal (date, timezone) in backend/src/prompts/default.ts
-- [ ] T006 [P] Create simple non-tool system prompt as a parameterized template literal in backend/src/prompts/simple.ts
-- [ ] T007 Create prompt loader getSystemPrompt({ supportsTools, date?, timezone? }) in backend/src/prompts/index.ts
-- [ ] T008 Create SSEWriter class with typed event methods (sendMessageStart, sendDelta, sendToolUseStart, sendToolUseResult, sendMessageStop, sendError, end) and client disconnect protection in backend/src/sse/sseWriter.ts
-- [ ] T009 Re-export SSE types from backend/src/types/events.ts pointing to backend/src/sse/types.ts for backward compatibility
-- [ ] T010 [P] Update requestLogger middleware to attach correlation ID (req.id) for downstream propagation in backend/src/middleware/requestLogger.ts
-- [ ] T011 [P] Move incrementThreadTokens function from messageService to threadService and update import in call site in backend/src/services/threadService.ts
-- [ ] T012 Write unit tests for extractTextContent, mapToolResult, and buildToolCallContentBlock including unknown content block passthrough in backend/tests/providers/utils.test.ts
-- [ ] T013 Write unit tests for SSEWriter including event formatting, connection state tracking, and write-after-close protection in backend/tests/sse/sseWriter.test.ts
+- [X] T002 [P] Define ProviderRegistration, ModelConfig, and ProviderCapabilities interfaces with register() export convention in backend/src/providers/types.ts
+- [X] T003 [P] Create SSE event type definitions (MessageStartEvent, DeltaEvent, ToolUseStartEvent, ToolUseResultEvent, MessageStopEvent, ErrorEvent) in backend/src/sse/types.ts
+- [X] T004 [P] Create shared message conversion utilities (extractTextContent, mapToolResult, buildToolCallContentBlock) in backend/src/providers/utils.ts
+- [X] T005 [P] Create default tool-capable system prompt as a parameterized template literal (date, timezone) in backend/src/prompts/default.ts
+- [X] T006 [P] Create simple non-tool system prompt as a parameterized template literal in backend/src/prompts/simple.ts
+- [X] T007 Create prompt loader getSystemPrompt({ supportsTools, date?, timezone? }) in backend/src/prompts/index.ts
+- [X] T008 Create SSEWriter class with typed event methods (sendMessageStart, sendDelta, sendToolUseStart, sendToolUseResult, sendMessageStop, sendError, end) and client disconnect protection in backend/src/sse/sseWriter.ts
+- [X] T009 Re-export SSE types from backend/src/types/events.ts pointing to backend/src/sse/types.ts for backward compatibility
+- [X] T010 [P] Update requestLogger middleware to attach correlation ID (req.id) for downstream propagation in backend/src/middleware/requestLogger.ts
+- [X] T011 [P] Move incrementThreadTokens function from messageService to threadService and update import in call site in backend/src/services/threadService.ts
+- [X] T012 Write unit tests for extractTextContent, mapToolResult, and buildToolCallContentBlock including unknown content block passthrough in backend/tests/providers/utils.test.ts
+- [X] T013 Write unit tests for SSEWriter including event formatting, connection state tracking, and write-after-close protection in backend/tests/sse/sseWriter.test.ts
 
 **Checkpoint**: All new modules exist and pass their tests. No existing behavior changed yet.
 
@@ -54,11 +54,11 @@
 
 ### Implementation for User Story 1
 
-- [ ] T014 [US1] Decompose contextService.buildContextWindow into focused helper methods (lookupCache, fetchMessages, applyTokenBudget, enforceMinimumMessages, enforceRoleAlternation, validateLastRole) in backend/src/services/contextService.ts
-- [ ] T015 [US1] Refactor chatService to use PromptLoader for system prompts and accept SSEWriter callbacks for event emission, removing embedded prompt text and inline res.write calls in backend/src/services/chatService.ts
-- [ ] T016 [US1] Slim messageController.handleSendMessage to ~25 lines: validate input, create SSEWriter, delegate to chatService, handle completion in backend/src/controllers/messageController.ts
-- [ ] T017 [US1] Standardize threadController error handling: replace all manual res.status().json() patterns with throw AppError exclusively in backend/src/controllers/threadController.ts
-- [ ] T018 [US1] Update contextService tests to cover decomposed helper methods (lookupCache, fetchMessages, applyTokenBudget, enforceRoleAlternation) in backend/tests/services/contextService.test.ts
+- [X] T014 [US1] Decompose contextService.buildContextWindow into focused helper methods (lookupCache, fetchMessages, applyTokenBudget, enforceMinimumMessages, enforceRoleAlternation, validateLastRole) in backend/src/services/contextService.ts
+- [X] T015 [US1] Refactor chatService to use PromptLoader for system prompts and accept SSEWriter callbacks for event emission, removing embedded prompt text and inline res.write calls in backend/src/services/chatService.ts
+- [X] T016 [US1] Slim messageController.handleSendMessage to ~25 lines: validate input, create SSEWriter, delegate to chatService, handle completion in backend/src/controllers/messageController.ts
+- [X] T017 [US1] Standardize threadController error handling: replace all manual res.status().json() patterns with throw AppError exclusively in backend/src/controllers/threadController.ts
+- [X] T018 [US1] Update contextService tests to cover decomposed helper methods (lookupCache, fetchMessages, applyTokenBudget, enforceRoleAlternation) in backend/tests/services/contextService.test.ts
 
 **Checkpoint**: Controllers are slim orchestrators. `handleSendMessage` is ~25 lines. All existing tests pass unmodified.
 
@@ -72,9 +72,9 @@
 
 ### Implementation for User Story 2
 
-- [ ] T019 [P] [US2] Refactor OpenAI provider to use extractTextContent and mapToolResult from shared utils, removing inline text-block filtering and tool result detection in backend/src/providers/openai.ts
-- [ ] T020 [P] [US2] Refactor Google provider to use extractTextContent and mapToolResult from shared utils, removing inline text-block filtering and tool result detection in backend/src/providers/google.ts
-- [ ] T021 [P] [US2] Refactor Ollama provider to use extractTextContent and mapToolResult from shared utils, removing inline text-block filtering and tool result detection in backend/src/providers/ollama.ts
+- [X] T019 [P] [US2] Refactor OpenAI provider to use extractTextContent and mapToolResult from shared utils, removing inline text-block filtering and tool result detection in backend/src/providers/openai.ts
+- [X] T020 [P] [US2] Refactor Google provider to use extractTextContent and mapToolResult from shared utils, removing inline text-block filtering and tool result detection in backend/src/providers/google.ts
+- [X] T021 [P] [US2] Refactor Ollama provider to use extractTextContent and mapToolResult from shared utils, removing inline text-block filtering and tool result detection in backend/src/providers/ollama.ts
 
 **Checkpoint**: Text extraction logic (`.filter(b => b.type === 'text')...`) exists in exactly one location. Each provider's `chatCompletion` contains only provider-specific API calls.
 
@@ -88,10 +88,10 @@
 
 ### Implementation for User Story 3
 
-- [ ] T022 [P] [US3] Add structured logging with operation name, entity IDs, duration, and child logger (requestId) to all five threadController handlers in backend/src/controllers/threadController.ts
-- [ ] T023 [P] [US3] Add error logging with err object, statusCode, and correlation ID to errorHandler middleware in backend/src/middleware/errorHandler.ts
-- [ ] T024 [P] [US3] Add operation timing (Date.now delta) and correlation ID via logger.child({ requestId }) to messageController handlers in backend/src/controllers/messageController.ts
-- [ ] T025 [US3] Enhance tool execution logging with tool name, duration, input size, output size, success/failure status, and correlation ID in backend/src/services/toolExecutor.ts
+- [X] T022 [P] [US3] Add structured logging with operation name, entity IDs, duration, and child logger (requestId) to all five threadController handlers in backend/src/controllers/threadController.ts
+- [X] T023 [P] [US3] Add error logging with err object, statusCode, and correlation ID to errorHandler middleware in backend/src/middleware/errorHandler.ts
+- [X] T024 [P] [US3] Add operation timing (Date.now delta) and correlation ID via logger.child({ requestId }) to messageController handlers in backend/src/controllers/messageController.ts
+- [X] T025 [US3] Enhance tool execution logging with tool name, duration, input size, output size, success/failure status, and correlation ID in backend/src/services/toolExecutor.ts
 
 **Checkpoint**: Thread controller has structured logging (was zero). All controller operations include duration. Correlation ID traces from controller through tool execution.
 
@@ -105,11 +105,11 @@
 
 ### Implementation for User Story 4
 
-- [ ] T026 [P] [US4] Add register() export function returning ProviderRegistration { name, models, capabilities, factory } to OpenAI provider in backend/src/providers/openai.ts
-- [ ] T027 [P] [US4] Add register() export function returning ProviderRegistration { name, models, capabilities, factory } to Google provider in backend/src/providers/google.ts
-- [ ] T028 [P] [US4] Add register() export function returning ProviderRegistration { name, models, capabilities, factory } to Ollama provider in backend/src/providers/ollama.ts
-- [ ] T029 [US4] Implement auto-registration: scan providers/ directory for .ts files (excluding index.ts, types.ts, utils.ts), call each register(), populate MODEL_REGISTRY and factory map, reject duplicate names in backend/src/providers/index.ts
-- [ ] T030 [US4] Update server.ts to call provider auto-registration at startup and log registered providers in backend/src/server.ts
+- [X] T026 [P] [US4] Add register() export function returning ProviderRegistration { name, models, capabilities, factory } to OpenAI provider in backend/src/providers/openai.ts
+- [X] T027 [P] [US4] Add register() export function returning ProviderRegistration { name, models, capabilities, factory } to Google provider in backend/src/providers/google.ts
+- [X] T028 [P] [US4] Add register() export function returning ProviderRegistration { name, models, capabilities, factory } to Ollama provider in backend/src/providers/ollama.ts
+- [X] T029 [US4] Implement auto-registration: scan providers/ directory for .ts files (excluding index.ts, types.ts, utils.ts), call each register(), populate MODEL_REGISTRY and factory map, reject duplicate names in backend/src/providers/index.ts
+- [X] T030 [US4] Update server.ts to call provider auto-registration at startup and log registered providers in backend/src/server.ts
 
 **Checkpoint**: Removing a provider file and restarting → provider absent, no errors. Adding a file with register() → provider available. Duplicate name → startup error.
 
@@ -154,10 +154,10 @@ No additional tasks required.
 
 **Purpose**: Final verification that the refactor maintains all contracts and meets success criteria
 
-- [ ] T031 [P] Run full backend test suite to verify all existing tests pass without modification (SC-005)
-- [ ] T032 [P] Audit all functions to verify none exceeds 50 lines (SC-006) and no controller handler exceeds 30 lines (SC-001)
-- [ ] T033 Run quickstart.md verification checklist: API contracts, SSE event sequence, tool calling, provider verification, logging verification
-- [ ] T034 Verify message format conversion code exists in exactly one shared location with zero duplication across providers (SC-002)
+- [X] T031 [P] Run full backend test suite to verify all existing tests pass without modification (SC-005)
+- [X] T032 [P] Audit all functions to verify none exceeds 50 lines (SC-006) and no controller handler exceeds 30 lines (SC-001)
+- [X] T033 Run quickstart.md verification checklist: API contracts, SSE event sequence, tool calling, provider verification, logging verification
+- [X] T034 Verify message format conversion code exists in exactly one shared location with zero duplication across providers (SC-002)
 
 ---
 

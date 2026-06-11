@@ -1,20 +1,16 @@
 import axios from 'axios';
 import { Transform } from 'stream';
-import { AIProvider, ProviderCapabilities } from './types';
+import { AIProvider, ProviderCapabilities, ProviderRegistration } from './types';
 import { ChatCompletionOptions, ChatCompletionResult, ToolCall, ContentBlock } from '../types';
+import { extractTextContent, mapToolResult, buildToolCallContentBlock } from './utils';
 import logger from '../config/logger';
 
 const log = logger.child({ provider: 'ollama' });
 
 const OLLAMA_BASE_URL = process.env.OLLAMA_URL || 'http://host.docker.internal:11434/api';
 
-// Models that support tool calling in Ollama
 const TOOL_CAPABLE_MODELS = ['llama3.2', 'llama3.1', 'mistral', 'mixtral', 'qwen2.5'];
 
-/**
- * Unified Ollama provider — handles llama, deepseek, mistral, and any
- * model available via the Ollama API.
- */
 export class OllamaProvider implements AIProvider {
   readonly name: string;
   readonly capabilities: ProviderCapabilities = {
@@ -43,35 +39,22 @@ export class OllamaProvider implements AIProvider {
         }))
       : undefined;
 
-    log.debug({
-      model,
-      supportsTools,
-      toolsProvided: tools?.length || 0,
-      ollamaToolsCount: ollamaTools?.length || 0,
-    }, 'Tool support check');
+    log.debug({ model, supportsTools, toolsProvided: tools?.length || 0, ollamaToolsCount: ollamaTools?.length || 0 }, 'Tool support check');
 
     const ollamaMessages = messages.map((msg) => {
       const formatted: { role: string; content: string; tool_calls?: { function: { name: string; arguments: Record<string, unknown> } }[] } = {
         role: msg.role,
-        content: '',
+        content: extractTextContent(msg.content),
       };
 
-      if (typeof msg.content === 'string') {
-        formatted.content = msg.content;
-      } else if (Array.isArray(msg.content)) {
-        const textParts = msg.content
-          .filter((b): b is { type: 'text'; text: string } => b.type === 'text')
-          .map((b) => b.text);
-        formatted.content = textParts.join(' ');
-
-        const toolResult = msg.content.find((b) => b.type === 'tool_result');
-        if (toolResult && 'content' in toolResult) {
+      if (Array.isArray(msg.content)) {
+        const toolResult = mapToolResult(msg.content);
+        if (toolResult) {
           formatted.role = 'tool';
-          formatted.content = (toolResult as { content?: string }).content || '';
+          formatted.content = toolResult.content;
         }
       }
 
-      // Preserve tool_calls on assistant messages so Ollama can track the tool-call/result turn
       if (msg.tool_calls && msg.tool_calls.length > 0) {
         formatted.tool_calls = msg.tool_calls.map((tc) => ({
           function: { name: tc.name, arguments: tc.arguments },
@@ -82,15 +65,8 @@ export class OllamaProvider implements AIProvider {
     });
 
     try {
-      const request: Record<string, unknown> = {
-        model,
-        messages: ollamaMessages,
-        stream: true,
-      };
-
-      if (ollamaTools) {
-        request.tools = ollamaTools;
-      }
+      const request: Record<string, unknown> = { model, messages: ollamaMessages, stream: true };
+      if (ollamaTools) request.tools = ollamaTools;
 
       log.debug({ model, messageRoles: ollamaMessages.map(m => m.role), messages: ollamaMessages }, 'Sending to Ollama');
 
@@ -106,10 +82,7 @@ export class OllamaProvider implements AIProvider {
         const streamToolCalls: { function: { name: string; arguments: Record<string, unknown> } }[] = [];
 
         const settle = (fn: () => void) => {
-          if (!settled) {
-            settled = true;
-            fn();
-          }
+          if (!settled) { settled = true; fn(); }
         };
 
         response.data.on('data', (chunk: Buffer) => {
@@ -125,9 +98,7 @@ export class OllamaProvider implements AIProvider {
 
               if (textChunk && !settled) {
                 accumulatedText += textChunk;
-                if (!ollamaTools) {
-                  onDelta?.(textChunk);
-                }
+                if (!ollamaTools) onDelta?.(textChunk);
               }
 
               if (parsed.message?.tool_calls && !settled) {
@@ -135,43 +106,28 @@ export class OllamaProvider implements AIProvider {
               }
 
               if (parsed.done) {
-                log.debug({
-                  model,
-                  doneContent: parsed.message?.content,
-                  doneToolCalls: parsed.message?.tool_calls,
-                  doneReason: parsed.done_reason,
-                  accumulatedTextLength: accumulatedText.length,
-                }, 'Ollama done chunk');
+                log.debug({ model, doneReason: parsed.done_reason, accumulatedTextLength: accumulatedText.length }, 'Ollama done chunk');
 
                 settle(() => {
                   const contentBlocks: ContentBlock[] = [];
                   const toolCalls: ToolCall[] = [];
+                  let rawToolCalls = [...streamToolCalls];
 
-                  // Structured tool_calls accumulated from all chunks (including this done chunk)
-                  let rawToolCalls: { function: { name: string; arguments: Record<string, unknown> } }[] =
-                    [...streamToolCalls];
-
-                  // Fallback: some Ollama versions/models emit tool calls as JSON text content
-                  // instead of structured tool_calls. Detect and convert.
                   if (accumulatedText && rawToolCalls.length === 0) {
                     try {
                       const maybeCall = JSON.parse(accumulatedText.trim());
                       const args = maybeCall.parameters ?? maybeCall.arguments;
                       if (typeof maybeCall.name === 'string' && args !== undefined) {
                         rawToolCalls = [{ function: { name: maybeCall.name, arguments: args } }];
-                        accumulatedText = ''; // was a tool call, not user-visible text
+                        accumulatedText = '';
                         log.debug({ toolName: maybeCall.name }, 'Detected text-embedded tool call');
                       }
-                    } catch {
-                      // not JSON — treat as normal text
-                    }
+                    } catch { /* not JSON — treat as normal text */ }
                   }
 
                   if (accumulatedText) {
                     contentBlocks.push({ type: 'text', text: accumulatedText });
-                    if (ollamaTools) {
-                      onDelta?.(accumulatedText);
-                    }
+                    if (ollamaTools) onDelta?.(accumulatedText);
                   }
 
                   for (let i = 0; i < rawToolCalls.length; i++) {
@@ -182,20 +138,10 @@ export class OllamaProvider implements AIProvider {
                       arguments: tc.function.arguments,
                     };
                     toolCalls.push(toolCall);
-                    contentBlocks.push({
-                      type: 'tool_use',
-                      id: toolCall.id,
-                      name: toolCall.name,
-                      input: toolCall.arguments,
-                    });
+                    contentBlocks.push(buildToolCallContentBlock(toolCall));
                   }
 
-                  resolve({
-                    text: accumulatedText,
-                    contentBlocks,
-                    toolCalls,
-                    stopReason: toolCalls.length > 0 ? 'tool_use' : 'end_turn',
-                  });
+                  resolve({ text: accumulatedText, contentBlocks, toolCalls, stopReason: toolCalls.length > 0 ? 'tool_use' : 'end_turn' });
                 });
               }
             } catch (err) {
@@ -247,4 +193,23 @@ export class OllamaProvider implements AIProvider {
       throw new Error(`Ollama text completion failed: ${error.message}`);
     }
   }
+}
+
+const CAPABILITIES: ProviderCapabilities = {
+  chatCompletion: true,
+  streaming: true,
+  imageAnalysis: false,
+};
+
+export function register(): ProviderRegistration {
+  return {
+    name: 'ollama',
+    models: [
+      { key: 'lama', provider: 'ollama', model: 'llama3.2', displayName: 'Llama 3.2', capabilities: CAPABILITIES },
+      { key: 'deepseek', provider: 'ollama', model: 'deepseek-r1:8b', displayName: 'DeepSeek R1 8B', capabilities: CAPABILITIES },
+      { key: 'gemma', provider: 'ollama', model: 'gemma3:4b', displayName: 'Gemma 3 4B', capabilities: CAPABILITIES },
+    ],
+    capabilities: CAPABILITIES,
+    factory: (modelId: string) => new OllamaProvider(modelId),
+  };
 }

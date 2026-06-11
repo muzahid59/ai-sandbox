@@ -5,16 +5,15 @@ import logger from '../config/logger';
 export const requestLogger = pinoHttp({
   logger,
 
-  // Generate a short request ID for tracing
   genReqId: (req) => {
     const existing = req.headers['x-request-id'];
     if (existing) return existing as string;
     return crypto.randomUUID().slice(0, 8);
   },
 
-  // Attach userId to every log line from this request
   customProps: (req) => ({
     userId: (req as any).user?.id,
+    requestId: req.id,
   }),
 
   // Don't log health check / root endpoint noise

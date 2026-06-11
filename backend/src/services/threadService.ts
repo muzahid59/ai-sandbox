@@ -1,5 +1,6 @@
 import prisma from '../config/database';
 import { Thread } from '@prisma/client';
+import { NotFoundError } from '../errors';
 
 export async function createThread(
   userId: string,
@@ -43,7 +44,7 @@ export async function updateThread(
   data: { title?: string; status?: string; systemPrompt?: string },
 ): Promise<Thread> {
   const thread = await getThreadById(threadId, userId);
-  if (!thread) throw new Error('Thread not found');
+  if (!thread) throw new NotFoundError('Thread not found');
 
   const updateData: Record<string, unknown> = {};
   if (data.title !== undefined) updateData.title = data.title;
@@ -61,4 +62,14 @@ export async function softDeleteThread(
   userId: string,
 ): Promise<Thread> {
   return updateThread(threadId, userId, { status: 'deleted' });
+}
+
+export async function incrementThreadTokens(
+  threadId: string,
+  delta: number,
+): Promise<void> {
+  await prisma.thread.update({
+    where: { id: threadId },
+    data: { tokenCount: { increment: delta } },
+  });
 }
