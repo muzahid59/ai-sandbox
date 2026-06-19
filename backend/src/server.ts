@@ -8,11 +8,12 @@ import { threadRoutes } from './routes/threadRoutes';
 import { messageRoutes } from './routes/messageRoutes';
 import { registerAllTools } from './tools';
 import { toolRegistry } from './services/toolRegistry';
+import { registerProviders } from './providers';
 import logger from './config/logger';
 
 dotenv.config();
 
-// Register all available tools
+registerProviders();
 registerAllTools();
 logger.info({ tools: toolRegistry.getDefinitions().map(t => t.name) }, 'Tools registered');
 

@@ -1,6 +1,7 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import { AIProvider, ProviderCapabilities } from './types';
+import { AIProvider, ProviderCapabilities, ProviderRegistration } from './types';
 import { ChatCompletionOptions, ChatCompletionResult, ToolCall, ContentBlock } from '../types';
+import { extractTextContent, mapToolResult, buildToolCallContentBlock } from './utils';
 import logger from '../config/logger';
 
 const log = logger.child({ provider: 'google' });
@@ -24,7 +25,6 @@ export class GoogleProvider implements AIProvider {
     const { messages, tools } = options;
     const modelName = options.model || this.model;
 
-    // Convert tool definitions to Gemini format
     const geminiTools = tools && tools.length > 0
       ? [{
           functionDeclarations: tools.map((t) => ({
@@ -40,30 +40,20 @@ export class GoogleProvider implements AIProvider {
       ...(geminiTools && { tools: geminiTools as any }),
     });
 
-    // Convert messages to Gemini format
-    // Gemini uses 'user' and 'model' roles, system prompt is separate
     const systemInstruction = messages
       .filter((m) => m.role === 'system')
-      .map((m) => (typeof m.content === 'string' ? m.content : ''))
+      .map((m) => extractTextContent(m.content))
       .join('\n');
 
     const geminiHistory = messages
       .filter((m) => m.role !== 'system')
       .map((msg) => {
         const role = msg.role === 'assistant' ? 'model' : 'user';
-        let text: string;
+        const text = extractTextContent(msg.content);
 
-        if (typeof msg.content === 'string') {
-          text = msg.content;
-        } else {
-          text = msg.content
-            .filter((b): b is { type: 'text'; text: string } => b.type === 'text')
-            .map((b) => b.text)
-            .join(' ');
-
-          // Handle tool results
-          const toolResult = msg.content.find((b) => b.type === 'tool_result');
-          if (toolResult && 'content' in toolResult) {
+        if (Array.isArray(msg.content)) {
+          const toolResult = mapToolResult(msg.content);
+          if (toolResult) {
             return {
               role: 'function' as const,
               parts: [{
@@ -96,7 +86,6 @@ export class GoogleProvider implements AIProvider {
       const contentBlocks: ContentBlock[] = [];
       const toolCalls: ToolCall[] = [];
 
-      // Check for function calls
       const functionCalls = response.functionCalls();
       if (functionCalls && functionCalls.length > 0) {
         for (let i = 0; i < functionCalls.length; i++) {
@@ -107,12 +96,7 @@ export class GoogleProvider implements AIProvider {
             arguments: (fc.args || {}) as Record<string, unknown>,
           };
           toolCalls.push(toolCall);
-          contentBlocks.push({
-            type: 'tool_use',
-            id: toolCall.id,
-            name: toolCall.name,
-            input: toolCall.arguments,
-          });
+          contentBlocks.push(buildToolCallContentBlock(toolCall));
         }
       }
 
@@ -121,12 +105,7 @@ export class GoogleProvider implements AIProvider {
         contentBlocks.unshift({ type: 'text', text });
       }
 
-      return {
-        text,
-        contentBlocks,
-        toolCalls,
-        stopReason: toolCalls.length > 0 ? 'tool_use' : 'end_turn',
-      };
+      return { text, contentBlocks, toolCalls, stopReason: toolCalls.length > 0 ? 'tool_use' : 'end_turn' };
     } catch (error: any) {
       log.error({ err: error, model: modelName }, 'chatCompletion failed');
       throw new Error(`Google AI chat completion failed: ${error.message}`);
@@ -146,4 +125,25 @@ export class GoogleProvider implements AIProvider {
       throw new Error(`Google AI image analysis failed: ${error.message}`);
     }
   }
+}
+
+const CAPABILITIES: ProviderCapabilities = {
+  chatCompletion: true,
+  streaming: false,
+  imageAnalysis: true,
+};
+
+export function register(): ProviderRegistration {
+  return {
+    name: 'google',
+    models: [
+      { key: 'google', provider: 'google', model: 'gemini-2.0-flash', displayName: 'Gemini 2.0 Flash', capabilities: CAPABILITIES },
+    ],
+    capabilities: CAPABILITIES,
+    factory: (modelId: string) => {
+      const apiKey = process.env.GOOGLE_API_KEY;
+      if (!apiKey) throw new Error('GOOGLE_API_KEY not configured');
+      return new GoogleProvider(apiKey, modelId);
+    },
+  };
 }

@@ -1,6 +1,7 @@
 import OpenAI from 'openai';
-import { AIProvider, ProviderCapabilities } from './types';
+import { AIProvider, ProviderCapabilities, ProviderRegistration } from './types';
 import { ChatCompletionOptions, ChatCompletionResult, ToolCall, ContentBlock } from '../types';
+import { extractTextContent, mapToolResult, buildToolCallContentBlock } from './utils';
 import logger from '../config/logger';
 
 const log = logger.child({ provider: 'openai' });
@@ -24,7 +25,6 @@ export class OpenAIProvider implements AIProvider {
     const { messages, tools } = options;
     const model = options.model || this.model;
 
-    // Convert tool definitions to OpenAI format
     const openaiTools = tools && tools.length > 0
       ? tools.map((t) => ({
           type: 'function' as const,
@@ -36,33 +36,24 @@ export class OpenAIProvider implements AIProvider {
         }))
       : undefined;
 
-    // Convert messages to OpenAI format
     const openaiMessages = messages.map((msg) => {
-      let content: string;
-      if (typeof msg.content === 'string') {
-        content = msg.content;
-      } else if (Array.isArray(msg.content)) {
-        const textParts = msg.content
-          .filter((b): b is { type: 'text'; text: string } => b.type === 'text')
-          .map((b) => b.text);
-        content = textParts.join(' ');
+      const content = extractTextContent(msg.content);
 
-        // Handle tool_result → role: tool
-        const toolResult = msg.content.find((b) => b.type === 'tool_result');
-        if (toolResult && 'tool_use_id' in toolResult) {
+      if (Array.isArray(msg.content)) {
+        const toolResult = mapToolResult(msg.content);
+        if (toolResult) {
           return {
             role: 'tool' as const,
-            content: 'content' in toolResult ? String(toolResult.content) : '',
+            content: toolResult.content,
             tool_call_id: toolResult.tool_use_id,
           };
         }
       }
 
-      // Map assistant messages with tool_calls
       if (msg.role === 'assistant' && msg.tool_calls && msg.tool_calls.length > 0) {
         return {
           role: 'assistant' as const,
-          content: content! || null,
+          content: content || null,
           tool_calls: msg.tool_calls.map((tc) => ({
             id: tc.id,
             type: 'function' as const,
@@ -76,7 +67,7 @@ export class OpenAIProvider implements AIProvider {
 
       return {
         role: msg.role as 'system' | 'user' | 'assistant',
-        content: content!,
+        content,
       };
     });
 
@@ -105,12 +96,7 @@ export class OpenAIProvider implements AIProvider {
             arguments: JSON.parse(tc.function.arguments),
           };
           toolCalls.push(toolCall);
-          contentBlocks.push({
-            type: 'tool_use',
-            id: toolCall.id,
-            name: toolCall.name,
-            input: toolCall.arguments,
-          });
+          contentBlocks.push(buildToolCallContentBlock(toolCall));
         }
       }
 
@@ -118,12 +104,7 @@ export class OpenAIProvider implements AIProvider {
         : choice.finish_reason === 'length' ? 'max_tokens'
         : 'end_turn';
 
-      return {
-        text: msg.content || '',
-        contentBlocks,
-        toolCalls,
-        stopReason,
-      };
+      return { text: msg.content || '', contentBlocks, toolCalls, stopReason };
     } catch (error: any) {
       log.error({ err: error, model }, 'chatCompletion failed');
       throw new Error(`OpenAI chat completion failed: ${error.message}`);
@@ -150,4 +131,25 @@ export class OpenAIProvider implements AIProvider {
       throw new Error(`OpenAI image analysis failed: ${error.message}`);
     }
   }
+}
+
+const CAPABILITIES: ProviderCapabilities = {
+  chatCompletion: true,
+  streaming: true,
+  imageAnalysis: true,
+};
+
+export function register(): ProviderRegistration {
+  return {
+    name: 'openai',
+    models: [
+      { key: 'openai', provider: 'openai', model: 'gpt-4o-mini', displayName: 'GPT-4o Mini', capabilities: CAPABILITIES },
+    ],
+    capabilities: CAPABILITIES,
+    factory: (modelId: string) => {
+      const apiKey = process.env.OPENAI_API_KEY;
+      if (!apiKey) throw new Error('OPENAI_API_KEY not configured');
+      return new OpenAIProvider(apiKey, modelId);
+    },
+  };
 }

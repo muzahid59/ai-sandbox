@@ -1,46 +1,49 @@
-import { AIProvider, ModelConfig } from './types';
-import { OllamaProvider } from './ollama';
-import { OpenAIProvider } from './openai';
-import { GoogleProvider } from './google';
+import * as fs from 'fs';
+import * as path from 'path';
+import { AIProvider, ModelConfig, ProviderRegistration } from './types';
+import logger from '../config/logger';
 
 export { AIProvider, ModelConfig } from './types';
 
-// ─── Model → Provider mapping ───
+const log = logger.child({ component: 'providerRegistry' });
 
-const MODEL_REGISTRY: Record<string, ModelConfig> = {
-  lama: {
-    provider: 'ollama',
-    model: 'llama3.2',
-    displayName: 'Llama 3.2',
-    capabilities: { chatCompletion: true, streaming: true, imageAnalysis: false },
-  },
-  deepseek: {
-    provider: 'ollama',
-    model: 'deepseek-r1:8b',
-    displayName: 'DeepSeek R1 8B',
-    capabilities: { chatCompletion: true, streaming: true, imageAnalysis: false },
-  },
-  gemma: {
-    provider: 'ollama',
-    model: 'gemma3:4b',
-    displayName: 'Gemma 3 4B',
-    capabilities: { chatCompletion: true, streaming: true, imageAnalysis: false },
-  },
-  openai: {
-    provider: 'openai',
-    model: 'gpt-4o-mini',
-    displayName: 'GPT-4o Mini',
-    capabilities: { chatCompletion: true, streaming: true, imageAnalysis: true },
-  },
-  google: {
-    provider: 'google',
-    model: 'gemini-2.0-flash',
-    displayName: 'Gemini 2.0 Flash',
-    capabilities: { chatCompletion: true, streaming: false, imageAnalysis: true },
-  },
-};
+const MODEL_REGISTRY: Record<string, ModelConfig> = {};
+const FACTORY_MAP: Record<string, (modelId: string) => AIProvider> = {};
 
-// ─── Factory ───
+const EXCLUDED_FILES = new Set(['index.ts', 'index.js', 'types.ts', 'types.js', 'utils.ts', 'utils.js']);
+
+export function registerProviders(): void {
+  const providersDir = __dirname;
+  const files = fs.readdirSync(providersDir).filter((f) => {
+    if (EXCLUDED_FILES.has(f)) return false;
+    return f.endsWith('.ts') || f.endsWith('.js');
+  });
+
+  for (const file of files) {
+    const modulePath = path.join(providersDir, file);
+    const mod = require(modulePath);
+
+    if (typeof mod.register !== 'function') {
+      log.warn({ file }, 'Provider file has no register() export, skipping');
+      continue;
+    }
+
+    const registration: ProviderRegistration = mod.register();
+
+    if (FACTORY_MAP[registration.name]) {
+      throw new Error(`Duplicate provider name: "${registration.name}"`);
+    }
+
+    FACTORY_MAP[registration.name] = registration.factory;
+
+    for (const model of registration.models) {
+      const key = model.key || model.model;
+      MODEL_REGISTRY[key] = model;
+    }
+
+    log.info({ provider: registration.name, models: registration.models.map(m => m.displayName) }, 'Provider registered');
+  }
+}
 
 export function createProvider(modelType: string): AIProvider {
   const config = MODEL_REGISTRY[modelType];
@@ -48,22 +51,12 @@ export function createProvider(modelType: string): AIProvider {
     throw new Error(`Unknown model type: "${modelType}". Available: ${Object.keys(MODEL_REGISTRY).join(', ')}`);
   }
 
-  switch (config.provider) {
-    case 'ollama':
-      return new OllamaProvider(config.model);
-    case 'openai': {
-      const apiKey = process.env.OPENAI_API_KEY;
-      if (!apiKey) throw new Error('OPENAI_API_KEY not configured');
-      return new OpenAIProvider(apiKey, config.model);
-    }
-    case 'google': {
-      const apiKey = process.env.GOOGLE_API_KEY;
-      if (!apiKey) throw new Error('GOOGLE_API_KEY not configured');
-      return new GoogleProvider(apiKey, config.model);
-    }
-    default:
-      throw new Error(`Unknown provider: "${config.provider}"`);
+  const factory = FACTORY_MAP[config.provider];
+  if (!factory) {
+    throw new Error(`No factory registered for provider: "${config.provider}"`);
   }
+
+  return factory(config.model);
 }
 
 export function getModelConfig(modelType: string): ModelConfig | undefined {

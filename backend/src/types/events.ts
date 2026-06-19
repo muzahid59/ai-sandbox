@@ -1,18 +1,27 @@
+export {
+  MessageStartEvent,
+  DeltaEvent,
+  ToolUseStartEvent,
+  ToolUseResultEvent,
+  MessageStopEvent,
+  ErrorEvent,
+} from '../sse/types';
+
 import { ContentBlock } from './content';
 import { StopReason } from './messages';
 
-// ─── SSE Stream Events (Anthropic-style granular events) ───
+// ─── Legacy SSE Stream Events (kept for backward compatibility) ───
 
 export type StreamEvent =
-  | MessageStartEvent
+  | LegacyMessageStartEvent
   | ContentBlockStartEvent
   | ContentBlockDeltaEvent
   | ContentBlockStopEvent
   | MessageDeltaEvent
-  | MessageStopEvent
+  | LegacyMessageStopEvent
   | StreamErrorEvent;
 
-export interface MessageStartEvent {
+export interface LegacyMessageStartEvent {
   type: 'message_start';
   message_id: string;
   assistant_msg_id: string;
@@ -52,7 +61,7 @@ export interface MessageDeltaEvent {
   tool_calls_count: number;
 }
 
-export interface MessageStopEvent {
+export interface LegacyMessageStopEvent {
   type: 'message_stop';
 }
 
