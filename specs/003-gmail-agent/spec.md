@@ -150,7 +150,7 @@ The system must enforce privacy and safety boundaries: metadata-only access by d
 - **FR-002**: OAuth2 tokens (access token, refresh token, expiry) MUST be stored persistently in a local config file (e.g., `.env` or JSON config). Single-user scope — no database table required.
 - **FR-003**: Access tokens MUST be refreshed automatically when expired — no user intervention for routine token renewal.
 - **FR-004**: The `read_emails` tool MUST accept parameters: `filter` (unread, read, all), `maxResults` (default 20, max 50), and `dateRange` (optional).
-- **FR-005**: The `read_emails` tool MUST return per-email: `id`, `threadId`, `from` (name + address), `subject`, `date`, `snippet` (Gmail's built-in snippet), and `summary` (AI-generated one-liner).
+- **FR-005**: The `read_emails` tool MUST return per-email: `id`, `threadId`, `from` (name + address), `subject`, `date`, and `snippet` (Gmail's built-in ~200 character preview). The LLM generates human-readable summaries naturally from the snippet — no separate `summary` field in the tool output.
 - **FR-006**: The `search_emails` tool MUST accept parameters: `from`, `to`, `subject`, `keywords`, `dateRange` (after/before), `hasAttachment`, and `maxResults`.
 - **FR-007**: The `search_emails` tool MUST construct Gmail API search queries from structured parameters — NOT pass raw Gmail query syntax from the user.
 - **FR-008**: The `summarize_emails` tool MUST fetch up to 50 emails and return them for the LLM to categorize and summarize.
@@ -178,7 +178,7 @@ The system must enforce privacy and safety boundaries: metadata-only access by d
 
 - **EmailService**: Singleton service encapsulating Gmail API client, OAuth2 token management, and all Gmail operations. Keyed by user ID for multi-user readiness.
 - **GmailToken**: Stored credential containing access token, refresh token, and expiry timestamp. Persisted in a local config file (not database).
-- **EmailSummary**: The data shape returned by read/search tools: `id`, `threadId`, `from`, `subject`, `date`, `snippet`, `summary`, `hasAttachments`, `attachments[]?`.
+- **EmailSummary**: The data shape returned by read/search tools: `id`, `threadId`, `from`, `subject`, `date`, `snippet`, `hasAttachments`, `attachments[]?`.
 - **EmailDraft**: The data shape for draft creation: `to`, `subject`, `body`, `cc?`, `bcc?`, `threadId?` (for replies), `inReplyTo?`, `references?`.
 
 ### Tools Summary

@@ -7,7 +7,16 @@ const logger = pino({
 
   // Redact sensitive fields from logs
   redact: {
-    paths: ['apiKey', 'req.headers.authorization', 'req.headers.cookie'],
+    paths: [
+      'apiKey',
+      'req.headers.authorization',
+      'req.headers.cookie',
+      'emailBody',
+      'emailSubject',
+      'emailContent',
+      'body',
+      'subject',
+    ],
     censor: '[REDACTED]',
   },
 

@@ -5,6 +5,9 @@ node_modules
 */uploads
 *.playwright-mcp
 
+# Gmail OAuth tokens
+.gmail-tokens.json
+
 # Build artifacts
 dist/
 build/
