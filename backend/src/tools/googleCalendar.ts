@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { calendar } from '@googleapis/calendar';
 import { RunnableTool } from './types';
 import { ToolError } from '../errors';
-import { emailService } from '../services/emailService';
+import { emailService, AuthRequiredError } from '../services/emailService';
 import logger from '../config/logger';
 
 const log = logger.child({ tool: 'google_calendar' });
@@ -103,13 +103,18 @@ export const googleCalendar: RunnableTool<z.infer<typeof schema>> = {
   async run({ action, start_date, end_date, query, timezone: tz }) {
     const timezone = tz || 'Asia/Dhaka';
 
+    if (!emailService.isConnected(DEV_USER_ID)) {
+      return emailService.buildAuthRequiredMessage();
+    }
+
     let auth;
     try {
       auth = await emailService.getAuthClient(DEV_USER_ID);
-    } catch {
-      throw new ToolError(
-        'Google Calendar not connected. Visit http://localhost:5001/api/v1/auth/gmail to authorize.',
-      );
+    } catch (err) {
+      if (err instanceof AuthRequiredError) {
+        return emailService.buildAuthRequiredMessage();
+      }
+      throw new ToolError(`Google Calendar authentication failed: ${(err as Error).message}`);
     }
 
     const cal = calendar({ version: 'v3', auth });
@@ -189,8 +194,11 @@ export const googleCalendar: RunnableTool<z.infer<typeof schema>> = {
     } catch (error: any) {
       if (error instanceof ToolError) throw error;
       log.error({ err: error, action }, 'Google Calendar API failed');
+      if (error instanceof AuthRequiredError) {
+        return emailService.buildAuthRequiredMessage();
+      }
       if (error.code === 401 || error.message?.includes('Invalid credentials')) {
-        throw new ToolError('Google Calendar authentication failed. Re-run the setup script.');
+        throw new ToolError('Google Calendar authentication failed. Please re-authorize.');
       }
       throw new ToolError(`Google Calendar error: ${error.message}`);
     }
