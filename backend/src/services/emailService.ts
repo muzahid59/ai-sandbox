@@ -23,6 +23,13 @@ const SCOPES = [
   'https://www.googleapis.com/auth/calendar.readonly',
 ];
 
+export class AuthRequiredError extends Error {
+  constructor() {
+    super('Gmail not connected');
+    this.name = 'AuthRequiredError';
+  }
+}
+
 class EmailService {
   private static instance: EmailService;
 
@@ -75,6 +82,19 @@ class EmailService {
     return this.getTokens(userId) !== null;
   }
 
+  buildAuthRequiredMessage(): string {
+    const authUrl = 'http://localhost:5001/api/v1/auth/gmail';
+    return [
+      'ACTION_REQUIRED: Gmail is not connected.',
+      '',
+      'To access your emails and calendar, you need to connect your Google account.',
+      `Authorization URL: ${authUrl}`,
+      '',
+      'Open the link above in your browser, sign in with Google, and grant access.',
+      'Then let me know when you\'re done so I can proceed with your request.',
+    ].join('\n');
+  }
+
   private readTokenFile(): GmailTokenStore {
     try {
       if (!fs.existsSync(TOKEN_FILE)) return {};
@@ -90,7 +110,7 @@ class EmailService {
   async getAuthClient(userId: string): Promise<OAuth2Client> {
     const entry = this.getTokens(userId);
     if (!entry) {
-      throw new Error('Gmail not connected. Visit /api/v1/auth/gmail to authorize.');
+      throw new AuthRequiredError();
     }
 
     const oauth2 = this.createOAuth2Client();
@@ -113,7 +133,7 @@ class EmailService {
       } catch (err: any) {
         log.error({ userId, err }, 'Token refresh failed');
         this.removeTokens(userId);
-        throw new Error('Gmail authorization expired. Visit /api/v1/auth/gmail to re-authorize.');
+        throw new AuthRequiredError();
       }
     }
 
