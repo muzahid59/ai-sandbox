@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { RunnableTool } from './types';
 import { ToolError } from '../errors';
-import { emailService } from '../services/emailService';
+import { emailService, AuthRequiredError } from '../services/emailService';
 import logger from '../config/logger';
 
 const log = logger.child({ tool: 'reply_email' });
@@ -32,7 +32,7 @@ export const replyEmail: RunnableTool<z.infer<typeof schema>> = {
     const userId = '00000000-0000-0000-0000-000000000001';
 
     if (!emailService.isConnected(userId)) {
-      throw new ToolError('Gmail not connected. Visit http://localhost:5001/api/v1/auth/gmail to authorize.');
+      return emailService.buildAuthRequiredMessage();
     }
 
     try {
@@ -51,8 +51,8 @@ export const replyEmail: RunnableTool<z.infer<typeof schema>> = {
       ].join('\n');
     } catch (err: any) {
       log.error({ err }, 'Failed to create reply draft');
-      if (err.message?.includes('Gmail not connected') || err.message?.includes('Gmail authorization')) {
-        throw new ToolError(err.message);
+      if (err instanceof AuthRequiredError) {
+        return emailService.buildAuthRequiredMessage();
       }
       throw new ToolError(`Failed to create reply: ${err.message}`);
     }

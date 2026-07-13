@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { RunnableTool } from './types';
 import { ToolError } from '../errors';
-import { emailService } from '../services/emailService';
+import { emailService, AuthRequiredError } from '../services/emailService';
 import logger from '../config/logger';
 
 const log = logger.child({ tool: 'summarize_emails' });
@@ -9,7 +9,7 @@ const log = logger.child({ tool: 'summarize_emails' });
 const schema = z.object({
   filter: z.enum(['unread', 'read', 'all']).default('unread')
     .describe('Which emails to summarize'),
-  maxResults: z.number().int().min(1).max(50).default(50)
+  maxResults: z.coerce.number().int().min(1).max(50).default(50)
     .describe('Maximum emails to process for summary'),
 });
 
@@ -40,7 +40,7 @@ export const summarizeEmails: RunnableTool<z.infer<typeof schema>> = {
     const userId = '00000000-0000-0000-0000-000000000001';
 
     if (!emailService.isConnected(userId)) {
-      throw new ToolError('Gmail not connected. Visit http://localhost:5001/api/v1/auth/gmail to authorize.');
+      return emailService.buildAuthRequiredMessage();
     }
 
     try {
@@ -67,8 +67,8 @@ export const summarizeEmails: RunnableTool<z.infer<typeof schema>> = {
       return `Fetched ${result.emails.length} emails for summarization:\n\n${items.join('\n\n')}`;
     } catch (err: any) {
       log.error({ err }, 'Failed to fetch emails for summarization');
-      if (err.message?.includes('Gmail not connected') || err.message?.includes('Gmail authorization')) {
-        throw new ToolError(err.message);
+      if (err instanceof AuthRequiredError) {
+        return emailService.buildAuthRequiredMessage();
       }
       throw new ToolError(`Failed to summarize emails: ${err.message}`);
     }

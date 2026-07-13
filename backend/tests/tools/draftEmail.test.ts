@@ -1,13 +1,14 @@
-jest.mock('googleapis', () => ({
-  google: {
-    auth: { OAuth2: jest.fn(() => ({ setCredentials: jest.fn(), refreshAccessToken: jest.fn() })) },
-    gmail: jest.fn(() => ({
-      users: {
-        messages: { list: jest.fn(), get: jest.fn() },
-        drafts: { create: jest.fn() },
-      },
-    })),
-  },
+jest.mock('@googleapis/gmail', () => ({
+  gmail: jest.fn(() => ({
+    users: {
+      messages: { list: jest.fn(), get: jest.fn() },
+      drafts: { create: jest.fn() },
+    },
+  })),
+}));
+
+jest.mock('google-auth-library', () => ({
+  OAuth2Client: jest.fn(() => ({ setCredentials: jest.fn(), refreshAccessToken: jest.fn() })),
 }));
 
 import fs from 'fs';
@@ -46,9 +47,10 @@ describe('summarize_emails tool', () => {
     }
   });
 
-  it('throws when Gmail not connected', async () => {
-    await expect(summarizeEmails.run({ filter: 'unread', maxResults: 50 }))
-      .rejects.toThrow('Gmail not connected');
+  it('returns auth required message when Gmail not connected', async () => {
+    const result = await summarizeEmails.run({ filter: 'unread', maxResults: 50 });
+    expect(result).toContain('ACTION_REQUIRED');
+    expect(result).toContain('http://localhost:5001/api/v1/auth/gmail');
   });
 });
 
@@ -91,12 +93,14 @@ describe('draft_email tool', () => {
     expect(result.success).toBe(true);
   });
 
-  it('throws when Gmail not connected', async () => {
-    await expect(draftEmail.run({
+  it('returns auth required message when Gmail not connected', async () => {
+    const result = await draftEmail.run({
       to: 'test@example.com',
       subject: 'Test',
       body: 'Hello',
-    })).rejects.toThrow('Gmail not connected');
+    });
+    expect(result).toContain('ACTION_REQUIRED');
+    expect(result).toContain('http://localhost:5001/api/v1/auth/gmail');
   });
 });
 
@@ -133,8 +137,9 @@ describe('reply_email tool', () => {
     expect(result.success).toBe(true);
   });
 
-  it('throws when Gmail not connected', async () => {
-    await expect(replyEmail.run({ emailId: 'msg-123', body: 'Reply' }))
-      .rejects.toThrow('Gmail not connected');
+  it('returns auth required message when Gmail not connected', async () => {
+    const result = await replyEmail.run({ emailId: 'msg-123', body: 'Reply' });
+    expect(result).toContain('ACTION_REQUIRED');
+    expect(result).toContain('http://localhost:5001/api/v1/auth/gmail');
   });
 });

@@ -11,7 +11,6 @@ const MODELS = [
 ];
 
 const TOOLS = [
-  { id: 'calculator', name: 'Calculator' },
   { id: 'web_search', name: 'Web Search' },
   { id: 'fetch_url', name: 'Fetch URL' },
   { id: 'google_calendar', name: 'Google Calendar' },

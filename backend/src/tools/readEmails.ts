@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { RunnableTool } from './types';
 import { ToolError } from '../errors';
-import { emailService } from '../services/emailService';
+import { emailService, AuthRequiredError } from '../services/emailService';
 import { EmailSummary } from '../types/email';
 import logger from '../config/logger';
 
@@ -10,13 +10,13 @@ const log = logger.child({ tool: 'read_emails' });
 const schema = z.object({
   filter: z.enum(['unread', 'read', 'all']).default('unread')
     .describe('Filter emails by read status'),
-  maxResults: z.number().int().min(1).max(50).default(20)
+  maxResults: z.coerce.number().int().min(1).max(50).default(20)
     .describe('Maximum number of emails to return'),
   dateRange: z.object({
     after: z.string().optional().describe('Start date (ISO 8601 or YYYY-MM-DD)'),
     before: z.string().optional().describe('End date (ISO 8601 or YYYY-MM-DD)'),
   }).optional().describe('Filter by date range'),
-  includeBody: z.boolean().default(false)
+  includeBody: z.coerce.boolean().default(false)
     .describe('Include full email body text (default: metadata + snippet only)'),
 });
 
@@ -102,7 +102,7 @@ export const readEmails: RunnableTool<z.infer<typeof schema>> = {
     const userId = '00000000-0000-0000-0000-000000000001';
 
     if (!emailService.isConnected(userId)) {
-      throw new ToolError('Gmail not connected. Visit http://localhost:5001/api/v1/auth/gmail to authorize.');
+      return emailService.buildAuthRequiredMessage();
     }
 
     try {
@@ -112,8 +112,8 @@ export const readEmails: RunnableTool<z.infer<typeof schema>> = {
       return formatEmailList(result.emails, result.totalCount, filter);
     } catch (err: any) {
       log.error({ err }, 'Failed to read emails');
-      if (err.message?.includes('Gmail not connected') || err.message?.includes('Gmail authorization')) {
-        throw new ToolError(err.message);
+      if (err instanceof AuthRequiredError) {
+        return emailService.buildAuthRequiredMessage();
       }
       throw new ToolError(`Failed to read emails: ${err.message}`);
     }

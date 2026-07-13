@@ -1,5 +1,4 @@
 import { toolRegistry } from '../services/toolRegistry';
-import { calculator } from './calculator';
 import { webSearch } from './webSearch';
 import { fetchUrl } from './fetchUrl';
 import { googleCalendar } from './googleCalendar';
@@ -11,7 +10,6 @@ import { draftEmail } from './draftEmail';
 import { replyEmail } from './replyEmail';
 
 export function registerAllTools(): void {
-  toolRegistry.register(calculator);
   toolRegistry.register(webSearch);
   toolRegistry.register(fetchUrl);
   toolRegistry.register(googleCalendar);

@@ -19,18 +19,17 @@ const mockGmailDrafts = {
   create: jest.fn(),
 };
 
-jest.mock('googleapis', () => ({
-  google: {
-    auth: {
-      OAuth2: jest.fn(() => mockOAuth2Instance),
+jest.mock('@googleapis/gmail', () => ({
+  gmail: jest.fn(() => ({
+    users: {
+      messages: mockGmailMessages,
+      drafts: mockGmailDrafts,
     },
-    gmail: jest.fn(() => ({
-      users: {
-        messages: mockGmailMessages,
-        drafts: mockGmailDrafts,
-      },
-    })),
-  },
+  })),
+}));
+
+jest.mock('google-auth-library', () => ({
+  OAuth2Client: jest.fn(() => mockOAuth2Instance),
 }));
 
 import { emailService } from '../../src/services/emailService';
@@ -148,7 +147,7 @@ describe('EmailService', () => {
       mockOAuth2Instance.refreshAccessToken.mockRejectedValue(new Error('Token revoked'));
 
       await expect(emailService.getAuthClient(TEST_USER_ID))
-        .rejects.toThrow('Gmail authorization expired');
+        .rejects.toThrow('Gmail not connected');
       expect(emailService.isConnected(TEST_USER_ID)).toBe(false);
     });
   });
@@ -393,6 +392,43 @@ describe('EmailService', () => {
 
       const createCall = mockGmailDrafts.create.mock.calls[0][0];
       expect(createCall.requestBody.message.threadId).toBe('thread-1');
+    });
+  });
+
+  // ─── Auth Required ───
+
+  describe('buildAuthRequiredMessage', () => {
+    it('returns a string containing the auth URL', () => {
+      const message = emailService.buildAuthRequiredMessage();
+      expect(message).toContain('http://localhost:5001/api/v1/auth/gmail');
+    });
+
+    it('starts with ACTION_REQUIRED prefix', () => {
+      const message = emailService.buildAuthRequiredMessage();
+      expect(message).toMatch(/^ACTION_REQUIRED:/);
+    });
+
+    it('instructs user to notify when done', () => {
+      const message = emailService.buildAuthRequiredMessage();
+      expect(message).toContain('let you know when they are done');
+    });
+  });
+
+  describe('getAuthClient throws AuthRequiredError', () => {
+    it('throws AuthRequiredError when user has no tokens', async () => {
+      const { AuthRequiredError } = await import('../../src/services/emailService');
+      await expect(emailService.getAuthClient('no-tokens-user'))
+        .rejects.toThrow(AuthRequiredError);
+    });
+
+    it('throws AuthRequiredError when refresh fails and tokens are removed', async () => {
+      const { AuthRequiredError } = await import('../../src/services/emailService');
+      const expired = makeTokenEntry({ expiryDate: Date.now() - 1000 });
+      emailService.saveTokens(TEST_USER_ID, expired);
+      mockOAuth2Instance.refreshAccessToken.mockRejectedValue(new Error('Token revoked'));
+
+      await expect(emailService.getAuthClient(TEST_USER_ID))
+        .rejects.toThrow(AuthRequiredError);
     });
   });
 });

@@ -1,10 +1,12 @@
 import { z } from 'zod';
-import { google } from 'googleapis';
+import { calendar } from '@googleapis/calendar';
 import { RunnableTool } from './types';
 import { ToolError } from '../errors';
+import { emailService, AuthRequiredError } from '../services/emailService';
 import logger from '../config/logger';
 
 const log = logger.child({ tool: 'google_calendar' });
+const DEV_USER_ID = '00000000-0000-0000-0000-000000000001';
 
 const schema = z.object({
   action: z.enum(['list', 'search', 'busy']).describe('Action: "list", "search", or "busy"'),
@@ -13,20 +15,6 @@ const schema = z.object({
   query: z.string().optional().describe('Search keyword. Used with "search" action.'),
   timezone: z.string().default('Asia/Dhaka').optional().describe('IANA timezone. Defaults to Asia/Dhaka.'),
 });
-
-function getAuthClient() {
-  const clientId = process.env.GOOGLE_CLIENT_ID;
-  const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
-  const refreshToken = process.env.GOOGLE_REFRESH_TOKEN;
-
-  if (!clientId || !clientSecret || !refreshToken) {
-    return null;
-  }
-
-  const oauth2Client = new google.auth.OAuth2(clientId, clientSecret);
-  oauth2Client.setCredentials({ refresh_token: refreshToken });
-  return oauth2Client;
-}
 
 function getDateRange(startDate: string | undefined, endDate: string | undefined, timezone: string, defaultDays: number) {
   const now = new Date();
@@ -115,20 +103,27 @@ export const googleCalendar: RunnableTool<z.infer<typeof schema>> = {
   async run({ action, start_date, end_date, query, timezone: tz }) {
     const timezone = tz || 'Asia/Dhaka';
 
-    const auth = getAuthClient();
-    if (!auth) {
-      throw new ToolError(
-        'Google Calendar not configured. Add GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, and GOOGLE_REFRESH_TOKEN to backend/.env',
-      );
+    if (!emailService.isConnected(DEV_USER_ID)) {
+      return emailService.buildAuthRequiredMessage();
     }
 
-    const calendar = google.calendar({ version: 'v3', auth });
+    let auth;
+    try {
+      auth = await emailService.getAuthClient(DEV_USER_ID);
+    } catch (err) {
+      if (err instanceof AuthRequiredError) {
+        return emailService.buildAuthRequiredMessage();
+      }
+      throw new ToolError(`Google Calendar authentication failed: ${(err as Error).message}`);
+    }
+
+    const cal = calendar({ version: 'v3', auth });
 
     try {
       switch (action) {
         case 'list': {
           const { start, end } = getDateRange(start_date, end_date, timezone, 1);
-          const response = await calendar.events.list({
+          const response = await cal.events.list({
             calendarId: 'primary',
             timeMin: start,
             timeMax: end,
@@ -145,7 +140,7 @@ export const googleCalendar: RunnableTool<z.infer<typeof schema>> = {
         case 'search': {
           if (!query) throw new ToolError("Missing 'query' parameter for search action");
           const { start, end } = getDateRange(start_date, end_date, timezone, 30);
-          const response = await calendar.events.list({
+          const response = await cal.events.list({
             calendarId: 'primary',
             timeMin: start,
             timeMax: end,
@@ -162,7 +157,7 @@ export const googleCalendar: RunnableTool<z.infer<typeof schema>> = {
 
         case 'busy': {
           const { start, end } = getDateRange(start_date, end_date, timezone, 1);
-          const response = await calendar.freebusy.query({
+          const response = await cal.freebusy.query({
             requestBody: {
               timeMin: start,
               timeMax: end,
@@ -199,8 +194,11 @@ export const googleCalendar: RunnableTool<z.infer<typeof schema>> = {
     } catch (error: any) {
       if (error instanceof ToolError) throw error;
       log.error({ err: error, action }, 'Google Calendar API failed');
+      if (error instanceof AuthRequiredError) {
+        return emailService.buildAuthRequiredMessage();
+      }
       if (error.code === 401 || error.message?.includes('Invalid credentials')) {
-        throw new ToolError('Google Calendar authentication failed. Re-run the setup script.');
+        throw new ToolError('Google Calendar authentication failed. Please re-authorize.');
       }
       throw new ToolError(`Google Calendar error: ${error.message}`);
     }
