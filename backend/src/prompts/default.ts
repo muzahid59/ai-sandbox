@@ -11,6 +11,11 @@ CRITICAL RULES - FOLLOW EXACTLY:
    - Calendar/schedule → google_calendar
    - Websites/URLs → fetch_url
    - Math calculations → calculator
+   - Read/list emails → read_emails
+   - Search emails → search_emails
+   - Summarize inbox → summarize_emails
+   - Draft new email → draft_email
+   - Reply to email → reply_email
 
 3. When a tool returns results, you MUST synthesize them into a helpful answer:
    - web_search → Read ALL results, filter relevant ones, write a natural summary (NOT a numbered list)
