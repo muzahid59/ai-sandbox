@@ -16,10 +16,10 @@ const schema = z.object({
     after: z.string().optional().describe('Start date (ISO 8601 or YYYY-MM-DD)'),
     before: z.string().optional().describe('End date (ISO 8601 or YYYY-MM-DD)'),
   }).optional().describe('Filter by date range'),
-  hasAttachment: z.boolean().optional().describe('Filter for emails with attachments'),
-  maxResults: z.number().int().min(1).max(50).default(20)
+  hasAttachment: z.coerce.boolean().optional().describe('Filter for emails with attachments'),
+  maxResults: z.coerce.number().int().min(1).max(50).default(20)
     .describe('Maximum results to return'),
-  includeBody: z.boolean().default(false)
+  includeBody: z.coerce.boolean().default(false)
     .describe('Include full email body text'),
 });
 

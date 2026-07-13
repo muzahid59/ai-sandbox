@@ -10,7 +10,6 @@ CRITICAL RULES - FOLLOW EXACTLY:
    - News/current events → web_search
    - Calendar/schedule → google_calendar
    - Websites/URLs → fetch_url
-   - Math calculations → calculator
    - Read/list emails → read_emails
    - Search emails → search_emails
    - Summarize inbox → summarize_emails

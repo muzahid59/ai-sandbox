@@ -9,7 +9,7 @@ const log = logger.child({ tool: 'summarize_emails' });
 const schema = z.object({
   filter: z.enum(['unread', 'read', 'all']).default('unread')
     .describe('Which emails to summarize'),
-  maxResults: z.number().int().min(1).max(50).default(50)
+  maxResults: z.coerce.number().int().min(1).max(50).default(50)
     .describe('Maximum emails to process for summary'),
 });
 
