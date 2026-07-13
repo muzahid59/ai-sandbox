@@ -1,4 +1,5 @@
 import { Router, Request, Response } from 'express';
+import { gmail } from '@googleapis/gmail';
 import { emailService } from '../services/emailService';
 import { authMiddleware } from '../middleware/auth';
 import logger from '../config/logger';
@@ -55,8 +56,8 @@ gmailAuthRoutes.get('/auth/gmail/callback', async (req: Request, res: Response) 
     const { tokens } = await oauth2.getToken(code);
 
     oauth2.setCredentials(tokens);
-    const gmail = (await import('googleapis')).google.gmail({ version: 'v1', auth: oauth2 });
-    const profile = await gmail.users.getProfile({ userId: 'me' });
+    const gmailClient = gmail({ version: 'v1', auth: oauth2 });
+    const profile = await gmailClient.users.getProfile({ userId: 'me' });
     const email = profile.data.emailAddress ?? '';
 
     emailService.saveTokens(userId, {

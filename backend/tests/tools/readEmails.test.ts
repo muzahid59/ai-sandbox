@@ -1,13 +1,14 @@
-jest.mock('googleapis', () => ({
-  google: {
-    auth: { OAuth2: jest.fn(() => ({ setCredentials: jest.fn(), refreshAccessToken: jest.fn() })) },
-    gmail: jest.fn(() => ({
-      users: {
-        messages: { list: jest.fn(), get: jest.fn() },
-        drafts: { create: jest.fn() },
-      },
-    })),
-  },
+jest.mock('@googleapis/gmail', () => ({
+  gmail: jest.fn(() => ({
+    users: {
+      messages: { list: jest.fn(), get: jest.fn() },
+      drafts: { create: jest.fn() },
+    },
+  })),
+}));
+
+jest.mock('google-auth-library', () => ({
+  OAuth2Client: jest.fn(() => ({ setCredentials: jest.fn(), refreshAccessToken: jest.fn() })),
 }));
 
 import fs from 'fs';

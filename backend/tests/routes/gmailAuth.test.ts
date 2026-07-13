@@ -8,15 +8,18 @@ const mockGmailUsers = {
   getProfile: jest.fn(),
 };
 
-jest.mock('googleapis', () => ({
-  google: {
-    auth: {
-      OAuth2: jest.fn(() => mockOAuth2Instance),
-    },
-    gmail: jest.fn(() => ({
-      users: mockGmailUsers,
-    })),
-  },
+jest.mock('@googleapis/gmail', () => ({
+  gmail: jest.fn(() => ({
+    users: mockGmailUsers,
+  })),
+}));
+
+jest.mock('@googleapis/calendar', () => ({
+  calendar: jest.fn(),
+}));
+
+jest.mock('google-auth-library', () => ({
+  OAuth2Client: jest.fn(() => mockOAuth2Instance),
 }));
 
 import request from 'supertest';

@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { google, gmail_v1 } from 'googleapis';
+import { gmail, gmail_v1 } from '@googleapis/gmail';
 import { OAuth2Client } from 'google-auth-library';
 import { convert } from 'html-to-text';
 import logger from '../config/logger';
@@ -20,6 +20,7 @@ const MAX_BODY_BYTES = 50 * 1024;
 const SCOPES = [
   'https://www.googleapis.com/auth/gmail.readonly',
   'https://www.googleapis.com/auth/gmail.compose',
+  'https://www.googleapis.com/auth/calendar.readonly',
 ];
 
 class EmailService {
@@ -46,7 +47,7 @@ class EmailService {
     if (!clientId || !clientSecret) {
       throw new Error('Google OAuth not configured. Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET.');
     }
-    return new google.auth.OAuth2(clientId, clientSecret, this.getRedirectUri());
+    return new OAuth2Client(clientId, clientSecret, this.getRedirectUri());
   }
 
   // ─── Token CRUD ───
@@ -239,7 +240,7 @@ class EmailService {
     includeBody: boolean = false,
   ): Promise<EmailListResult> {
     const auth = await this.getAuthClient(userId);
-    const gmail = google.gmail({ version: 'v1', auth });
+    const gmailClient = gmail({ version: 'v1', auth });
 
     const queryParts: string[] = [];
     if (filter === 'unread') queryParts.push('is:unread');
@@ -250,7 +251,7 @@ class EmailService {
     const q = queryParts.join(' ') || undefined;
 
     const listResponse = await this.withRetry(() =>
-      gmail.users.messages.list({ userId: 'me', q, maxResults }),
+      gmailClient.users.messages.list({ userId: 'me', q, maxResults }),
     );
 
     const messageIds = listResponse.data.messages ?? [];
@@ -259,7 +260,7 @@ class EmailService {
     const emails: EmailSummary[] = [];
     for (const msg of messageIds) {
       const detail = await this.withRetry(() =>
-        gmail.users.messages.get({
+        gmailClient.users.messages.get({
           userId: 'me',
           id: msg.id!,
           format: includeBody ? 'full' : 'metadata',
@@ -281,10 +282,10 @@ class EmailService {
 
   async getEmail(userId: string, emailId: string, includeBody: boolean = false): Promise<EmailSummary> {
     const auth = await this.getAuthClient(userId);
-    const gmail = google.gmail({ version: 'v1', auth });
+    const gmailClient = gmail({ version: 'v1', auth });
 
     const detail = await this.withRetry(() =>
-      gmail.users.messages.get({ userId: 'me', id: emailId, format: 'full' }),
+      gmailClient.users.messages.get({ userId: 'me', id: emailId, format: 'full' }),
     );
 
     const summary = this.parseEmail(detail.data);
@@ -321,12 +322,12 @@ class EmailService {
     if (params.hasAttachment) queryParts.push('has:attachment');
 
     const auth = await this.getAuthClient(userId);
-    const gmail = google.gmail({ version: 'v1', auth });
+    const gmailClient = gmail({ version: 'v1', auth });
     const maxResults = params.maxResults ?? 20;
     const q = queryParts.join(' ') || undefined;
 
     const listResponse = await this.withRetry(() =>
-      gmail.users.messages.list({ userId: 'me', q, maxResults }),
+      gmailClient.users.messages.list({ userId: 'me', q, maxResults }),
     );
 
     const messageIds = listResponse.data.messages ?? [];
@@ -335,7 +336,7 @@ class EmailService {
     const emails: EmailSummary[] = [];
     for (const msg of messageIds) {
       const detail = await this.withRetry(() =>
-        gmail.users.messages.get({
+        gmailClient.users.messages.get({
           userId: 'me',
           id: msg.id!,
           format: params.includeBody ? 'full' : 'metadata',
@@ -357,13 +358,13 @@ class EmailService {
 
   async createDraft(userId: string, draft: EmailDraft): Promise<DraftResult> {
     const auth = await this.getAuthClient(userId);
-    const gmail = google.gmail({ version: 'v1', auth });
+    const gmailClient = gmail({ version: 'v1', auth });
 
     const mime = this.buildMimeMessage(draft);
     const encodedMessage = Buffer.from(mime).toString('base64url');
 
     const response = await this.withRetry(() =>
-      gmail.users.drafts.create({
+      gmailClient.users.drafts.create({
         userId: 'me',
         requestBody: { message: { raw: encodedMessage } },
       }),
@@ -384,10 +385,10 @@ class EmailService {
 
   async createReplyDraft(userId: string, emailId: string, body: string): Promise<DraftResult> {
     const auth = await this.getAuthClient(userId);
-    const gmail = google.gmail({ version: 'v1', auth });
+    const gmailClient = gmail({ version: 'v1', auth });
 
     const original = await this.withRetry(() =>
-      gmail.users.messages.get({ userId: 'me', id: emailId, format: 'metadata', metadataHeaders: ['From', 'To', 'Subject', 'Message-ID', 'References'] }),
+      gmailClient.users.messages.get({ userId: 'me', id: emailId, format: 'metadata', metadataHeaders: ['From', 'To', 'Subject', 'Message-ID', 'References'] }),
     );
 
     const headers = original.data.payload?.headers ?? [];
@@ -414,7 +415,7 @@ class EmailService {
     const encodedMessage = Buffer.from(mime).toString('base64url');
 
     const response = await this.withRetry(() =>
-      gmail.users.drafts.create({
+      gmailClient.users.drafts.create({
         userId: 'me',
         requestBody: { message: { raw: encodedMessage, threadId } },
       }),

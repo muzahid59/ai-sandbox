@@ -19,18 +19,17 @@ const mockGmailDrafts = {
   create: jest.fn(),
 };
 
-jest.mock('googleapis', () => ({
-  google: {
-    auth: {
-      OAuth2: jest.fn(() => mockOAuth2Instance),
+jest.mock('@googleapis/gmail', () => ({
+  gmail: jest.fn(() => ({
+    users: {
+      messages: mockGmailMessages,
+      drafts: mockGmailDrafts,
     },
-    gmail: jest.fn(() => ({
-      users: {
-        messages: mockGmailMessages,
-        drafts: mockGmailDrafts,
-      },
-    })),
-  },
+  })),
+}));
+
+jest.mock('google-auth-library', () => ({
+  OAuth2Client: jest.fn(() => mockOAuth2Instance),
 }));
 
 import { emailService } from '../../src/services/emailService';
