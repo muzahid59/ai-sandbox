@@ -15,7 +15,7 @@ import fs from 'fs';
 import path from 'path';
 import { readEmails } from '../../src/tools/readEmails';
 import { searchEmails } from '../../src/tools/searchEmails';
-import { emailService } from '../../src/services/emailService';
+import { emailService, AuthRequiredError } from '../../src/services/emailService';
 
 const TOKEN_FILE = path.join(__dirname, '../../.gmail-tokens.json');
 const USER_ID = '00000000-0000-0000-0000-000000000001';
@@ -54,9 +54,10 @@ describe('read_emails tool', () => {
     expect(result.success).toBe(false);
   });
 
-  it('throws when Gmail not connected', async () => {
-    await expect(readEmails.run({ filter: 'unread', maxResults: 10, includeBody: false }))
-      .rejects.toThrow('Gmail not connected');
+  it('returns auth required message when Gmail not connected', async () => {
+    const result = await readEmails.run({ filter: 'unread', maxResults: 10, includeBody: false });
+    expect(result).toContain('ACTION_REQUIRED');
+    expect(result).toContain('http://localhost:5001/api/v1/auth/gmail');
   });
 });
 
@@ -84,11 +85,13 @@ describe('search_emails tool', () => {
     }
   });
 
-  it('throws when Gmail not connected', async () => {
-    await expect(searchEmails.run({
+  it('returns auth required message when Gmail not connected', async () => {
+    const result = await searchEmails.run({
       maxResults: 10,
       includeBody: false,
       from: 'test@example.com',
-    })).rejects.toThrow('Gmail not connected');
+    });
+    expect(result).toContain('ACTION_REQUIRED');
+    expect(result).toContain('http://localhost:5001/api/v1/auth/gmail');
   });
 });
