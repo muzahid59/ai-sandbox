@@ -410,7 +410,7 @@ describe('EmailService', () => {
 
     it('instructs user to notify when done', () => {
       const message = emailService.buildAuthRequiredMessage();
-      expect(message).toContain('let me know when you\'re done');
+      expect(message).toContain('let you know when they are done');
     });
   });
 

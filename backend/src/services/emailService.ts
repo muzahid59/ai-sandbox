@@ -87,11 +87,11 @@ class EmailService {
     return [
       'ACTION_REQUIRED: Gmail is not connected.',
       '',
-      'To access your emails and calendar, you need to connect your Google account.',
-      `Authorization URL: ${authUrl}`,
+      'You MUST include this exact link in your response to the user:',
+      authUrl,
       '',
-      'Open the link above in your browser, sign in with Google, and grant access.',
-      'Then let me know when you\'re done so I can proceed with your request.',
+      'Tell the user to click the link above, sign in with Google, and grant access.',
+      'Then ask them to let you know when they are done so you can retry.',
     ].join('\n');
   }
 
