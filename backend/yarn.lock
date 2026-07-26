@@ -2115,10 +2115,10 @@ function-bind@^1.1.2:
   resolved "https://registry.npmjs.org/function-bind/-/function-bind-1.1.2.tgz"
   integrity sha512-7XHNxH7qX9xG5mIwxkhumTox/MIRNcOgDrxWsMt2pAr23WHp6MrRlN7FBSFpCpr+oVO0F744iUgR82nJMfG2SA==
 
-gaxios@^7.0.0, gaxios@^7.0.0-rc.4, gaxios@^7.1.4:
-  version "7.1.4"
-  resolved "https://registry.npmjs.org/gaxios/-/gaxios-7.1.4.tgz"
-  integrity sha512-bTIgTsM2bWn3XklZISBTQX7ZSddGW+IO3bMdGaemHZ3tbqExMENHLx6kKZ/KlejgrMtj8q7wBItt51yegqalrA==
+gaxios@^7.0.0, gaxios@^7.0.0-rc.4, gaxios@^7.1.4, gaxios@^7.3.0:
+  version "7.3.0"
+  resolved "https://registry.npmjs.org/gaxios/-/gaxios-7.3.0.tgz"
+  integrity sha512-RB5vLV+vvQeoFPCX4QMK6/hjVkbIamPp1QSUD0CiZcnj12qbpiL+pLbYtgD+oZkWl0tl9z+o2Utp+MpM3QRhBA==
   dependencies:
     extend "^3.0.2"
     https-proxy-agent "^7.0.1"

@@ -3,6 +3,7 @@ import { createProvider } from '../providers';
 import { toolRegistry } from './toolRegistry';
 import { runAgenticLoop, AgenticLoopCallbacks, AgenticLoopResult } from './toolExecutor';
 import { ContentBlockParam } from '../types/content';
+import { ToolExecutionContext } from '../types/context';
 import { contextService } from './contextService';
 import { getSystemPrompt } from '../prompts';
 import logger from '../config/logger';
@@ -22,6 +23,7 @@ export async function processMessage(
   _userContent: ContentBlockParam[],
   selectedToolNames: string[] | undefined,
   callbacks: AgenticLoopCallbacks,
+  userId?: string,
 ): Promise<ChatResult> {
   const provider = createProvider(thread.model);
   const allTools = toolRegistry.getDefinitions();
@@ -58,7 +60,8 @@ export async function processMessage(
   }, 'Messages prepared for LLM');
 
   const effectiveTools = useToolPrompt ? tools : [];
-  const loopResult = await runAgenticLoop(provider, messages, effectiveTools, callbacks);
+  const context: ToolExecutionContext | undefined = userId ? { userId } : undefined;
+  const loopResult = await runAgenticLoop(provider, messages, effectiveTools, callbacks, 10, context);
 
   const durationMs = Date.now() - startTime;
   log.info(

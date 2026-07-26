@@ -17,6 +17,7 @@
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
+    "gaxios": "^7.3.0",
     "googleapis": "^171.4.0",
     "html-to-text": "^9.0.5",
     "mathjs": "^15.2.0",
@@ -46,6 +47,9 @@
     "ts-jest": "^29.4.9",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.3"
+  },
+  "prisma": {
+    "seed": "ts-node prisma/seed.ts"
   },
   "allowScripts": {
     "@prisma/client@5.22.0": true,

@@ -1,6 +1,7 @@
 import { MessageParam, ToolCall, ToolDefinition, ToolResult, ContentBlock } from '../types';
 import { ToolResultBlockParam } from '../types/content';
 import { AIProvider } from '../providers/types';
+import { ToolExecutionContext } from '../types/context';
 import { toolRegistry } from './toolRegistry';
 import logger from '../config/logger';
 
@@ -36,8 +37,27 @@ export async function runAgenticLoop(
   messages: MessageParam[],
   tools: ToolDefinition[],
   callbacks: AgenticLoopCallbacks,
-  maxIterations = 10,
+  maxIterations?: number,
+  context?: ToolExecutionContext,
+): Promise<AgenticLoopResult>;
+export async function runAgenticLoop(
+  provider: AIProvider,
+  messages: MessageParam[],
+  tools: ToolDefinition[],
+  callbacks: AgenticLoopCallbacks,
+  maxIterationsOrContext?: number | ToolExecutionContext,
+  context?: ToolExecutionContext,
 ): Promise<AgenticLoopResult> {
+  let maxIterations: number;
+  let ctx: ToolExecutionContext | undefined;
+
+  if (typeof maxIterationsOrContext === 'number') {
+    maxIterations = maxIterationsOrContext;
+    ctx = context;
+  } else {
+    maxIterations = 10;
+    ctx = maxIterationsOrContext;
+  }
   const log = logger.child({ component: 'agenticLoop' });
   const allRecords: ToolCallRecord[] = [];
   let finalText = '';
@@ -88,7 +108,7 @@ export async function runAgenticLoop(
       log.info({ tool: toolCall.name, inputSize }, 'Tool call start');
 
       const start = Date.now();
-      const result = await toolRegistry.execute(toolCall.name, toolCall.arguments);
+      const result = await toolRegistry.execute(toolCall.name, toolCall.arguments, ctx);
       const durationMs = Date.now() - start;
 
       if (result.output.length > MAX_TOOL_OUTPUT_LENGTH) {

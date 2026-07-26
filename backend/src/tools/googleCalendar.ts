@@ -1,7 +1,9 @@
 import { z } from 'zod';
 import { google } from 'googleapis';
 import { RunnableTool } from './types';
+import { ToolExecutionContext } from '../types/context';
 import { ToolError } from '../errors';
+import { googleAuthService } from '../services/googleAuthService';
 import logger from '../config/logger';
 
 const log = logger.child({ tool: 'google_calendar' });
@@ -14,19 +16,6 @@ const schema = z.object({
   timezone: z.string().default('Asia/Dhaka').optional().describe('IANA timezone. Defaults to Asia/Dhaka.'),
 });
 
-function getAuthClient() {
-  const clientId = process.env.GOOGLE_CLIENT_ID;
-  const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
-  const refreshToken = process.env.GOOGLE_REFRESH_TOKEN;
-
-  if (!clientId || !clientSecret || !refreshToken) {
-    return null;
-  }
-
-  const oauth2Client = new google.auth.OAuth2(clientId, clientSecret);
-  oauth2Client.setCredentials({ refresh_token: refreshToken });
-  return oauth2Client;
-}
 
 function getDateRange(startDate: string | undefined, endDate: string | undefined, timezone: string, defaultDays: number) {
   const now = new Date();
@@ -112,16 +101,15 @@ export const googleCalendar: RunnableTool<z.infer<typeof schema>> = {
   schema,
   timeoutMs: 10000,
 
-  async run({ action, start_date, end_date, query, timezone: tz }) {
-    const timezone = tz || 'Asia/Dhaka';
-
-    const auth = getAuthClient();
-    if (!auth) {
-      throw new ToolError(
-        'Google Calendar not configured. Add GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, and GOOGLE_REFRESH_TOKEN to backend/.env',
-      );
+  async run({ action, start_date, end_date, query, timezone: tz }, context?: ToolExecutionContext) {
+    if (!context?.userId) {
+      throw new ToolError('Google Calendar requires a connected Google account. Please connect your Google account first.');
     }
 
+    const timezone = tz || 'Asia/Dhaka';
+
+    await googleAuthService.hasScope(context.userId, 'calendar.readonly');
+    const auth = await googleAuthService.getAuthClient(context.userId);
     const calendar = google.calendar({ version: 'v3', auth });
 
     try {

@@ -1,12 +1,9 @@
-import fs from 'fs';
-import path from 'path';
 import { google, gmail_v1 } from 'googleapis';
 import { OAuth2Client } from 'google-auth-library';
 import { convert } from 'html-to-text';
 import logger from '../config/logger';
+import { googleAuthService } from './googleAuthService';
 import {
-  GmailTokenStore,
-  GmailTokenEntry,
   EmailSummary,
   AttachmentMeta,
   EmailDraft,
@@ -15,12 +12,7 @@ import {
 } from '../types/email';
 
 const log = logger.child({ service: 'emailService' });
-const TOKEN_FILE = path.join(__dirname, '../../.gmail-tokens.json');
 const MAX_BODY_BYTES = 50 * 1024;
-const SCOPES = [
-  'https://www.googleapis.com/auth/gmail.readonly',
-  'https://www.googleapis.com/auth/gmail.compose',
-];
 
 class EmailService {
   private static instance: EmailService;
@@ -32,91 +24,8 @@ class EmailService {
     return EmailService.instance;
   }
 
-  getScopes(): string[] {
-    return SCOPES;
-  }
-
-  getRedirectUri(): string {
-    return 'http://localhost:5001/api/v1/auth/gmail/callback';
-  }
-
-  createOAuth2Client(): OAuth2Client {
-    const clientId = process.env.GOOGLE_CLIENT_ID;
-    const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
-    if (!clientId || !clientSecret) {
-      throw new Error('Google OAuth not configured. Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET.');
-    }
-    return new google.auth.OAuth2(clientId, clientSecret, this.getRedirectUri());
-  }
-
-  // ─── Token CRUD ───
-
-  getTokens(userId: string): GmailTokenEntry | null {
-    const store = this.readTokenFile();
-    return store[userId] ?? null;
-  }
-
-  saveTokens(userId: string, tokens: GmailTokenEntry): void {
-    const store = this.readTokenFile();
-    store[userId] = tokens;
-    fs.writeFileSync(TOKEN_FILE, JSON.stringify(store, null, 2));
-    log.info({ userId }, 'Gmail tokens saved');
-  }
-
-  removeTokens(userId: string): void {
-    const store = this.readTokenFile();
-    delete store[userId];
-    fs.writeFileSync(TOKEN_FILE, JSON.stringify(store, null, 2));
-    log.info({ userId }, 'Gmail tokens removed');
-  }
-
-  isConnected(userId: string): boolean {
-    return this.getTokens(userId) !== null;
-  }
-
-  private readTokenFile(): GmailTokenStore {
-    try {
-      if (!fs.existsSync(TOKEN_FILE)) return {};
-      const data = fs.readFileSync(TOKEN_FILE, 'utf-8');
-      return JSON.parse(data);
-    } catch {
-      return {};
-    }
-  }
-
-  // ─── Auth Client ───
-
   async getAuthClient(userId: string): Promise<OAuth2Client> {
-    const entry = this.getTokens(userId);
-    if (!entry) {
-      throw new Error('Gmail not connected. Visit /api/v1/auth/gmail to authorize.');
-    }
-
-    const oauth2 = this.createOAuth2Client();
-    oauth2.setCredentials({
-      access_token: entry.accessToken,
-      refresh_token: entry.refreshToken,
-      expiry_date: entry.expiryDate,
-    });
-
-    if (Date.now() >= entry.expiryDate) {
-      log.info({ userId }, 'Access token expired, refreshing');
-      try {
-        const { credentials } = await oauth2.refreshAccessToken();
-        this.saveTokens(userId, {
-          ...entry,
-          accessToken: credentials.access_token!,
-          expiryDate: credentials.expiry_date!,
-        });
-        oauth2.setCredentials(credentials);
-      } catch (err: any) {
-        log.error({ userId, err }, 'Token refresh failed');
-        this.removeTokens(userId);
-        throw new Error('Gmail authorization expired. Visit /api/v1/auth/gmail to re-authorize.');
-      }
-    }
-
-    return oauth2;
+    return googleAuthService.getAuthClient(userId);
   }
 
   // ─── Retry Wrapper ───
@@ -433,15 +342,22 @@ class EmailService {
 
   // ─── MIME Helpers ───
 
+  // Encode non-ASCII header values per RFC 2047 (=?UTF-8?B?...?=)
+  private encodeHeader(value: string): string {
+    if (/^[\x00-\x7F]*$/.test(value)) return value;
+    return `=?UTF-8?B?${Buffer.from(value, 'utf8').toString('base64')}?=`;
+  }
+
   private buildMimeMessage(draft: EmailDraft): string {
     const lines: string[] = [
       `To: ${draft.to}`,
-      `Subject: ${draft.subject}`,
+      `Subject: ${this.encodeHeader(draft.subject)}`,
       'Content-Type: text/plain; charset=UTF-8',
+      'Content-Transfer-Encoding: base64',
     ];
     if (draft.cc) lines.push(`Cc: ${draft.cc}`);
     if (draft.bcc) lines.push(`Bcc: ${draft.bcc}`);
-    lines.push('', draft.body);
+    lines.push('', Buffer.from(draft.body, 'utf8').toString('base64'));
     return lines.join('\r\n');
   }
 
@@ -452,12 +368,13 @@ class EmailService {
   ): string {
     return [
       `To: ${draft.to}`,
-      `Subject: ${draft.subject}`,
+      `Subject: ${this.encodeHeader(draft.subject)}`,
       `In-Reply-To: ${inReplyTo}`,
       `References: ${references}`,
       'Content-Type: text/plain; charset=UTF-8',
+      'Content-Transfer-Encoding: base64',
       '',
-      draft.body,
+      Buffer.from(draft.body, 'utf8').toString('base64'),
     ].join('\r\n');
   }
 

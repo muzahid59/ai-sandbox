@@ -6,7 +6,7 @@ import { requestLogger } from './middleware/requestLogger';
 import { errorHandler } from './middleware/errorHandler';
 import { threadRoutes } from './routes/threadRoutes';
 import { messageRoutes } from './routes/messageRoutes';
-import { gmailAuthRoutes } from './routes/gmailAuthRoutes';
+import { googleAuthRoutes } from './routes/googleAuthRoutes';
 import { registerAllTools } from './tools';
 import { toolRegistry } from './services/toolRegistry';
 import { registerProviders } from './providers';
@@ -25,8 +25,8 @@ app.use(cors());
 app.use(express.json({ limit: '20mb' }));
 app.use(requestLogger);
 
-// Gmail OAuth routes (callback must be accessible without auth — middleware applied per-route)
-app.use('/api/v1', gmailAuthRoutes);
+// Google OAuth routes (callback must be accessible without auth — middleware applied per-route)
+app.use('/api/v1', googleAuthRoutes);
 
 // API v1 routes (with auth)
 app.use('/api/v1', authMiddleware);

@@ -1,5 +1,6 @@
 import { ToolDefinition, ToolResult } from '../types/messages';
 import { RunnableTool } from '../tools/types';
+import { ToolExecutionContext } from '../types/context';
 import { ToolError } from '../errors';
 import logger from '../config/logger';
 
@@ -23,7 +24,7 @@ class ToolRegistry {
     return this.tools.has(name);
   }
 
-  async execute(name: string, input: Record<string, unknown>): Promise<ToolResult> {
+  async execute(name: string, input: Record<string, unknown>, context?: ToolExecutionContext): Promise<ToolResult> {
     const tool = this.tools.get(name);
     if (!tool) {
       return { output: `Unknown tool: ${name}`, is_error: true };
@@ -44,7 +45,7 @@ class ToolRegistry {
 
     try {
       const output = await Promise.race([
-        tool.run(parsed.data),
+        tool.run(parsed.data, context),
         new Promise<never>((_, reject) =>
           setTimeout(() => reject(new Error(`Tool "${name}" timed out after ${timeout}ms`)), timeout),
         ),

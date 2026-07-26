@@ -1,7 +1,9 @@
 import { z } from 'zod';
 import { RunnableTool } from './types';
+import { ToolExecutionContext } from '../types/context';
 import { ToolError } from '../errors';
 import { emailService } from '../services/emailService';
+import { googleAuthService } from '../services/googleAuthService';
 import logger from '../config/logger';
 
 const log = logger.child({ tool: 'reply_email' });
@@ -28,12 +30,13 @@ export const replyEmail: RunnableTool<z.infer<typeof schema>> = {
   schema,
   timeoutMs: 10000,
 
-  async run({ emailId, body }) {
-    const userId = '00000000-0000-0000-0000-000000000001';
-
-    if (!emailService.isConnected(userId)) {
-      throw new ToolError('Gmail not connected. Visit http://localhost:5001/api/v1/auth/gmail to authorize.');
+  async run({ emailId, body }, context?: ToolExecutionContext) {
+    const userId = context?.userId;
+    if (!userId) {
+      throw new ToolError('Gmail requires a connected Google account. Please connect your account at /api/v1/auth/google');
     }
+
+    await googleAuthService.hasScope(userId, 'gmail.compose');
 
     try {
       log.info({ emailId }, 'Creating reply draft');

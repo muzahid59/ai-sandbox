@@ -1,7 +1,9 @@
 import { z } from 'zod';
 import { RunnableTool } from './types';
+import { ToolExecutionContext } from '../types/context';
 import { ToolError } from '../errors';
 import { emailService } from '../services/emailService';
+import { googleAuthService } from '../services/googleAuthService';
 import { EmailSummary } from '../types/email';
 import logger from '../config/logger';
 
@@ -98,12 +100,13 @@ export const readEmails: RunnableTool<z.infer<typeof schema>> = {
   schema,
   timeoutMs: 15000,
 
-  async run({ filter, maxResults, dateRange, includeBody }) {
-    const userId = '00000000-0000-0000-0000-000000000001';
-
-    if (!emailService.isConnected(userId)) {
-      throw new ToolError('Gmail not connected. Visit http://localhost:5001/api/v1/auth/gmail to authorize.');
+  async run({ filter, maxResults, dateRange, includeBody }, context?: ToolExecutionContext) {
+    const userId = context?.userId;
+    if (!userId) {
+      throw new ToolError('Gmail requires a connected Google account. Please connect your account at /api/v1/auth/google');
     }
+
+    await googleAuthService.hasScope(userId, 'gmail.readonly');
 
     try {
       log.info({ filter, maxResults, includeBody }, 'Reading emails');
