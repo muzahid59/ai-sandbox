@@ -1,7 +1,9 @@
 import { z } from 'zod';
 import { RunnableTool } from './types';
+import { ToolExecutionContext } from '../types/context';
 import { ToolError } from '../errors';
-import { emailService, AuthRequiredError } from '../services/emailService';
+import { emailService } from '../services/emailService';
+import { googleAuthService } from '../services/googleAuthService';
 import { EmailSummary } from '../types/email';
 import logger from '../config/logger';
 
@@ -16,10 +18,10 @@ const schema = z.object({
     after: z.string().optional().describe('Start date (ISO 8601 or YYYY-MM-DD)'),
     before: z.string().optional().describe('End date (ISO 8601 or YYYY-MM-DD)'),
   }).optional().describe('Filter by date range'),
-  hasAttachment: z.coerce.boolean().optional().describe('Filter for emails with attachments'),
-  maxResults: z.coerce.number().int().min(1).max(50).default(20)
+  hasAttachment: z.boolean().optional().describe('Filter for emails with attachments'),
+  maxResults: z.number().int().min(1).max(50).default(20)
     .describe('Maximum results to return'),
-  includeBody: z.coerce.boolean().default(false)
+  includeBody: z.boolean().default(false)
     .describe('Include full email body text'),
 });
 
@@ -95,12 +97,13 @@ export const searchEmails: RunnableTool<z.infer<typeof schema>> = {
   schema,
   timeoutMs: 15000,
 
-  async run(input) {
-    const userId = '00000000-0000-0000-0000-000000000001';
-
-    if (!emailService.isConnected(userId)) {
-      return emailService.buildAuthRequiredMessage();
+  async run(input, context?: ToolExecutionContext) {
+    const userId = context?.userId;
+    if (!userId) {
+      throw new ToolError('Gmail requires a connected Google account. Please connect your account at /api/v1/auth/google');
     }
+
+    await googleAuthService.hasScope(userId, 'gmail.readonly');
 
     try {
       log.info({ from: input.from, subject: input.subject, keywords: input.keywords }, 'Searching emails');
@@ -109,8 +112,8 @@ export const searchEmails: RunnableTool<z.infer<typeof schema>> = {
       return formatSearchResults(result.emails, result.totalCount);
     } catch (err: any) {
       log.error({ err }, 'Failed to search emails');
-      if (err instanceof AuthRequiredError) {
-        return emailService.buildAuthRequiredMessage();
+      if (err.message?.includes('Gmail not connected') || err.message?.includes('Gmail authorization')) {
+        throw new ToolError(err.message);
       }
       throw new ToolError(`Failed to search emails: ${err.message}`);
     }

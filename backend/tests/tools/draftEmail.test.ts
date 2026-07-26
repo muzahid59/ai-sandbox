@@ -1,37 +1,25 @@
-jest.mock('@googleapis/gmail', () => ({
-  gmail: jest.fn(() => ({
-    users: {
-      messages: { list: jest.fn(), get: jest.fn() },
-      drafts: { create: jest.fn() },
-    },
-  })),
+jest.mock('googleapis', () => ({
+  google: {
+    auth: { OAuth2: jest.fn(() => ({ setCredentials: jest.fn(), refreshAccessToken: jest.fn() })) },
+    gmail: jest.fn(() => ({
+      users: {
+        messages: { list: jest.fn(), get: jest.fn() },
+        drafts: { create: jest.fn() },
+      },
+    })),
+  },
 }));
 
-jest.mock('google-auth-library', () => ({
-  OAuth2Client: jest.fn(() => ({ setCredentials: jest.fn(), refreshAccessToken: jest.fn() })),
-}));
-
-import fs from 'fs';
-import path from 'path';
 import { summarizeEmails } from '../../src/tools/summarizeEmails';
 import { draftEmail } from '../../src/tools/draftEmail';
 import { replyEmail } from '../../src/tools/replyEmail';
 
-const TOKEN_FILE = path.join(__dirname, '../../.gmail-tokens.json');
-
-function cleanupTokenFile() {
-  try { if (fs.existsSync(TOKEN_FILE)) fs.unlinkSync(TOKEN_FILE); } catch { /* ignore */ }
-}
-
 describe('summarize_emails tool', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    cleanupTokenFile();
     process.env.GOOGLE_CLIENT_ID = 'test-client-id';
     process.env.GOOGLE_CLIENT_SECRET = 'test-client-secret';
   });
-
-  afterAll(() => cleanupTokenFile());
 
   it('has correct definition', () => {
     expect(summarizeEmails.definition.name).toBe('summarize_emails');
@@ -47,22 +35,18 @@ describe('summarize_emails tool', () => {
     }
   });
 
-  it('returns auth required message when Gmail not connected', async () => {
-    const result = await summarizeEmails.run({ filter: 'unread', maxResults: 50 });
-    expect(result).toContain('ACTION_REQUIRED');
-    expect(result).toContain('http://localhost:5001/api/v1/auth/gmail');
+  it('throws when no userId in context', async () => {
+    await expect(summarizeEmails.run({ filter: 'unread', maxResults: 50 }))
+      .rejects.toThrow('Google account');
   });
 });
 
 describe('draft_email tool', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    cleanupTokenFile();
     process.env.GOOGLE_CLIENT_ID = 'test-client-id';
     process.env.GOOGLE_CLIENT_SECRET = 'test-client-secret';
   });
-
-  afterAll(() => cleanupTokenFile());
 
   it('has correct definition', () => {
     expect(draftEmail.definition.name).toBe('draft_email');
@@ -93,26 +77,21 @@ describe('draft_email tool', () => {
     expect(result.success).toBe(true);
   });
 
-  it('returns auth required message when Gmail not connected', async () => {
-    const result = await draftEmail.run({
+  it('throws when no userId in context', async () => {
+    await expect(draftEmail.run({
       to: 'test@example.com',
       subject: 'Test',
       body: 'Hello',
-    });
-    expect(result).toContain('ACTION_REQUIRED');
-    expect(result).toContain('http://localhost:5001/api/v1/auth/gmail');
+    })).rejects.toThrow('Google account');
   });
 });
 
 describe('reply_email tool', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    cleanupTokenFile();
     process.env.GOOGLE_CLIENT_ID = 'test-client-id';
     process.env.GOOGLE_CLIENT_SECRET = 'test-client-secret';
   });
-
-  afterAll(() => cleanupTokenFile());
 
   it('has correct definition', () => {
     expect(replyEmail.definition.name).toBe('reply_email');
@@ -137,9 +116,8 @@ describe('reply_email tool', () => {
     expect(result.success).toBe(true);
   });
 
-  it('returns auth required message when Gmail not connected', async () => {
-    const result = await replyEmail.run({ emailId: 'msg-123', body: 'Reply' });
-    expect(result).toContain('ACTION_REQUIRED');
-    expect(result).toContain('http://localhost:5001/api/v1/auth/gmail');
+  it('throws when no userId in context', async () => {
+    await expect(replyEmail.run({ emailId: 'msg-123', body: 'Reply' }))
+      .rejects.toThrow('Google account');
   });
 });

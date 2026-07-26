@@ -2,6 +2,10 @@ import type { Thread } from './types';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001';
 
+export type GoogleConnectionStatus =
+  | { connected: true; email: string; scopes: string[]; connectedAt: string }
+  | { connected: false; authorizeUrl: string };
+
 interface ContentBlock {
   type: string;
   text?: string;
@@ -63,6 +67,17 @@ export async function deleteThread(threadId: string): Promise<{ success: boolean
   });
   if (!res.ok) throw new Error(`Failed to delete thread: ${res.status}`);
   return res.json();
+}
+
+export async function getGoogleConnectionStatus(): Promise<GoogleConnectionStatus> {
+  const res = await fetch(`${API_URL}/api/v1/auth/google/status`);
+  if (!res.ok) throw new Error(`Failed to get Google connection status: ${res.status}`);
+  return res.json();
+}
+
+export async function disconnectGoogle(): Promise<void> {
+  const res = await fetch(`${API_URL}/api/v1/auth/google`, { method: 'DELETE' });
+  if (!res.ok) throw new Error(`Failed to disconnect Google: ${res.status}`);
 }
 
 export async function sendMessage(

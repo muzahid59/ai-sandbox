@@ -86,3 +86,30 @@ model ToolCall {
   @@index([messageId])
   @@map("tool_calls")
 }
+
+model User {
+  id              String            @id @default(uuid())
+  email           String            @unique
+  displayName     String?           @map("display_name")
+  createdAt       DateTime          @default(now()) @map("created_at")
+  updatedAt       DateTime          @updatedAt @map("updated_at")
+  googleOAuthToken GoogleOAuthToken?
+
+  @@map("users")
+}
+
+model GoogleOAuthToken {
+  id              String   @id @default(uuid())
+  userId          String   @unique @map("user_id")
+  accessToken     String   @map("access_token")
+  refreshToken    String   @map("refresh_token")
+  expiryTimestamp DateTime @map("expiry_timestamp")
+  scopes          String[]
+  googleEmail     String   @map("google_email")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("google_oauth_tokens")
+}

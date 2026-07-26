@@ -50,7 +50,7 @@ export async function handleSendMessage(req: Request, res: Response) {
       onDelta: (text) => writer.sendDelta(text),
       onToolUseStart: (call) => writer.sendToolUseStart({ type: 'tool_use', id: call.id, name: call.name, input: call.arguments }),
       onToolUseResult: (callId, name, toolResult) => writer.sendToolUseResult({ tool_call_id: callId, name, output: toolResult.output, is_error: toolResult.is_error }),
-    });
+    }, req.user!.id);
 
     await updateMessageStatus(assistantMessage.id, 'complete', { content: [{ type: 'text', text: result.text }], stopReason: 'end_turn' });
 

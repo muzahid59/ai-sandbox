@@ -10,6 +10,7 @@ interface ChatLayoutProps {
   onThreadUpdated: (threadId: string) => void;
   onDeleteThread: (threadId: string) => void;
   themeToggle: React.ReactNode;
+  googleConnection?: React.ReactNode;
 }
 
 const ChatLayout: React.FC<ChatLayoutProps> = ({
@@ -18,6 +19,7 @@ const ChatLayout: React.FC<ChatLayoutProps> = ({
   onThreadUpdated,
   onDeleteThread,
   themeToggle,
+  googleConnection,
 }) => {
   const { threadId } = useParams<{ threadId: string }>();
   const navigate = useNavigate();
@@ -59,6 +61,9 @@ const ChatLayout: React.FC<ChatLayoutProps> = ({
           onThreadUpdated={onThreadUpdated}
         />
       </div>
+      {googleConnection && (
+        <div className="googleConnectionPanel">{googleConnection}</div>
+      )}
     </>
   );
 };

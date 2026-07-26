@@ -1,7 +1,9 @@
 import { z } from 'zod';
 import { RunnableTool } from './types';
+import { ToolExecutionContext } from '../types/context';
 import { ToolError } from '../errors';
-import { emailService, AuthRequiredError } from '../services/emailService';
+import { emailService } from '../services/emailService';
+import { googleAuthService } from '../services/googleAuthService';
 import logger from '../config/logger';
 
 const log = logger.child({ tool: 'draft_email' });
@@ -34,12 +36,13 @@ export const draftEmail: RunnableTool<z.infer<typeof schema>> = {
   schema,
   timeoutMs: 10000,
 
-  async run(input) {
-    const userId = '00000000-0000-0000-0000-000000000001';
-
-    if (!emailService.isConnected(userId)) {
-      return emailService.buildAuthRequiredMessage();
+  async run(input, context?: ToolExecutionContext) {
+    const userId = context?.userId;
+    if (!userId) {
+      throw new ToolError('Gmail requires a connected Google account. Please connect your account at /api/v1/auth/google');
     }
+
+    await googleAuthService.hasScope(userId, 'gmail.compose');
 
     try {
       log.info({ to: input.to }, 'Creating email draft');
@@ -57,8 +60,8 @@ export const draftEmail: RunnableTool<z.infer<typeof schema>> = {
       ].join('\n');
     } catch (err: any) {
       log.error({ err }, 'Failed to create draft');
-      if (err instanceof AuthRequiredError) {
-        return emailService.buildAuthRequiredMessage();
+      if (err.message?.includes('Gmail not connected') || err.message?.includes('Gmail authorization')) {
+        throw new ToolError(err.message);
       }
       throw new ToolError(`Failed to create draft: ${err.message}`);
     }

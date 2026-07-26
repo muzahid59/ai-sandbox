@@ -1,12 +1,9 @@
-import fs from 'fs';
-import path from 'path';
-import { gmail, gmail_v1 } from '@googleapis/gmail';
+import { google, gmail_v1 } from 'googleapis';
 import { OAuth2Client } from 'google-auth-library';
 import { convert } from 'html-to-text';
 import logger from '../config/logger';
+import { googleAuthService } from './googleAuthService';
 import {
-  GmailTokenStore,
-  GmailTokenEntry,
   EmailSummary,
   AttachmentMeta,
   EmailDraft,
@@ -15,20 +12,7 @@ import {
 } from '../types/email';
 
 const log = logger.child({ service: 'emailService' });
-const TOKEN_FILE = path.join(__dirname, '../../.gmail-tokens.json');
 const MAX_BODY_BYTES = 50 * 1024;
-const SCOPES = [
-  'https://www.googleapis.com/auth/gmail.readonly',
-  'https://www.googleapis.com/auth/gmail.compose',
-  'https://www.googleapis.com/auth/calendar.readonly',
-];
-
-export class AuthRequiredError extends Error {
-  constructor() {
-    super('Gmail not connected');
-    this.name = 'AuthRequiredError';
-  }
-}
 
 class EmailService {
   private static instance: EmailService;
@@ -40,104 +24,8 @@ class EmailService {
     return EmailService.instance;
   }
 
-  getScopes(): string[] {
-    return SCOPES;
-  }
-
-  getRedirectUri(): string {
-    return 'http://localhost:5001/api/v1/auth/gmail/callback';
-  }
-
-  createOAuth2Client(): OAuth2Client {
-    const clientId = process.env.GOOGLE_CLIENT_ID;
-    const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
-    if (!clientId || !clientSecret) {
-      throw new Error('Google OAuth not configured. Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET.');
-    }
-    return new OAuth2Client(clientId, clientSecret, this.getRedirectUri());
-  }
-
-  // ─── Token CRUD ───
-
-  getTokens(userId: string): GmailTokenEntry | null {
-    const store = this.readTokenFile();
-    return store[userId] ?? null;
-  }
-
-  saveTokens(userId: string, tokens: GmailTokenEntry): void {
-    const store = this.readTokenFile();
-    store[userId] = tokens;
-    fs.writeFileSync(TOKEN_FILE, JSON.stringify(store, null, 2));
-    log.info({ userId }, 'Gmail tokens saved');
-  }
-
-  removeTokens(userId: string): void {
-    const store = this.readTokenFile();
-    delete store[userId];
-    fs.writeFileSync(TOKEN_FILE, JSON.stringify(store, null, 2));
-    log.info({ userId }, 'Gmail tokens removed');
-  }
-
-  isConnected(userId: string): boolean {
-    return this.getTokens(userId) !== null;
-  }
-
-  buildAuthRequiredMessage(): string {
-    const authUrl = 'http://localhost:5001/api/v1/auth/gmail';
-    return [
-      'ACTION_REQUIRED: Gmail is not connected.',
-      '',
-      'You MUST include this exact link in your response to the user:',
-      authUrl,
-      '',
-      'Tell the user to click the link above, sign in with Google, and grant access.',
-      'Then ask them to let you know when they are done so you can retry.',
-    ].join('\n');
-  }
-
-  private readTokenFile(): GmailTokenStore {
-    try {
-      if (!fs.existsSync(TOKEN_FILE)) return {};
-      const data = fs.readFileSync(TOKEN_FILE, 'utf-8');
-      return JSON.parse(data);
-    } catch {
-      return {};
-    }
-  }
-
-  // ─── Auth Client ───
-
   async getAuthClient(userId: string): Promise<OAuth2Client> {
-    const entry = this.getTokens(userId);
-    if (!entry) {
-      throw new AuthRequiredError();
-    }
-
-    const oauth2 = this.createOAuth2Client();
-    oauth2.setCredentials({
-      access_token: entry.accessToken,
-      refresh_token: entry.refreshToken,
-      expiry_date: entry.expiryDate,
-    });
-
-    if (Date.now() >= entry.expiryDate) {
-      log.info({ userId }, 'Access token expired, refreshing');
-      try {
-        const { credentials } = await oauth2.refreshAccessToken();
-        this.saveTokens(userId, {
-          ...entry,
-          accessToken: credentials.access_token!,
-          expiryDate: credentials.expiry_date!,
-        });
-        oauth2.setCredentials(credentials);
-      } catch (err: any) {
-        log.error({ userId, err }, 'Token refresh failed');
-        this.removeTokens(userId);
-        throw new AuthRequiredError();
-      }
-    }
-
-    return oauth2;
+    return googleAuthService.getAuthClient(userId);
   }
 
   // ─── Retry Wrapper ───
@@ -260,7 +148,7 @@ class EmailService {
     includeBody: boolean = false,
   ): Promise<EmailListResult> {
     const auth = await this.getAuthClient(userId);
-    const gmailClient = gmail({ version: 'v1', auth });
+    const gmail = google.gmail({ version: 'v1', auth });
 
     const queryParts: string[] = [];
     if (filter === 'unread') queryParts.push('is:unread');
@@ -271,7 +159,7 @@ class EmailService {
     const q = queryParts.join(' ') || undefined;
 
     const listResponse = await this.withRetry(() =>
-      gmailClient.users.messages.list({ userId: 'me', q, maxResults }),
+      gmail.users.messages.list({ userId: 'me', q, maxResults }),
     );
 
     const messageIds = listResponse.data.messages ?? [];
@@ -280,7 +168,7 @@ class EmailService {
     const emails: EmailSummary[] = [];
     for (const msg of messageIds) {
       const detail = await this.withRetry(() =>
-        gmailClient.users.messages.get({
+        gmail.users.messages.get({
           userId: 'me',
           id: msg.id!,
           format: includeBody ? 'full' : 'metadata',
@@ -302,10 +190,10 @@ class EmailService {
 
   async getEmail(userId: string, emailId: string, includeBody: boolean = false): Promise<EmailSummary> {
     const auth = await this.getAuthClient(userId);
-    const gmailClient = gmail({ version: 'v1', auth });
+    const gmail = google.gmail({ version: 'v1', auth });
 
     const detail = await this.withRetry(() =>
-      gmailClient.users.messages.get({ userId: 'me', id: emailId, format: 'full' }),
+      gmail.users.messages.get({ userId: 'me', id: emailId, format: 'full' }),
     );
 
     const summary = this.parseEmail(detail.data);
@@ -342,12 +230,12 @@ class EmailService {
     if (params.hasAttachment) queryParts.push('has:attachment');
 
     const auth = await this.getAuthClient(userId);
-    const gmailClient = gmail({ version: 'v1', auth });
+    const gmail = google.gmail({ version: 'v1', auth });
     const maxResults = params.maxResults ?? 20;
     const q = queryParts.join(' ') || undefined;
 
     const listResponse = await this.withRetry(() =>
-      gmailClient.users.messages.list({ userId: 'me', q, maxResults }),
+      gmail.users.messages.list({ userId: 'me', q, maxResults }),
     );
 
     const messageIds = listResponse.data.messages ?? [];
@@ -356,7 +244,7 @@ class EmailService {
     const emails: EmailSummary[] = [];
     for (const msg of messageIds) {
       const detail = await this.withRetry(() =>
-        gmailClient.users.messages.get({
+        gmail.users.messages.get({
           userId: 'me',
           id: msg.id!,
           format: params.includeBody ? 'full' : 'metadata',
@@ -378,13 +266,13 @@ class EmailService {
 
   async createDraft(userId: string, draft: EmailDraft): Promise<DraftResult> {
     const auth = await this.getAuthClient(userId);
-    const gmailClient = gmail({ version: 'v1', auth });
+    const gmail = google.gmail({ version: 'v1', auth });
 
     const mime = this.buildMimeMessage(draft);
     const encodedMessage = Buffer.from(mime).toString('base64url');
 
     const response = await this.withRetry(() =>
-      gmailClient.users.drafts.create({
+      gmail.users.drafts.create({
         userId: 'me',
         requestBody: { message: { raw: encodedMessage } },
       }),
@@ -405,10 +293,10 @@ class EmailService {
 
   async createReplyDraft(userId: string, emailId: string, body: string): Promise<DraftResult> {
     const auth = await this.getAuthClient(userId);
-    const gmailClient = gmail({ version: 'v1', auth });
+    const gmail = google.gmail({ version: 'v1', auth });
 
     const original = await this.withRetry(() =>
-      gmailClient.users.messages.get({ userId: 'me', id: emailId, format: 'metadata', metadataHeaders: ['From', 'To', 'Subject', 'Message-ID', 'References'] }),
+      gmail.users.messages.get({ userId: 'me', id: emailId, format: 'metadata', metadataHeaders: ['From', 'To', 'Subject', 'Message-ID', 'References'] }),
     );
 
     const headers = original.data.payload?.headers ?? [];
@@ -435,7 +323,7 @@ class EmailService {
     const encodedMessage = Buffer.from(mime).toString('base64url');
 
     const response = await this.withRetry(() =>
-      gmailClient.users.drafts.create({
+      gmail.users.drafts.create({
         userId: 'me',
         requestBody: { message: { raw: encodedMessage, threadId } },
       }),
@@ -454,15 +342,22 @@ class EmailService {
 
   // ─── MIME Helpers ───
 
+  // Encode non-ASCII header values per RFC 2047 (=?UTF-8?B?...?=)
+  private encodeHeader(value: string): string {
+    if (/^[\x00-\x7F]*$/.test(value)) return value;
+    return `=?UTF-8?B?${Buffer.from(value, 'utf8').toString('base64')}?=`;
+  }
+
   private buildMimeMessage(draft: EmailDraft): string {
     const lines: string[] = [
       `To: ${draft.to}`,
-      `Subject: ${draft.subject}`,
+      `Subject: ${this.encodeHeader(draft.subject)}`,
       'Content-Type: text/plain; charset=UTF-8',
+      'Content-Transfer-Encoding: base64',
     ];
     if (draft.cc) lines.push(`Cc: ${draft.cc}`);
     if (draft.bcc) lines.push(`Bcc: ${draft.bcc}`);
-    lines.push('', draft.body);
+    lines.push('', Buffer.from(draft.body, 'utf8').toString('base64'));
     return lines.join('\r\n');
   }
 
@@ -473,12 +368,13 @@ class EmailService {
   ): string {
     return [
       `To: ${draft.to}`,
-      `Subject: ${draft.subject}`,
+      `Subject: ${this.encodeHeader(draft.subject)}`,
       `In-Reply-To: ${inReplyTo}`,
       `References: ${references}`,
       'Content-Type: text/plain; charset=UTF-8',
+      'Content-Transfer-Encoding: base64',
       '',
-      draft.body,
+      Buffer.from(draft.body, 'utf8').toString('base64'),
     ].join('\r\n');
   }
 

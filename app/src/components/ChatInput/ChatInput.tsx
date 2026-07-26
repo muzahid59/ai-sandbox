@@ -8,6 +8,8 @@ const MODELS = [
   { id: 'lama', name: 'Llama 3.2' },
   { id: 'deepseek', name: 'DeepSeek-r1' },
   { id: 'gemma', name: 'Gemma 3 4B' },
+  { id: 'qwen3.6', name: 'Qwen 3.6' },
+  { id: 'ornith', name: 'Ornith' },
 ];
 
 const TOOLS = [

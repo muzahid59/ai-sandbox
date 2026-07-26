@@ -9,7 +9,7 @@ const log = logger.child({ provider: 'ollama' });
 
 const OLLAMA_BASE_URL = process.env.OLLAMA_URL || 'http://host.docker.internal:11434/api';
 
-const TOOL_CAPABLE_MODELS = ['llama3.2', 'llama3.1', 'mistral', 'mixtral', 'qwen2.5'];
+const TOOL_CAPABLE_MODELS = ['llama3.2', 'llama3.1', 'mistral', 'mixtral', 'qwen2.5', 'qwen3.6', 'ornith'];
 
 export class OllamaProvider implements AIProvider {
   readonly name: string;
@@ -75,10 +75,16 @@ export class OllamaProvider implements AIProvider {
         timeout: process.env.OLLAMA_TIMEOUT_MS ? Number(process.env.OLLAMA_TIMEOUT_MS) : 120_000,
       });
 
+      // When tools are provided we must buffer all text before emitting via onDelta,
+      // because a chunk that looks like text may turn out to be an embedded tool call JSON
+      // once we see the full accumulated content at done=true.
+      const hasTools = ollamaTools && ollamaTools.length > 0;
+
       return new Promise((resolve, reject) => {
         let accumulatedText = '';
         let buffer = '';
         let settled = false;
+        let hasStreamedToolCalls = false;
         const streamToolCalls: { function: { name: string; arguments: Record<string, unknown> } }[] = [];
 
         const settle = (fn: () => void) => {
@@ -96,13 +102,18 @@ export class OllamaProvider implements AIProvider {
               const parsed = JSON.parse(line);
               const textChunk: string = parsed.message?.content ?? '';
 
-              if (textChunk && !settled) {
-                accumulatedText += textChunk;
-                if (!ollamaTools) onDelta?.(textChunk);
-              }
-
               if (parsed.message?.tool_calls && !settled) {
                 streamToolCalls.push(...parsed.message.tool_calls);
+                hasStreamedToolCalls = true;
+              }
+
+              if (textChunk && !settled) {
+                accumulatedText += textChunk;
+                // Only stream per-chunk when no tools are in play — otherwise buffer
+                // until done so we can detect text-embedded tool call JSON first.
+                if (!hasTools && !hasStreamedToolCalls) {
+                  onDelta?.(textChunk);
+                }
               }
 
               if (parsed.done) {
@@ -125,9 +136,13 @@ export class OllamaProvider implements AIProvider {
                     } catch { /* not JSON — treat as normal text */ }
                   }
 
+                  // Emit buffered text now that we know it isn't a tool call
+                  if (accumulatedText && hasTools) {
+                    onDelta?.(accumulatedText);
+                  }
+
                   if (accumulatedText) {
                     contentBlocks.push({ type: 'text', text: accumulatedText });
-                    if (ollamaTools) onDelta?.(accumulatedText);
                   }
 
                   for (let i = 0; i < rawToolCalls.length; i++) {
@@ -208,6 +223,8 @@ export function register(): ProviderRegistration {
       { key: 'lama', provider: 'ollama', model: 'llama3.2', displayName: 'Llama 3.2', capabilities: CAPABILITIES },
       { key: 'deepseek', provider: 'ollama', model: 'deepseek-r1:8b', displayName: 'DeepSeek R1 8B', capabilities: CAPABILITIES },
       { key: 'gemma', provider: 'ollama', model: 'gemma3:4b', displayName: 'Gemma 3 4B', capabilities: CAPABILITIES },
+      { key: 'qwen3.6', provider: 'ollama', model: 'qwen3.6:latest', displayName: 'Qwen 3.6', capabilities: CAPABILITIES },
+      { key: 'ornith', provider: 'ollama', model: 'ornith', displayName: 'Ornith', capabilities: CAPABILITIES },
     ],
     capabilities: CAPABILITIES,
     factory: (modelId: string) => new OllamaProvider(modelId),

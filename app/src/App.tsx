@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import './App.css';
 import ChatLayout from './components/ChatLayout/ChatLayout';
+import GoogleConnection from './components/GoogleConnection/GoogleConnection';
 import { fetchThreads, deleteThread } from './api';
 import type { Thread } from './types';
 
@@ -48,6 +49,7 @@ function App() {
     return localStorage.getItem('theme') || 'light';
   });
   const [threads, setThreads] = useState<Thread[]>([]);
+  const [googleToast, setGoogleToast] = useState<string | null>(null);
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
@@ -58,6 +60,17 @@ function App() {
     fetchThreads()
       .then((data) => setThreads(data as Thread[]))
       .catch((err: unknown) => console.error('Failed to load threads:', err));
+  }, []);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('google') === 'connected') {
+      setGoogleToast('Google account connected successfully!');
+      params.delete('google');
+      const newUrl = `${window.location.pathname}${params.toString() ? '?' + params.toString() : ''}`;
+      window.history.replaceState({}, '', newUrl);
+      setTimeout(() => setGoogleToast(null), 4000);
+    }
   }, []);
 
   const toggleTheme = () => {
@@ -105,10 +118,16 @@ function App() {
     onThreadUpdated: handleThreadUpdated,
     onDeleteThread: handleDeleteThread,
     themeToggle,
+    googleConnection: <GoogleConnection />,
   };
 
   return (
     <div className="App">
+      {googleToast && (
+        <div className="googleToast" role="status">
+          {googleToast}
+        </div>
+      )}
       <Routes>
         <Route path="/" element={<Navigate to="/chat/new" replace />} />
         <Route path="/chat/new" element={<ChatLayout {...layoutProps} />} />
