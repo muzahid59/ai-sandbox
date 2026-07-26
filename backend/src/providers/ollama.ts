@@ -75,6 +75,11 @@ export class OllamaProvider implements AIProvider {
         timeout: process.env.OLLAMA_TIMEOUT_MS ? Number(process.env.OLLAMA_TIMEOUT_MS) : 120_000,
       });
 
+      // When tools are provided we must buffer all text before emitting via onDelta,
+      // because a chunk that looks like text may turn out to be an embedded tool call JSON
+      // once we see the full accumulated content at done=true.
+      const hasTools = ollamaTools && ollamaTools.length > 0;
+
       return new Promise((resolve, reject) => {
         let accumulatedText = '';
         let buffer = '';
@@ -102,11 +107,13 @@ export class OllamaProvider implements AIProvider {
                 hasStreamedToolCalls = true;
               }
 
-              if (textChunk && !settled && !hasStreamedToolCalls) {
+              if (textChunk && !settled) {
                 accumulatedText += textChunk;
-                onDelta?.(textChunk);
-              } else if (textChunk && !settled) {
-                accumulatedText += textChunk;
+                // Only stream per-chunk when no tools are in play — otherwise buffer
+                // until done so we can detect text-embedded tool call JSON first.
+                if (!hasTools && !hasStreamedToolCalls) {
+                  onDelta?.(textChunk);
+                }
               }
 
               if (parsed.done) {
@@ -127,6 +134,11 @@ export class OllamaProvider implements AIProvider {
                         log.debug({ toolName: maybeCall.name }, 'Detected text-embedded tool call');
                       }
                     } catch { /* not JSON — treat as normal text */ }
+                  }
+
+                  // Emit buffered text now that we know it isn't a tool call
+                  if (accumulatedText && hasTools) {
+                    onDelta?.(accumulatedText);
                   }
 
                   if (accumulatedText) {
