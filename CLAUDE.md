@@ -78,7 +78,6 @@ Fully TypeScript codebase with `strict: true`. All code in `backend/src/` (TypeS
 
 | Tool | File | Description |
 |------|------|-------------|
-| `calculator` | `backend/src/tools/calculator.ts` | Evaluate math expressions via mathjs |
 | `web_search` | `backend/src/tools/webSearch.ts` | Search the web via SearXNG JSON API |
 | `fetch_url` | `backend/src/tools/fetchUrl.ts` | Fetch a URL and extract plain text (with SSRF protection) |
 
