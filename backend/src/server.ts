@@ -33,6 +33,10 @@ app.use('/api/v1', authMiddleware);
 app.use('/api/v1', threadRoutes);
 app.use('/api/v1', messageRoutes);
 
+app.get('/health', (_req, res) => {
+  res.status(200).json({ status: 'ok' });
+});
+
 app.get('/', (_req, res) => {
   res.send('Hi there! This is the AI sandbox server');
 });
