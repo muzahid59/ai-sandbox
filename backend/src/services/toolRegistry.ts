@@ -34,8 +34,12 @@ class ToolRegistry {
     // Validate input with Zod
     const parsed = tool.schema.safeParse(input);
     if (!parsed.success) {
-      const errors = parsed.error.issues.map((i) => i.message).join(', ');
-      return { output: `Invalid input: ${errors}`, is_error: true };
+      const errors = parsed.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join(', ');
+      const schema = tool.definition.input_schema;
+      const requiredHint = schema.required?.length
+        ? `. Required fields: ${schema.required.map((f) => `${f} (${(schema.properties[f] as any)?.type || 'string'})`).join(', ')}`
+        : '';
+      return { output: `Invalid input: ${errors}${requiredHint}`, is_error: true };
     }
 
     try {

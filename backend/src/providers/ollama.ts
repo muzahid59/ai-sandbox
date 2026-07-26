@@ -208,11 +208,10 @@ export function register(): ProviderRegistration {
   return {
     name: 'ollama',
     models: [
-      { key: 'qwen3.6', provider: 'ollama', model: 'qwen3.6:latest', displayName: 'Qwen 3.6', capabilities: CAPABILITIES },
-      { key: 'qwen3.6', provider: 'ollama', model: 'qwen3.6:latest', displayName: 'Qwen 3.6', capabilities: CAPABILITIES },
       { key: 'lama', provider: 'ollama', model: 'llama3.2', displayName: 'Llama 3.2', capabilities: CAPABILITIES },
       { key: 'deepseek', provider: 'ollama', model: 'deepseek-r1:8b', displayName: 'DeepSeek R1 8B', capabilities: CAPABILITIES },
       { key: 'gemma', provider: 'ollama', model: 'gemma3:4b', displayName: 'Gemma 3 4B', capabilities: CAPABILITIES },
+      { key: 'qwen3.6', provider: 'ollama', model: 'qwen3.6:latest', displayName: 'Qwen 3.6', capabilities: CAPABILITIES },
       { key: 'ornith', provider: 'ollama', model: 'ornith', displayName: 'Ornith', capabilities: CAPABILITIES },
     ],
     capabilities: CAPABILITIES,
