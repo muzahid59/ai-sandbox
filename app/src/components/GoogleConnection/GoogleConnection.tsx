@@ -28,7 +28,10 @@ const GoogleConnection: React.FC = () => {
   }, [fetchStatus]);
 
   const handleDisconnect = async () => {
-    if (!window.confirm('Disconnect your Google account? Gmail and Calendar tools will stop working.')) return;
+    if (
+      !window.confirm('Disconnect your Google account? Gmail and Calendar tools will stop working.')
+    )
+      return;
     setDisconnecting(true);
     try {
       await disconnectGoogle();
@@ -52,7 +55,9 @@ const GoogleConnection: React.FC = () => {
     return (
       <div className={styles.container}>
         <p className={styles.errorText}>{error}</p>
-        <button className={styles.retryButton} onClick={fetchStatus}>Retry</button>
+        <button className={styles.retryButton} onClick={fetchStatus}>
+          Retry
+        </button>
       </div>
     );
   }

@@ -23,7 +23,17 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [selectedModel, setSelectedModel] = useState('qwen3.6');
-  const [selectedTools, setSelectedTools] = useState(['calculator', 'web_search', 'fetch_url', 'google_calendar', 'read_emails', 'search_emails', 'summarize_emails', 'draft_email', 'reply_email']);
+  const [selectedTools, setSelectedTools] = useState([
+    'calculator',
+    'web_search',
+    'fetch_url',
+    'google_calendar',
+    'read_emails',
+    'search_emails',
+    'summarize_emails',
+    'draft_email',
+    'reply_email',
+  ]);
   const [threadNotFound, setThreadNotFound] = useState(false);
   const recognition = useRef<SpeechRecognition | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -59,7 +69,7 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
               : '',
             sent: m.role === 'user',
             done: true,
-          })),
+          }))
         );
       })
       .catch((err: unknown) => {
@@ -149,7 +159,9 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
           onThreadCreated?.(thread);
         }
 
-        const content: Array<{ type: string; text?: string; url?: string }> = [{ type: 'text', text: payload.text }];
+        const content: Array<{ type: string; text?: string; url?: string }> = [
+          { type: 'text', text: payload.text },
+        ];
         if (payload.image) {
           content.push({ type: 'image_url', url: payload.image });
         }
@@ -163,23 +175,21 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
           onCreated: (data) => {
             setMessages((prev) =>
               prev.map((m) => {
-                if (m.id === tempUserId) return { ...m, id: (data as Record<string, string>).user_msg_id };
-                if (m.id === tempAssistantId) return { ...m, id: (data as Record<string, string>).assistant_msg_id };
+                if (m.id === tempUserId)
+                  return { ...m, id: (data as Record<string, string>).user_msg_id };
+                if (m.id === tempAssistantId)
+                  return { ...m, id: (data as Record<string, string>).assistant_msg_id };
                 return m;
-              }),
+              })
             );
           },
           onDelta: (data) => {
             setMessages((prev) =>
-              prev.map((m) =>
-                !m.sent && !m.done ? { ...m, text: m.text + data.text } : m,
-              ),
+              prev.map((m) => (!m.sent && !m.done ? { ...m, text: m.text + data.text } : m))
             );
           },
           onDone: () => {
-            setMessages((prev) =>
-              prev.map((m) => (!m.sent && !m.done ? { ...m, done: true } : m)),
-            );
+            setMessages((prev) => prev.map((m) => (!m.sent && !m.done ? { ...m, done: true } : m)));
             setIsLoading(false);
             onThreadUpdated?.(currentThreadId!);
           },
@@ -187,9 +197,14 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
             setMessages((prev) =>
               prev.map((m) =>
                 m.id === tempAssistantId
-                  ? { ...m, text: `Error: ${data.message || 'Something went wrong'}`, done: true, isError: true }
-                  : m,
-              ),
+                  ? {
+                      ...m,
+                      text: `Error: ${data.message || 'Something went wrong'}`,
+                      done: true,
+                      isError: true,
+                    }
+                  : m
+              )
             );
             setIsLoading(false);
           },
@@ -200,13 +215,13 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
           prev.map((m) =>
             m.id === tempAssistantId
               ? { ...m, text: `Error: ${msg}`, done: true, isError: true }
-              : m,
-          ),
+              : m
+          )
         );
         setIsLoading(false);
       }
     },
-    [threadId, selectedModel, selectedTools, onThreadCreated, onThreadUpdated],
+    [threadId, selectedModel, selectedTools, onThreadCreated, onThreadUpdated]
   );
 
   const handleSubmit = (event: React.FormEvent) => {
