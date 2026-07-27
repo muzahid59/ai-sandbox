@@ -113,7 +113,14 @@ const SidebarToggleIcon: React.FC = () => (
   </svg>
 );
 
-const Sidebar: React.FC<SidebarProps> = ({ threads = [], activeThreadId, onSelectThread, onNewChat, onDeleteThread }) => {
+const Sidebar: React.FC<SidebarProps> = ({
+  threads = [],
+  activeThreadId,
+  onSelectThread,
+  onNewChat,
+  onDeleteThread,
+  onLogout,
+}) => {
   const [collapsed, setCollapsed] = useState(false);
 
   return (
@@ -192,9 +199,7 @@ const Sidebar: React.FC<SidebarProps> = ({ threads = [], activeThreadId, onSelec
                 <span className={styles.recentIcon}>
                   <ChatIcon />
                 </span>
-                <span className={styles.recentTitle}>
-                  {thread.title || 'New chat'}
-                </span>
+                <span className={styles.recentTitle}>{thread.title || 'New chat'}</span>
                 <button
                   className={styles.deleteBtn}
                   onClick={(e: React.MouseEvent) => {
@@ -215,6 +220,11 @@ const Sidebar: React.FC<SidebarProps> = ({ threads = [], activeThreadId, onSelec
           <div className={styles.userProfile}>
             <div className={styles.avatar}>M</div>
             <span className={styles.username}>User</span>
+            {onLogout && (
+              <button className={styles.logoutBtn} onClick={onLogout} title="Sign out">
+                Sign out
+              </button>
+            )}
           </div>
         </>
       )}

@@ -16,9 +16,13 @@ jest.mock('../../src/services/messageService', () => mockMessageService);
 
 import request from 'supertest';
 import express from 'express';
+import jwt from 'jsonwebtoken';
 import { authMiddleware } from '../../src/middleware/auth';
 import { errorHandler } from '../../src/middleware/errorHandler';
 import { threadRoutes } from '../../src/routes/threadRoutes';
+
+const TEST_SECRET = 'test-secret-controller';
+process.env.JWT_ACCESS_SECRET = TEST_SECRET;
 
 const app = express();
 app.use(express.json());
@@ -27,6 +31,8 @@ app.use('/api/v1', threadRoutes);
 app.use(errorHandler);
 
 const USER_ID = '00000000-0000-0000-0000-000000000001';
+const USER_EMAIL = 'dev@localhost';
+const authToken = jwt.sign({ id: USER_ID, email: USER_EMAIL }, TEST_SECRET, { expiresIn: '1h' });
 
 describe('Thread API', () => {
   beforeEach(() => jest.clearAllMocks());
@@ -38,6 +44,7 @@ describe('Thread API', () => {
 
       const res = await request(app)
         .post('/api/v1/threads')
+        .set('Authorization', `Bearer ${authToken}`)
         .send({ model: 'lama' });
 
       expect(res.status).toBe(201);
@@ -50,7 +57,10 @@ describe('Thread API', () => {
     });
 
     it('returns 400 if model is missing', async () => {
-      const res = await request(app).post('/api/v1/threads').send({});
+      const res = await request(app)
+        .post('/api/v1/threads')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({});
       expect(res.status).toBe(400);
     });
   });
@@ -60,7 +70,9 @@ describe('Thread API', () => {
       const threads = [{ id: 'tid-1', title: 'Chat 1' }];
       mockThreadService.listThreads.mockResolvedValue(threads);
 
-      const res = await request(app).get('/api/v1/threads');
+      const res = await request(app)
+        .get('/api/v1/threads')
+        .set('Authorization', `Bearer ${authToken}`);
 
       expect(res.status).toBe(200);
       expect(res.body).toEqual(threads);
@@ -69,7 +81,9 @@ describe('Thread API', () => {
     it('passes cursor and limit params', async () => {
       mockThreadService.listThreads.mockResolvedValue([]);
 
-      await request(app).get('/api/v1/threads?cursor=tid-1&limit=5');
+      await request(app)
+        .get('/api/v1/threads?cursor=tid-1&limit=5')
+        .set('Authorization', `Bearer ${authToken}`);
 
       expect(mockThreadService.listThreads).toHaveBeenCalledWith(USER_ID, 'tid-1', 5);
     });
@@ -81,7 +95,9 @@ describe('Thread API', () => {
       mockThreadService.getThreadById.mockResolvedValue(thread);
       mockMessageService.getByThread.mockResolvedValue([]);
 
-      const res = await request(app).get('/api/v1/threads/tid-1');
+      const res = await request(app)
+        .get('/api/v1/threads/tid-1')
+        .set('Authorization', `Bearer ${authToken}`);
 
       expect(res.status).toBe(200);
       expect(res.body.thread).toEqual(thread);
@@ -91,7 +107,9 @@ describe('Thread API', () => {
     it('returns 404 if thread not found', async () => {
       mockThreadService.getThreadById.mockResolvedValue(null);
 
-      const res = await request(app).get('/api/v1/threads/bad-id');
+      const res = await request(app)
+        .get('/api/v1/threads/bad-id')
+        .set('Authorization', `Bearer ${authToken}`);
       expect(res.status).toBe(404);
     });
   });
@@ -103,6 +121,7 @@ describe('Thread API', () => {
 
       const res = await request(app)
         .patch('/api/v1/threads/tid-1')
+        .set('Authorization', `Bearer ${authToken}`)
         .send({ title: 'Renamed' });
 
       expect(res.status).toBe(200);
@@ -115,7 +134,9 @@ describe('Thread API', () => {
       const deleted = { id: 'tid-1', status: 'deleted' };
       mockThreadService.softDeleteThread.mockResolvedValue(deleted);
 
-      const res = await request(app).delete('/api/v1/threads/tid-1');
+      const res = await request(app)
+        .delete('/api/v1/threads/tid-1')
+        .set('Authorization', `Bearer ${authToken}`);
 
       expect(res.status).toBe(200);
       expect(res.body.status).toBe('deleted');

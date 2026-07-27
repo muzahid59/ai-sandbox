@@ -11,7 +11,15 @@ export type {
   ErrorEvent,
 } from '@shared/types';
 
-import type { Thread, MessageCreatedEvent, DeltaEvent, DoneEvent, ErrorEvent, ToolUseStartEvent, ToolUseResultEvent } from '@shared/types';
+import type {
+  Thread,
+  MessageCreatedEvent,
+  DeltaEvent,
+  DoneEvent,
+  ErrorEvent,
+  ToolUseStartEvent,
+  ToolUseResultEvent,
+} from '@shared/types';
 
 export interface UIMessage {
   id: string;
@@ -76,4 +84,5 @@ export interface SidebarProps {
   onSelectThread: (threadId: string) => void;
   onNewChat: () => void;
   onDeleteThread: (threadId: string) => void;
+  onLogout?: () => void;
 }

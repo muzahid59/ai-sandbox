@@ -1,10 +1,16 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import './App.css';
 import ChatLayout from './components/ChatLayout/ChatLayout';
 import GoogleConnection from './components/GoogleConnection/GoogleConnection';
+import { RequireAuth } from './components/RequireAuth/RequireAuth';
+import { LoginPage } from './pages/LoginPage';
+import { RegisterPage } from './pages/RegisterPage';
 import { fetchThreads, deleteThread } from './api';
+import * as authService from './services/authService';
+import type { AuthUser } from './services/authService';
 import type { Thread } from './types';
+import { AuthExpiredError } from './services/authService';
 
 const SunIcon: React.FC = () => (
   <svg
@@ -45,9 +51,12 @@ const MoonIcon: React.FC = () => (
 );
 
 function App() {
+  const navigate = useNavigate();
   const [theme, setTheme] = useState(() => {
     return localStorage.getItem('theme') || 'light';
   });
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
   const [threads, setThreads] = useState<Thread[]>([]);
   const [googleToast, setGoogleToast] = useState<string | null>(null);
 
@@ -57,10 +66,36 @@ function App() {
   }, [theme]);
 
   useEffect(() => {
+    authService.tryRestoreSession().then((restoredUser) => {
+      setUser(restoredUser);
+      setAuthLoading(false);
+    });
+  }, []);
+
+  const handleLogin = useCallback(
+    (loggedInUser: AuthUser) => {
+      setUser(loggedInUser);
+      navigate('/');
+    },
+    [navigate]
+  );
+
+  const handleLogout = useCallback(async () => {
+    await authService.logout();
+    setUser(null);
+    setThreads([]);
+    navigate('/login');
+  }, [navigate]);
+
+  useEffect(() => {
+    if (!user) return;
     fetchThreads()
       .then((data) => setThreads(data as Thread[]))
-      .catch((err: unknown) => console.error('Failed to load threads:', err));
-  }, []);
+      .catch((err: unknown) => {
+        if (err instanceof AuthExpiredError) handleLogout();
+        else console.error('Failed to load threads:', err);
+      });
+  }, [user, handleLogout]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -77,14 +112,18 @@ function App() {
     setTheme(theme === 'light' ? 'dark' : 'light');
   };
 
-  const handleDeleteThread = useCallback(async (threadId: string) => {
-    try {
-      await deleteThread(threadId);
-      setThreads((prev) => prev.filter((t) => t.id !== threadId));
-    } catch (err) {
-      console.error('Failed to delete thread:', err);
-    }
-  }, []);
+  const handleDeleteThread = useCallback(
+    async (threadId: string) => {
+      try {
+        await deleteThread(threadId);
+        setThreads((prev) => prev.filter((t) => t.id !== threadId));
+      } catch (err) {
+        if (err instanceof AuthExpiredError) handleLogout();
+        else console.error('Failed to delete thread:', err);
+      }
+    },
+    [handleLogout]
+  );
 
   const handleThreadCreated = useCallback((thread: Thread) => {
     setThreads((prev) => [thread, ...prev]);
@@ -117,6 +156,7 @@ function App() {
     onThreadCreated: handleThreadCreated,
     onThreadUpdated: handleThreadUpdated,
     onDeleteThread: handleDeleteThread,
+    onLogout: handleLogout,
     themeToggle,
     googleConnection: <GoogleConnection />,
   };
@@ -129,10 +169,35 @@ function App() {
         </div>
       )}
       <Routes>
-        <Route path="/" element={<Navigate to="/chat/new" replace />} />
-        <Route path="/chat/new" element={<ChatLayout {...layoutProps} />} />
-        <Route path="/chat/:threadId" element={<ChatLayout {...layoutProps} />} />
-        <Route path="*" element={<Navigate to="/chat/new" replace />} />
+        <Route
+          path="/login"
+          element={
+            user && !authLoading ? <Navigate to="/" replace /> : <LoginPage onLogin={handleLogin} />
+          }
+        />
+        <Route
+          path="/register"
+          element={
+            user && !authLoading ? (
+              <Navigate to="/" replace />
+            ) : (
+              <RegisterPage onLogin={handleLogin} />
+            )
+          }
+        />
+        <Route
+          path="/*"
+          element={
+            <RequireAuth user={user} isLoading={authLoading}>
+              <Routes>
+                <Route path="/" element={<Navigate to="/chat/new" replace />} />
+                <Route path="/chat/new" element={<ChatLayout {...layoutProps} />} />
+                <Route path="/chat/:threadId" element={<ChatLayout {...layoutProps} />} />
+                <Route path="*" element={<Navigate to="/chat/new" replace />} />
+              </Routes>
+            </RequireAuth>
+          }
+        />
       </Routes>
     </div>
   );

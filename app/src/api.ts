@@ -1,4 +1,5 @@
 import type { Thread } from './types';
+import { fetchWithAuth, getAccessToken, AuthExpiredError } from './services/authService';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001';
 
@@ -19,6 +20,7 @@ interface SSECallbacks {
   onError?: (data: { message: string }) => void;
   onToolUseStart?: (data: Record<string, unknown>) => void;
   onToolUseResult?: (data: Record<string, unknown>) => void;
+  onAuthExpired?: () => void;
 }
 
 interface FetchThreadsResponse {
@@ -40,13 +42,13 @@ interface FetchThreadResponse {
 }
 
 export async function fetchThreads(): Promise<FetchThreadsResponse[]> {
-  const res = await fetch(`${API_URL}/api/v1/threads`);
+  const res = await fetchWithAuth(`${API_URL}/api/v1/threads`);
   if (!res.ok) throw new Error(`Failed to fetch threads: ${res.status}`);
   return res.json();
 }
 
 export async function createThread(model: string): Promise<Thread> {
-  const res = await fetch(`${API_URL}/api/v1/threads`, {
+  const res = await fetchWithAuth(`${API_URL}/api/v1/threads`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ model }),
@@ -56,13 +58,13 @@ export async function createThread(model: string): Promise<Thread> {
 }
 
 export async function fetchThread(threadId: string): Promise<FetchThreadResponse> {
-  const res = await fetch(`${API_URL}/api/v1/threads/${threadId}`);
+  const res = await fetchWithAuth(`${API_URL}/api/v1/threads/${threadId}`);
   if (!res.ok) throw new Error(`Failed to fetch thread: ${res.status}`);
   return res.json();
 }
 
 export async function deleteThread(threadId: string): Promise<{ success: boolean }> {
-  const res = await fetch(`${API_URL}/api/v1/threads/${threadId}`, {
+  const res = await fetchWithAuth(`${API_URL}/api/v1/threads/${threadId}`, {
     method: 'DELETE',
   });
   if (!res.ok) throw new Error(`Failed to delete thread: ${res.status}`);
@@ -70,13 +72,13 @@ export async function deleteThread(threadId: string): Promise<{ success: boolean
 }
 
 export async function getGoogleConnectionStatus(): Promise<GoogleConnectionStatus> {
-  const res = await fetch(`${API_URL}/api/v1/auth/google/status`);
+  const res = await fetchWithAuth(`${API_URL}/api/v1/auth/google/status`);
   if (!res.ok) throw new Error(`Failed to get Google connection status: ${res.status}`);
   return res.json();
 }
 
 export async function disconnectGoogle(): Promise<void> {
-  const res = await fetch(`${API_URL}/api/v1/auth/google`, { method: 'DELETE' });
+  const res = await fetchWithAuth(`${API_URL}/api/v1/auth/google`, { method: 'DELETE' });
   if (!res.ok) throw new Error(`Failed to disconnect Google: ${res.status}`);
 }
 
@@ -84,15 +86,26 @@ export async function sendMessage(
   threadId: string,
   content: ContentBlock[],
   tools: string[],
-  callbacks: SSECallbacks,
+  callbacks: SSECallbacks
 ): Promise<void> {
-  const { onCreated, onDelta, onDone, onError, onToolUseStart, onToolUseResult } = callbacks;
+  const { onCreated, onDelta, onDone, onError, onToolUseStart, onToolUseResult, onAuthExpired } =
+    callbacks;
   try {
+    const token = getAccessToken();
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+
     const res = await fetch(`${API_URL}/api/v1/threads/${threadId}/messages`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers,
+      credentials: 'include',
       body: JSON.stringify({ content, tools }),
     });
+
+    if (res.status === 401) {
+      onAuthExpired?.();
+      return;
+    }
 
     if (!res.ok) throw new Error(`Server error: ${res.status}`);
 
@@ -142,6 +155,10 @@ export async function sendMessage(
       }
     }
   } catch (error) {
+    if (error instanceof AuthExpiredError) {
+      onAuthExpired?.();
+      return;
+    }
     const msg = error instanceof Error ? error.message : 'Unknown error';
     onError?.({ message: msg });
   }

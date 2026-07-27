@@ -243,3 +243,18 @@
   color: var(--text-muted);
   padding: 8px 10px;
 }
+
+.logoutBtn {
+  margin-left: auto;
+  padding: 4px 8px;
+  font-size: 0.75rem;
+  background: none;
+  border: 1px solid var(--border-color, #ccc);
+  border-radius: 4px;
+  color: var(--text-secondary, #555);
+  cursor: pointer;
+}
+
+.logoutBtn:hover {
+  background: var(--bg-hover, #f0f0f0);
+}

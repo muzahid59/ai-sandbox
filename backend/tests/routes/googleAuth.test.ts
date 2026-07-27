@@ -1,4 +1,5 @@
 import request from 'supertest';
+import jwt from 'jsonwebtoken';
 
 jest.mock('../../src/services/googleAuthService', () => ({
   googleAuthService: {
@@ -20,6 +21,11 @@ jest.mock('../../src/config/database', () => ({
       upsert: jest.fn(),
       deleteMany: jest.fn(),
     },
+    refreshToken: {
+      create: jest.fn(),
+      findFirst: jest.fn(),
+      updateMany: jest.fn(),
+    },
   },
 }));
 
@@ -40,12 +46,19 @@ jest.mock('../../src/tools', () => ({
 
 const { googleAuthService } = require('../../src/services/googleAuthService');
 
+const TEST_SECRET = 'test-secret-google-auth';
+const USER_ID = 'user-uuid-google';
+const USER_EMAIL = 'dev@localhost';
+
 describe('Google Auth Routes', () => {
   let app: any;
+  let authToken: string;
 
   beforeAll(async () => {
     process.env.BASE_URL = 'http://localhost:3000';
     process.env.TOKEN_ENCRYPTION_KEY = 'a'.repeat(64);
+    process.env.JWT_ACCESS_SECRET = TEST_SECRET;
+    authToken = jwt.sign({ id: USER_ID, email: USER_EMAIL }, TEST_SECRET, { expiresIn: '1h' });
     const mod = await import('../../src/server');
     app = mod.app;
   });
@@ -56,7 +69,9 @@ describe('Google Auth Routes', () => {
 
   describe('GET /api/v1/auth/google', () => {
     it('redirects to Google OAuth URL', async () => {
-      const res = await request(app).get('/api/v1/auth/google');
+      const res = await request(app)
+        .get('/api/v1/auth/google')
+        .set('Authorization', `Bearer ${authToken}`);
       expect(res.status).toBe(302);
       expect(res.headers.location).toContain('accounts.google.com');
     });
@@ -65,7 +80,9 @@ describe('Google Auth Routes', () => {
       googleAuthService.buildAuthorizeUrl.mockImplementationOnce(() => {
         throw new Error('GOOGLE_CLIENT_ID missing');
       });
-      const res = await request(app).get('/api/v1/auth/google');
+      const res = await request(app)
+        .get('/api/v1/auth/google')
+        .set('Authorization', `Bearer ${authToken}`);
       expect(res.status).toBe(500);
     });
   });
@@ -111,7 +128,9 @@ describe('Google Auth Routes', () => {
         connectedAt: '2026-01-01T00:00:00.000Z',
       });
 
-      const res = await request(app).get('/api/v1/auth/google/status');
+      const res = await request(app)
+        .get('/api/v1/auth/google/status')
+        .set('Authorization', `Bearer ${authToken}`);
       expect(res.status).toBe(200);
       expect(res.body.connected).toBe(true);
       expect(res.body.email).toBe('user@gmail.com');
@@ -123,7 +142,9 @@ describe('Google Auth Routes', () => {
         authorizeUrl: 'https://accounts.google.com/o/oauth2/auth',
       });
 
-      const res = await request(app).get('/api/v1/auth/google/status');
+      const res = await request(app)
+        .get('/api/v1/auth/google/status')
+        .set('Authorization', `Bearer ${authToken}`);
       expect(res.status).toBe(200);
       expect(res.body.connected).toBe(false);
       expect(res.body.authorizeUrl).toBeDefined();
@@ -133,14 +154,18 @@ describe('Google Auth Routes', () => {
   describe('DELETE /api/v1/auth/google', () => {
     it('returns disconnected true on success', async () => {
       googleAuthService.isConnected.mockResolvedValueOnce(true);
-      const res = await request(app).delete('/api/v1/auth/google');
+      const res = await request(app)
+        .delete('/api/v1/auth/google')
+        .set('Authorization', `Bearer ${authToken}`);
       expect(res.status).toBe(200);
       expect(res.body.disconnected).toBe(true);
     });
 
     it('returns 404 when not connected', async () => {
       googleAuthService.isConnected.mockResolvedValueOnce(false);
-      const res = await request(app).delete('/api/v1/auth/google');
+      const res = await request(app)
+        .delete('/api/v1/auth/google')
+        .set('Authorization', `Bearer ${authToken}`);
       expect(res.status).toBe(404);
     });
   });

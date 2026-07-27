@@ -39,9 +39,13 @@ jest.mock('../../src/config/database', () => ({
 
 import request from 'supertest';
 import express from 'express';
+import jwt from 'jsonwebtoken';
 import { authMiddleware } from '../../src/middleware/auth';
 import { errorHandler } from '../../src/middleware/errorHandler';
 import { messageRoutes } from '../../src/routes/messageRoutes';
+
+const TEST_SECRET = 'test-secret-msg-controller';
+process.env.JWT_ACCESS_SECRET = TEST_SECRET;
 
 const app = express();
 app.use(express.json());
@@ -50,6 +54,8 @@ app.use('/api/v1', messageRoutes);
 app.use(errorHandler);
 
 const USER_ID = '00000000-0000-0000-0000-000000000001';
+const USER_EMAIL = 'dev@localhost';
+const authToken = jwt.sign({ id: USER_ID, email: USER_EMAIL }, TEST_SECRET, { expiresIn: '1h' });
 
 describe('Message API', () => {
   beforeEach(() => jest.clearAllMocks());
@@ -60,7 +66,9 @@ describe('Message API', () => {
       const msgs = [{ id: 'mid-1', role: 'user', content: [{ type: 'text', text: 'Hi' }] }];
       mockMessageService.getByThread.mockResolvedValue(msgs);
 
-      const res = await request(app).get('/api/v1/threads/tid-1/messages');
+      const res = await request(app)
+        .get('/api/v1/threads/tid-1/messages')
+        .set('Authorization', `Bearer ${authToken}`);
 
       expect(res.status).toBe(200);
       expect(res.body).toEqual(msgs);
@@ -68,7 +76,9 @@ describe('Message API', () => {
 
     it('returns 404 for unknown thread', async () => {
       mockThreadService.getThreadById.mockResolvedValue(null);
-      const res = await request(app).get('/api/v1/threads/bad/messages');
+      const res = await request(app)
+        .get('/api/v1/threads/bad/messages')
+        .set('Authorization', `Bearer ${authToken}`);
       expect(res.status).toBe(404);
     });
   });
@@ -79,6 +89,7 @@ describe('Message API', () => {
 
       const res = await request(app)
         .post('/api/v1/threads/bad/messages')
+        .set('Authorization', `Bearer ${authToken}`)
         .send({ content: [{ type: 'text', text: 'Hi' }] });
 
       expect(res.status).toBe(404);
@@ -89,6 +100,7 @@ describe('Message API', () => {
 
       const res = await request(app)
         .post('/api/v1/threads/tid-1/messages')
+        .set('Authorization', `Bearer ${authToken}`)
         .send({});
 
       expect(res.status).toBe(400);
