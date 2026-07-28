@@ -53,29 +53,35 @@ This document captures planned features, their rationale, technical approach, an
 
 ## Phase 2 — Memory & Personalization
 
-### 2.1 Persistent User Memory
+### 2.1 Persistent User Memory ✅ Done
 
 **What:** The AI can remember facts about you across threads — preferences, context, recurring tasks. Example: "My timezone is BST", "I prefer bullet-point summaries", "My manager is Sarah".
 
 **Why:** The single biggest UX gap between a generic chat app and a personal AI assistant. Stateless chat feels like talking to a stranger every time.
 
-**Technical approach:**
-- New Prisma model: `UserMemory` (id, userId, key, value, source, createdAt, updatedAt)
-- New tool: `save_memory(key, value)` — the AI calls this when it detects something worth remembering
-- New tool: `recall_memory(query)` — the AI calls this at the start of relevant conversations
-- Memory injection: append top-N memories to the system prompt on each request
-- Two storage strategies:
-  - **Explicit** — user says "remember that…"; AI calls `save_memory`
-  - **Implicit** — AI autonomously decides to save after detecting a durable fact
-- Memory management UI: view, edit, delete stored memories
-- Future upgrade path: replace key-value with vector embeddings (pgvector) for semantic search
+**What was built:**
+- `Memory` model (free-text facts, not key-value — more flexible for natural language)
+- Background extraction: a secondary AI call runs after every response to detect and save durable facts — no tool call required from the main model
+- Full injection: all memories prepended to every system prompt within a 2,000-token budget, ordered by recency
+- Duplicate detection via Jaccard similarity (pure JS, no library) to avoid storing near-identical facts
+- Memory CRUD API + Memory Manager UI
+- `UserPreferences` model: custom instructions, default model, display name
 
-**Files touched:**
-- `backend/src/tools/saveMemory.ts` — new tool
-- `backend/src/tools/recallMemory.ts` — new tool
-- `backend/src/services/memoryService.ts` — new service
-- `backend/src/prompts/default.ts` — inject memories into system prompt
-- `backend/prisma/schema.prisma` — UserMemory model
+**What this teaches:**
+- Why tool-based memory (`save_memory` / `recall_memory`) is unreliable — the AI has to decide to call it, which is inconsistent. Background extraction is more robust.
+- System prompt engineering: how injected context shapes AI behaviour without the user seeing it
+- Token budgeting: you can't inject unlimited context — recency-ordered trimming is the simplest strategy
+
+**The scaling problem — and what comes next (§2.2):**
+
+Full injection works fine at up to ~50 memories. Beyond that, two problems emerge:
+
+1. **Cost**: every message pays for the full memory block in input tokens, even if most memories are irrelevant to the current question. At scale, providers charge per token — this adds up.
+2. **Quality**: injecting 200 memories dilutes attention. The AI may ignore older or less relevant facts.
+
+The production solution is **semantic retrieval**: instead of injecting everything, embed the user's current message as a vector, then fetch only the top-5 most similar memories from the database. The pgvector infrastructure for this is built in §2.2 (for documents) — once it exists, upgrading memory injection is a small change: swap `findMany` for a vector similarity query.
+
+**Prompt caching** is the other lever: providers (Anthropic, OpenAI, Google) cache the stable prefix of the system prompt at ~10% of normal token cost. A memory block that hasn't changed between messages is served from cache — so the marginal cost of large system prompts drops significantly in production.
 
 ---
 
@@ -287,11 +293,13 @@ This document captures planned features, their rationale, technical approach, an
 ## Sequencing Summary
 
 ```
-Phase 1: Real Auth
+Phase 1: Real Auth ✅
     │
-    ├── Phase 2.1: Persistent Memory
-    ├── Phase 2.2: RAG / Documents
-    │
+    ├── Phase 2.1: Persistent Memory ✅
+    │       │
+    │       └── Phase 2.2: RAG / Documents  ← shares pgvector infra;
+    │                                          completing this upgrades 2.1
+    │                                          from full injection → semantic retrieval
     └── Phase 3.1: Approval Workflow
             │
             ├── Phase 3.2: Scheduled Tasks
@@ -309,6 +317,8 @@ Phase 1: Real Auth
 
 Phase 1 is the hard dependency. Phases 2, 3, 4, 5 can be worked in parallel once Phase 1 is done — the sequencing within each phase is what matters.
 
+Note on §2.1 → §2.2: these two phases look independent but share infrastructure. §2.2 introduces pgvector (vector embeddings in Postgres). Once that exists, the memory injection in §2.1 can be upgraded from "inject everything" to "embed the user's message and fetch only the most relevant memories" — a much more scalable pattern. Build §2.2 with that upgrade in mind.
+
 ---
 
 ## What Each Phase Teaches
@@ -316,7 +326,7 @@ Phase 1 is the hard dependency. Phases 2, 3, 4, 5 can be worked in parallel once
 | Phase | Core learning |
 |---|---|
 | 1 — Auth | JWT lifecycle, token rotation, secure cookie patterns |
-| 2.1 — Memory | Stateful AI, system prompt engineering, key-value vs vector storage |
+| 2.1 — Memory | Stateful AI, system prompt engineering, background extraction vs tool-based recall, token budgeting, duplicate detection |
 | 2.2 — RAG | Embeddings, chunking, pgvector, retrieval patterns |
 | 3.1 — Approval | Human-in-the-loop agentic design, async state machines |
 | 3.2 — Scheduling | Background job queues, pg-boss, proactive AI agents |
