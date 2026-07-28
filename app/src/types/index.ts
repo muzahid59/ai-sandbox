@@ -51,6 +51,7 @@ export interface ChatContainerProps {
   threadId: string | undefined;
   onThreadCreated?: (thread: Thread) => void;
   onThreadUpdated?: (threadId: string) => void;
+  onMessageComplete?: () => void;
 }
 
 export interface ChatInputProps {
@@ -85,4 +86,7 @@ export interface SidebarProps {
   onNewChat: () => void;
   onDeleteThread: (threadId: string) => void;
   onLogout?: () => void;
+  onOpenMemories?: () => void;
+  onOpenSettings?: () => void;
+  displayName?: string | null;
 }

@@ -6,6 +6,7 @@ import { ContentBlockParam } from '../types/content';
 import { ToolExecutionContext } from '../types/context';
 import { contextService } from './contextService';
 import { getSystemPrompt } from '../prompts';
+import { buildMemorySystemPrompt } from './memoryService';
 import logger from '../config/logger';
 
 const log = logger.child({ service: 'chat' });
@@ -50,7 +51,9 @@ export async function processMessage(
   const hasTools = tools.length > 0;
   const useToolPrompt = supportsTools && hasTools;
 
-  const systemPrompt = getSystemPrompt({ supportsTools: useToolPrompt });
+  const baseSystemPrompt = getSystemPrompt({ supportsTools: useToolPrompt });
+  const memoryBlock = await buildMemorySystemPrompt(userId ?? '');
+  const systemPrompt = memoryBlock ? `${memoryBlock}\n${baseSystemPrompt}` : baseSystemPrompt;
   messages.unshift({ role: 'system', content: systemPrompt });
 
   log.debug({

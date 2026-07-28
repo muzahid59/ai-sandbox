@@ -1,14 +1,24 @@
 import { Request, Response } from 'express';
 import { createThread, listThreads, getThreadById, updateThread, softDeleteThread } from '../services/threadService';
 import { getByThread } from '../services/messageService';
+import { getPreferences } from '../services/preferencesService';
 import { BadRequestError, NotFoundError } from '../errors';
 import logger from '../config/logger';
 
 export async function handleCreateThread(req: Request, res: Response) {
   const start = Date.now();
   const log = (req.log || logger).child({ operation: 'createThread' });
-  const { model, title, system_prompt } = req.body;
-  if (!model) throw new BadRequestError('model is required');
+  const { model: requestedModel, title, system_prompt } = req.body;
+
+  let model = requestedModel;
+  if (!model) {
+    try {
+      const prefs = await getPreferences(req.user!.id);
+      model = prefs.defaultModel ?? 'openai';
+    } catch {
+      model = 'openai';
+    }
+  }
 
   const thread = await createThread(req.user!.id, { model, title, systemPrompt: system_prompt });
   log.info({ threadId: thread.id, model, durationMs: Date.now() - start }, 'Thread created');

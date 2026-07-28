@@ -6,11 +6,16 @@ import GoogleConnection from './components/GoogleConnection/GoogleConnection';
 import { RequireAuth } from './components/RequireAuth/RequireAuth';
 import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
+import MemoryManager from './components/MemoryManager/MemoryManager';
+import SettingsPanel from './components/SettingsPanel/SettingsPanel';
 import { fetchThreads, deleteThread } from './api';
 import * as authService from './services/authService';
 import type { AuthUser } from './services/authService';
 import type { Thread } from './types';
+import type { UserPreferences } from '@shared/types';
 import { AuthExpiredError } from './services/authService';
+
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001';
 
 const SunIcon: React.FC = () => (
   <svg
@@ -59,6 +64,10 @@ function App() {
   const [authLoading, setAuthLoading] = useState(true);
   const [threads, setThreads] = useState<Thread[]>([]);
   const [googleToast, setGoogleToast] = useState<string | null>(null);
+  const [memoriesVersion, setMemoriesVersion] = useState(0);
+  const [showMemories, setShowMemories] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [preferences, setPreferences] = useState<UserPreferences | null>(null);
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
@@ -66,9 +75,17 @@ function App() {
   }, [theme]);
 
   useEffect(() => {
-    authService.tryRestoreSession().then((restoredUser) => {
+    authService.tryRestoreSession().then(async (restoredUser) => {
       setUser(restoredUser);
       setAuthLoading(false);
+      if (restoredUser) {
+        try {
+          const res = await authService.fetchWithAuth(`${API_URL}/api/v1/preferences`);
+          if (res.ok) setPreferences(await res.json());
+        } catch {
+          // preferences load failure is non-critical
+        }
+      }
     });
   }, []);
 
@@ -159,6 +176,10 @@ function App() {
     onLogout: handleLogout,
     themeToggle,
     googleConnection: <GoogleConnection />,
+    onOpenMemories: () => setShowMemories(true),
+    onOpenSettings: () => setShowSettings(true),
+    onMessageComplete: () => setMemoriesVersion((v) => v + 1),
+    displayName: preferences?.displayName ?? null,
   };
 
   return (
@@ -167,6 +188,16 @@ function App() {
         <div className="googleToast" role="status">
           {googleToast}
         </div>
+      )}
+      {showMemories && (
+        <MemoryManager version={memoriesVersion} onClose={() => setShowMemories(false)} />
+      )}
+      {showSettings && (
+        <SettingsPanel
+          onClose={() => setShowSettings(false)}
+          initialPreferences={preferences}
+          onPreferencesChange={setPreferences}
+        />
       )}
       <Routes>
         <Route

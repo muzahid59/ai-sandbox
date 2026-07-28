@@ -15,6 +15,7 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
   threadId,
   onThreadCreated,
   onThreadUpdated,
+  onMessageComplete,
 }) => {
   const navigate = useNavigate();
   const [inputValue, setInputValue] = useState('');
@@ -192,6 +193,7 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
             setMessages((prev) => prev.map((m) => (!m.sent && !m.done ? { ...m, done: true } : m)));
             setIsLoading(false);
             onThreadUpdated?.(currentThreadId!);
+            onMessageComplete?.();
           },
           onError: (data) => {
             setMessages((prev) =>

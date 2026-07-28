@@ -176,13 +176,17 @@
   flex-shrink: 0;
 }
 
+.userActions {
+  padding: 4px 0;
+  border-top: 1px solid var(--divider);
+}
+
 .userProfile {
   display: flex;
   align-items: center;
   gap: 8px;
   padding: 12px 14px;
   border-top: 1px solid var(--divider);
-  margin-top: auto;
 }
 
 .avatar {

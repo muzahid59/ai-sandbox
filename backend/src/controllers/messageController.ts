@@ -7,6 +7,7 @@ import { SSEWriter } from '../sse/sseWriter';
 import { extractTextContent } from '../providers/utils';
 import { ContentBlockParam } from '../types/content';
 import { BadRequestError, NotFoundError } from '../errors';
+import { extractAndSaveMemories } from '../services/memoryExtractionService';
 import logger from '../config/logger';
 import prisma from '../config/database';
 
@@ -67,6 +68,14 @@ export async function handleSendMessage(req: Request, res: Response) {
     log.info({ durationMs: Date.now() - start, toolCallCount: result.toolCallCount }, 'Message completed');
     writer.sendMessageStop('end_turn', result.toolCallCount);
     writer.end();
+
+    (async () => {
+      try {
+        await extractAndSaveMemories(req.user!.id, thread.id, thread.model, userText, result.text);
+      } catch (err) {
+        log.warn({ err }, 'Memory extraction failed');
+      }
+    })();
   } catch (error: any) {
     log.error({ err: error }, 'Message handling failed');
     await updateMessageStatus(assistantMessage.id, 'error').catch(() => {});

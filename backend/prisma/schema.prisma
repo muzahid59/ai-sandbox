@@ -14,6 +14,11 @@ enum ThreadStatus {
   deleted
 }
 
+enum MemorySource {
+  manual
+  extracted
+}
+
 enum MessageRole {
   user
   assistant
@@ -29,17 +34,18 @@ enum MessageStatus {
 }
 
 model Thread {
-  id           String       @id @default(uuid())
-  userId       String       @map("user_id")
-  title        String?
-  model        String
-  systemPrompt String?      @map("system_prompt")
-  tokenCount   Int          @default(0) @map("token_count")
-  status       ThreadStatus @default(active)
-  metadata     Json?
-  createdAt    DateTime     @default(now()) @map("created_at")
-  updatedAt    DateTime     @updatedAt @map("updated_at")
-  messages     Message[]
+  id                String       @id @default(uuid())
+  userId            String       @map("user_id")
+  title             String?
+  model             String
+  systemPrompt      String?      @map("system_prompt")
+  tokenCount        Int          @default(0) @map("token_count")
+  status            ThreadStatus @default(active)
+  metadata          Json?
+  createdAt         DateTime     @default(now()) @map("created_at")
+  updatedAt         DateTime     @updatedAt @map("updated_at")
+  messages          Message[]
+  extractedMemories Memory[]     @relation("MemorySourceThread")
 
   @@index([userId])
   @@index([createdAt(sort: Desc)])
@@ -96,8 +102,37 @@ model User {
   updatedAt        DateTime          @updatedAt @map("updated_at")
   googleOAuthToken GoogleOAuthToken?
   refreshTokens    RefreshToken[]
+  memories         Memory[]
+  preferences      UserPreferences?
 
   @@map("users")
+}
+
+model Memory {
+  id             String       @id @default(uuid())
+  userId         String       @map("user_id")
+  content        String       @db.VarChar(500)
+  source         MemorySource
+  sourceThreadId String?      @map("source_thread_id")
+  createdAt      DateTime     @default(now()) @map("created_at")
+  updatedAt      DateTime     @updatedAt @map("updated_at")
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sourceThread   Thread?      @relation("MemorySourceThread", fields: [sourceThreadId], references: [id], onDelete: SetNull)
+
+  @@index([userId, updatedAt(sort: Desc)])
+  @@map("memories")
+}
+
+model UserPreferences {
+  id                 String   @id @default(uuid())
+  userId             String   @unique @map("user_id")
+  defaultModel       String?  @map("default_model")
+  customInstructions String?  @db.VarChar(2000) @map("custom_instructions")
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_preferences")
 }
 
 model RefreshToken {

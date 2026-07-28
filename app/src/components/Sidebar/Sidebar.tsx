@@ -120,6 +120,9 @@ const Sidebar: React.FC<SidebarProps> = ({
   onNewChat,
   onDeleteThread,
   onLogout,
+  onOpenMemories,
+  onOpenSettings,
+  displayName,
 }) => {
   const [collapsed, setCollapsed] = useState(false);
 
@@ -217,9 +220,24 @@ const Sidebar: React.FC<SidebarProps> = ({
             )}
           </div>
 
+          <div className={styles.userActions}>
+            {onOpenMemories && (
+              <button className={styles.navItem} onClick={onOpenMemories}>
+                <span className={styles.navIcon}>&#128161;</span>
+                Memories
+              </button>
+            )}
+            {onOpenSettings && (
+              <button className={styles.navItem} onClick={onOpenSettings}>
+                <span className={styles.navIcon}>&#9881;</span>
+                Settings
+              </button>
+            )}
+          </div>
+
           <div className={styles.userProfile}>
-            <div className={styles.avatar}>M</div>
-            <span className={styles.username}>User</span>
+            <div className={styles.avatar}>{displayName ? displayName[0].toUpperCase() : 'U'}</div>
+            <span className={styles.username}>{displayName || 'User'}</span>
             {onLogout && (
               <button className={styles.logoutBtn} onClick={onLogout} title="Sign out">
                 Sign out

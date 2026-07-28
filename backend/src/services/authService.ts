@@ -14,6 +14,19 @@ function getSecret(): string {
   return s;
 }
 
+export async function register(email: string, password: string) {
+  const hash = await bcrypt.hash(password, 12);
+  const user = await prisma.user.create({
+    data: {
+      email,
+      passwordHash: hash,
+      preferences: { create: {} },
+    },
+  });
+  log.debug({ userId: user.id }, 'User registered');
+  return user;
+}
+
 export async function hashPassword(password: string): Promise<string> {
   return bcrypt.hash(password, 12);
 }

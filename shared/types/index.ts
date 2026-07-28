@@ -21,3 +21,5 @@ export type {
   DoneEvent,
   ErrorEvent,
 } from './events';
+
+export type { Memory, MemorySource, UserPreferences } from './memory';

@@ -14,6 +14,12 @@ const mockMessageService = {
 
 jest.mock('../../src/services/messageService', () => mockMessageService);
 
+const mockPreferencesService = {
+  getPreferences: jest.fn(),
+};
+
+jest.mock('../../src/services/preferencesService', () => mockPreferencesService);
+
 import request from 'supertest';
 import express from 'express';
 import jwt from 'jsonwebtoken';
@@ -56,12 +62,32 @@ describe('Thread API', () => {
       });
     });
 
-    it('returns 400 if model is missing', async () => {
+    it('uses preferences defaultModel when model is absent', async () => {
+      mockPreferencesService.getPreferences.mockResolvedValue({ defaultModel: 'google', displayName: null });
+      const thread = { id: 'tid-2', userId: USER_ID, model: 'google', title: null };
+      mockThreadService.createThread.mockResolvedValue(thread);
+
       const res = await request(app)
         .post('/api/v1/threads')
         .set('Authorization', `Bearer ${authToken}`)
         .send({});
-      expect(res.status).toBe(400);
+
+      expect(res.status).toBe(201);
+      expect(mockThreadService.createThread).toHaveBeenCalledWith(USER_ID, expect.objectContaining({ model: 'google' }));
+    });
+
+    it('falls back to openai when model is absent and defaultModel is null', async () => {
+      mockPreferencesService.getPreferences.mockResolvedValue({ defaultModel: null, displayName: null });
+      const thread = { id: 'tid-3', userId: USER_ID, model: 'openai', title: null };
+      mockThreadService.createThread.mockResolvedValue(thread);
+
+      const res = await request(app)
+        .post('/api/v1/threads')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({});
+
+      expect(res.status).toBe(201);
+      expect(mockThreadService.createThread).toHaveBeenCalledWith(USER_ID, expect.objectContaining({ model: 'openai' }));
     });
   });
 
