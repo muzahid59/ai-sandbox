@@ -32,7 +32,10 @@ describe('LoginPage', () => {
   it('submit button is disabled while form is submitting', async () => {
     let resolveLogin: (value: any) => void;
     mockLogin.mockImplementationOnce(
-      () => new Promise((res) => { resolveLogin = res; })
+      () =>
+        new Promise((res) => {
+          resolveLogin = res;
+        })
     );
 
     renderLoginPage();

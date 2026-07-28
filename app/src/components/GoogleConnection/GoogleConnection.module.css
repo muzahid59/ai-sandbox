@@ -48,7 +48,9 @@
   background: transparent;
   cursor: pointer;
   color: var(--text-secondary, #555);
-  transition: background 0.15s, border-color 0.15s;
+  transition:
+    background 0.15s,
+    border-color 0.15s;
 }
 
 .disconnectButton:hover:not(:disabled) {
@@ -73,7 +75,9 @@
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .errorText {

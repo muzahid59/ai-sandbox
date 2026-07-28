@@ -153,10 +153,7 @@ describe('fetchWithAuth', () => {
       .mockResolvedValueOnce({ status: 200, ok: true })
       .mockResolvedValueOnce({ status: 200, ok: true });
 
-    await Promise.all([
-      fetchWithAuth('http://api/a'),
-      fetchWithAuth('http://api/b'),
-    ]);
+    await Promise.all([fetchWithAuth('http://api/a'), fetchWithAuth('http://api/b')]);
 
     const refreshCalls = mockFetch.mock.calls.filter((c) =>
       (c[0] as string).includes('/auth/refresh')

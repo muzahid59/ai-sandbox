@@ -32,7 +32,10 @@ describe('RegisterPage', () => {
   it('submit button is disabled while form is submitting', async () => {
     let resolveRegister: (value: any) => void;
     mockRegister.mockImplementationOnce(
-      () => new Promise((res) => { resolveRegister = res; })
+      () =>
+        new Promise((res) => {
+          resolveRegister = res;
+        })
     );
 
     renderRegisterPage();
