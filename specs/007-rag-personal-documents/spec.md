@@ -116,21 +116,26 @@ The assistant's knowledge is limited to its training data and live web searches.
 **FR-5**: Users can delete individual documents from a thread at any time; deletion removes them from search results immediately. All documents in a thread are deleted automatically when the thread is deleted. When a user account is deleted, all threads and their documents are deleted.
 **FR-6**: Uploads are rejected with a descriptive error if the file exceeds 20 MB or is an unsupported format.
 **FR-6c**: If an uploaded filename matches an existing document already in the current thread, a confirmation prompt is shown ("A document with this name already exists in this conversation. Upload anyway?"). The user may proceed or cancel; both copies are retained if they proceed.
+**FR-6d**: If an uploaded file's content fingerprint matches an existing document in the current thread (regardless of filename), a non-blocking notice is shown ("This content matches an existing document: [name]"). The upload proceeds without requiring confirmation.
 
 ### Document Processing
 
 **FR-7**: Uploaded documents are processed asynchronously — the user receives confirmation of upload before processing completes.  
 **FR-8**: Processed documents are split into overlapping segments to preserve context across chunk boundaries.  
-**FR-9**: Each segment is indexed for semantic similarity search so that queries can retrieve the most relevant passages.  
-**FR-10**: Processing status is visible to the user (e.g., "Indexing…", "Ready", "Failed"). Raw file bytes are discarded immediately after text extraction — only the indexed chunks are persisted. If the embedding API errors during indexing, the system retries up to 3 times with backoff before marking the document "Failed". When "Failed", the error message is specific to the cause: "This PDF is password-protected and cannot be read", "This file appears to be corrupt", or "Indexing service unavailable — please re-upload shortly". No retry from stored data is possible.
+**FR-9**: Each segment is indexed for semantic similarity search so that queries can retrieve the most relevant passages. The retrieval pipeline uses both semantic (vector) and keyword search, merging and re-ranking results to maximise relevance before passing them to the assistant.  
+**FR-10**: Processing status is visible to the user and progresses through granular stages: "Extracting…", "Chunking…", "Embedding…", and finally "Ready". If processing fails, the status reflects the stage that failed (e.g., "Extraction Failed", "Embedding Failed") so the user and support can identify the cause at a glance. Raw file bytes are discarded immediately after text extraction — only the indexed chunks are persisted. If the embedding step errors, the system retries up to 3 times with backoff before marking the document failed. When failed, the error message is specific to the cause: "This PDF is password-protected and cannot be read", "This file appears to be corrupt", or "Indexing service unavailable — please re-upload shortly". A document may also be cancelled by the user during processing — the user clicks a cancel button on the document's status badge in the thread panel, which removes the document and any partial data entirely (as if it was never uploaded). No retry from stored data is possible.
 
 ### Retrieval & Assistant Integration
 
-**FR-11**: When a user sends a message, the assistant automatically searches documents attached to the current thread for relevant passages — no explicit user command is needed. Only documents in "Ready" status are searched; documents still indexing are excluded silently (the status badge in the thread panel is the signal to the user).
+**FR-11**: When a user sends a message, the assistant automatically searches documents attached to the current thread for relevant passages — no explicit user command is needed. Only documents in "Ready" status are searched; documents still indexing are excluded silently (the status badge in the thread panel is the signal to the user). Retrieval returns up to 10 chunks per query, ranked by relevance, to balance context coverage against token cost.
 **FR-12**: The retrieved passages and their source documents are provided to the assistant as context for the response.
 **FR-13**: The assistant's response includes attribution — it names which document(s) it drew from.
 **FR-14**: If no relevant passages are found, the assistant answers from general knowledge without fabricating document content.
 **FR-15**: Document search is constrained to documents in the current thread only — no cross-thread retrieval.
+
+### Observability
+
+**FR-16**: The system tracks key performance indicators for each stage of the document lifecycle — upload duration, text extraction duration, embedding duration, retrieval latency, number of chunks retrieved per query, and embedding failures. These metrics are available for monitoring and troubleshooting without requiring direct database inspection.
 
 ---
 
@@ -142,6 +147,8 @@ The assistant's knowledge is limited to its training data and live web searches.
 4. **No cross-user or cross-thread leakage**: Zero cases where a user can retrieve passages from another user's documents, or from their own documents in a different thread (verified via automated test suite).
 5. **Graceful degradation**: When no relevant documents exist, the assistant answers normally — zero cases of fabricated document citations verified in the test suite.
 6. **Attribution present**: 100% of responses that use document content include a named source reference.
+7. **Operational visibility**: Key processing and retrieval metrics (upload, extraction, embedding, and query latency; chunk counts; failure rates) are captured and available for monitoring from day one.
+8. **Query-time responsiveness**: When a user sends a message in a thread with documents, the full response (retrieval + generation) begins streaming within 3 seconds.
 
 ---
 
@@ -149,8 +156,8 @@ The assistant's knowledge is limited to its training data and live web searches.
 
 | Entity | Description |
 |--------|-------------|
-| **Document** | A file or URL uploaded within a thread. Has a title, source type (file/URL), status, and upload metadata. Belongs to one thread; deleted when the thread is deleted. |
-| **DocumentChunk** | A segment of a Document's text content, with its position in the original document. Carries a semantic embedding used for similarity search. Deleted when its parent Document is deleted. |
+| **Document** | A file or URL uploaded within a thread. Has a title, source type (file/URL), status, content fingerprint (SHA-256 hash of the raw content), and upload metadata. The fingerprint enables the system to detect when identical content is uploaded again. Belongs to one thread; deleted when the thread is deleted. |
+| **DocumentChunk** | A segment of a Document's text content, with its position in the original document. Carries a semantic embedding used for similarity search and records which embedding model version produced it — enabling future model upgrades without re-processing all existing chunks at once. Deleted when its parent Document is deleted. |
 | **Thread** | The conversation container. Owns Documents; deleting a Thread cascades to all its Documents and chunks. Already exists from prior phases. |
 | **User** | The authenticated owner of Threads (and therefore Documents, transitively). Already exists from Phase 1. |
 
@@ -174,10 +181,21 @@ The assistant's knowledge is limited to its training data and live web searches.
 6. Chunk size defaults to approximately 500 tokens with a 50-token overlap — a widely used starting point that can be tuned later.
 7. All documents are thread-scoped. There is no persistent user-level document library. Deleting a thread deletes all its documents.
 8. Once pgvector infrastructure exists, it can also be used to upgrade the memory injection in Phase 2.1 from full injection to semantic retrieval — this is an explicit secondary benefit of this feature.
+9. Retrieval combines semantic (vector) similarity and keyword search — a hybrid approach — followed by a re-ranking step to maximise relevance before the results reach the assistant. The exact ranking weights can be tuned after launch.
+10. Each document's raw content is fingerprinted with a SHA-256 hash at upload time. The fingerprint is informational (e.g., surfacing "you've uploaded this before") and does not block duplicate uploads.
+11. Each document chunk records the embedding model version that produced its vector. This allows a future model upgrade to proceed incrementally rather than requiring a bulk re-embed of all existing chunks.
+12. Observability data is captured via the existing structured logging infrastructure and does not require a separate metrics backend in this phase.
 
 ---
 
 ## Clarifications
+
+### Session 2026-07-30
+
+- Q: Should there be a query-time performance target for retrieval + response generation? → A: Yes — users should see document-informed answers within 3 seconds of sending a message (end-to-end, including retrieval and LLM generation start).
+- Q: How many chunks should retrieval return per query? → A: Up to 10 chunks per query, ranked by relevance — balances multi-document synthesis against token cost.
+- Q: How does processing cancellation work? → A: Cancel button on the document's status badge; clicking it removes the document and any partial data entirely (as if never uploaded).
+- Q: Should the SHA-256 content fingerprint trigger a duplicate warning when the same content is uploaded under a different filename? → A: Show a non-blocking informational notice ("This content matches an existing document: [name]") — upload proceeds without confirmation.
 
 ### Session 2026-07-29 (continued)
 
