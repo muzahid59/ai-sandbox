@@ -33,6 +33,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
   onModelChange,
   selectedTools,
   onToolsChange,
+  documentUpload,
 }) => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const toolModalRef = useRef<HTMLDivElement>(null);
@@ -106,14 +107,16 @@ const ChatInput: React.FC<ChatInputProps> = ({
           style={{ display: 'none' }}
         />
         <div className={styles.toolbar}>
-          <button
-            type="button"
-            className={`${styles.toolBtn} ${imageData ? styles.attached : ''}`}
-            onClick={() => fileInputRef.current?.click()}
-            title="Attach image"
-          >
-            +
-          </button>
+          {documentUpload || (
+            <button
+              type="button"
+              className={`${styles.toolBtn} ${imageData ? styles.attached : ''}`}
+              onClick={() => fileInputRef.current?.click()}
+              title="Attach image"
+            >
+              +
+            </button>
+          )}
           <select
             value={selectedModel}
             onChange={(e) => onModelChange(e.target.value)}

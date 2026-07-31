@@ -78,6 +78,7 @@ export interface ChatInputProps {
   onModelChange: (model: string) => void;
   selectedTools: string[];
   onToolsChange: (tools: string[]) => void;
+  documentUpload?: React.ReactNode;
 }
 
 export interface MessageBubbleProps {

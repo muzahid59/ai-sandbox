@@ -1,17 +1,3 @@
-.wrapper {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  position: relative;
-}
-
-.dragOver {
-  border: 2px dashed var(--accent-warm, #e07a5f);
-  background-color: rgba(224, 122, 95, 0.08);
-  border-radius: 8px;
-  padding: 4px;
-}
-
 .hiddenInput {
   position: absolute;
   width: 1px;
@@ -22,10 +8,15 @@
   border: 0;
 }
 
-.uploadBtn {
+/* "+" button */
+.menuAnchor {
+  position: relative;
+}
+
+.plusBtn {
   background: none;
   border: 1px solid var(--input-border);
-  border-radius: 6px;
+  border-radius: 50%;
   width: 28px;
   height: 28px;
   color: var(--text-300);
@@ -33,102 +24,196 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 13px;
+  font-size: 18px;
   padding: 0;
-  transition:
-    background-color 0.15s ease,
-    opacity 0.15s ease;
+  transition: background-color 0.15s ease;
 }
 
-.uploadBtn:hover {
+.plusBtn:hover {
   background-color: var(--button-hover);
 }
 
-.uploadBtn:focus-visible {
+.plusBtn:focus-visible {
   outline: 2px solid var(--input-border-focus);
   outline-offset: 1px;
 }
 
-.uploadBtn:disabled {
-  cursor: not-allowed;
-}
-
-.uploadBtn.uploading {
-  opacity: 0.5;
-  width: auto;
-  padding: 0 8px;
-}
-
-.loadingText {
-  font-size: 11px;
-  font-family: var(--font-sans);
-  color: var(--text-muted);
-  white-space: nowrap;
-}
-
-.urlToggleBtn {
-  composes: uploadBtn;
-}
-
-.urlRow {
-  display: flex;
-  gap: 4px;
-  align-items: center;
-}
-
-.urlInput {
-  font-size: 12px;
-  font-family: var(--font-sans);
-  padding: 4px 8px;
-  border: 1px solid var(--input-border);
-  border-radius: 6px;
-  background: var(--bg-200, #1a1a1a);
-  color: var(--text-100);
-  width: 200px;
-}
-
-.urlInput:focus {
-  outline: 2px solid var(--input-border-focus);
-  outline-offset: 1px;
-}
-
-.urlSubmitBtn {
-  font-size: 12px;
-  padding: 4px 10px;
-  border: 1px solid var(--input-border);
-  border-radius: 6px;
-  background: none;
-  color: var(--text-300);
-  cursor: pointer;
-}
-
-.urlSubmitBtn:hover {
-  background-color: var(--button-hover);
-}
-
-.urlSubmitBtn:disabled {
+.plusBtn:disabled {
   opacity: 0.4;
   cursor: not-allowed;
 }
 
-.confirmOverlay {
+/* Dropdown menu */
+.menu {
   position: absolute;
-  bottom: 100%;
+  bottom: calc(100% + 8px);
   left: 0;
-  background: var(--bg-200, #1a1a1a);
-  border: 1px solid var(--divider, #333);
+  background: var(--bg-100);
+  border: 1px solid var(--input-border);
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  min-width: 200px;
+  z-index: 100;
+  padding: 4px 0;
+}
+
+.menuItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  background: none;
+  border: none;
+  padding: 10px 16px;
+  color: var(--text-100);
+  font-size: 14px;
+  font-family: var(--font-sans);
+  cursor: pointer;
+  transition: background-color 0.12s ease;
+}
+
+.menuItem:hover {
+  background-color: var(--button-hover);
+}
+
+.menuItem svg {
+  color: var(--text-300);
+  flex-shrink: 0;
+}
+
+/* URL input inside menu */
+.urlRow {
+  display: flex;
+  gap: 6px;
+  padding: 6px 12px 10px;
+  border-top: 1px solid var(--divider, rgba(255,255,255,0.06));
+}
+
+.urlInput {
+  flex: 1;
+  font-size: 13px;
+  font-family: var(--font-sans);
+  padding: 6px 10px;
+  border: 1px solid var(--input-border);
   border-radius: 8px;
-  padding: 12px;
+  background: var(--input-bg, transparent);
+  color: var(--text-100);
+  outline: none;
+}
+
+.urlInput:focus {
+  border-color: var(--input-border-focus);
+}
+
+.urlGo {
+  font-size: 13px;
+  padding: 6px 12px;
+  border: 1px solid var(--input-border);
+  border-radius: 8px;
+  background: none;
+  color: var(--text-200);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.urlGo:hover {
+  background-color: var(--button-hover);
+}
+
+.urlGo:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+/* File preview card (above textarea) */
+.filePreview {
+  padding: 0 0 8px;
+}
+
+.fileCard {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--bg-200, rgba(255,255,255,0.04));
+  border: 1px solid var(--input-border);
+  border-radius: 12px;
+  padding: 10px 14px;
+  max-width: 280px;
+}
+
+.fileBadge {
+  background: var(--accent-warm, #e07a5f);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  font-family: var(--font-sans);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+
+.fileInfo {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.fileName {
   font-size: 13px;
   font-family: var(--font-sans);
   color: var(--text-100);
-  min-width: 260px;
-  z-index: 10;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.fileSize {
+  font-size: 11px;
+  color: var(--text-muted, #888);
+  font-family: var(--font-sans);
+}
+
+.fileRemove {
+  background: none;
+  border: none;
+  color: var(--text-300);
+  font-size: 18px;
+  cursor: pointer;
+  padding: 0 2px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.fileRemove:hover {
+  color: var(--text-100);
+}
+
+.fileLoader {
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--input-border);
+  border-top-color: var(--text-100);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  flex-shrink: 0;
+}
+
+/* Duplicate confirmation */
+.confirmOverlay {
+  background: var(--bg-200, rgba(30,30,30,0.95));
+  border: 1px solid var(--divider, #333);
+  border-radius: 12px;
+  padding: 14px 16px;
+  font-size: 13px;
+  font-family: var(--font-sans);
+  color: var(--text-100);
+  margin-bottom: 8px;
 }
 
 .confirmOverlay p {
-  margin: 0 0 8px;
+  margin: 0 0 10px;
 }
 
 .confirmActions {
@@ -139,9 +224,9 @@
 
 .confirmActions button {
   font-size: 12px;
-  padding: 4px 12px;
+  padding: 5px 14px;
   border: 1px solid var(--input-border);
-  border-radius: 6px;
+  border-radius: 8px;
   background: none;
   color: var(--text-200);
   cursor: pointer;
@@ -153,20 +238,19 @@
   border-color: transparent;
 }
 
+/* Status messages */
 .errorText {
   font-size: 11px;
   color: #dc2626;
-  white-space: nowrap;
-  max-width: 200px;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  padding-top: 4px;
 }
 
 .noticeText {
   font-size: 11px;
   color: var(--text-muted, #888);
-  white-space: nowrap;
-  max-width: 260px;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  padding-top: 4px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }

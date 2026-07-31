@@ -58,8 +58,3 @@
   margin: 0;
 }
 
-.inputRow {
-  display: flex;
-  align-items: flex-end;
-  gap: 8px;
-}

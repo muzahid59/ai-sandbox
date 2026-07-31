@@ -328,12 +328,9 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
       ) : (
         <>
           <MessageList messages={messages} />
-          <div className={styles.inputRow}>
-            <ChatInput {...inputProps} />
-            {threadId && (
-              <DocumentUpload threadId={threadId} onUploadComplete={refreshDocuments} />
-            )}
-          </div>
+          <ChatInput {...inputProps}
+            documentUpload={threadId ? <DocumentUpload threadId={threadId} onUploadComplete={refreshDocuments} /> : undefined}
+          />
         </>
       )}
       {threadId && documents.length > 0 && (
