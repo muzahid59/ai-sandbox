@@ -13,14 +13,17 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
       className={`${styles['message-container']} ${message.sent ? styles.sent : styles.received} ${message.isError ? styles.error : ''}`}
     >
       {message.sent && message.attachedDocument && (
-        <div className={styles.attachedDoc}>
+        <div className={`${styles.attachedDoc} ${message.attachedDocument.uploading ? styles.attachedDocUploading : ''}`}>
+          {message.attachedDocument.uploading && <div className={styles.attachedDocLoader} />}
           <div className={styles.attachedDocBadge}>
             {message.attachedDocument.name.endsWith('.pdf') ? 'PDF' : message.attachedDocument.name.endsWith('.md') ? 'MD' : 'TXT'}
           </div>
           <div className={styles.attachedDocInfo}>
             <span className={styles.attachedDocName}>{message.attachedDocument.name}</span>
             <span className={styles.attachedDocSize}>
-              {message.attachedDocument.size < 1024 ? `${message.attachedDocument.size} B` : message.attachedDocument.size < 1024 * 1024 ? `${(message.attachedDocument.size / 1024).toFixed(1)} KB` : `${(message.attachedDocument.size / (1024 * 1024)).toFixed(1)} MB`}
+              {message.attachedDocument.uploading
+                ? 'Uploading...'
+                : message.attachedDocument.size < 1024 ? `${message.attachedDocument.size} B` : message.attachedDocument.size < 1024 * 1024 ? `${(message.attachedDocument.size / 1024).toFixed(1)} KB` : `${(message.attachedDocument.size / (1024 * 1024)).toFixed(1)} MB`}
             </span>
           </div>
         </div>

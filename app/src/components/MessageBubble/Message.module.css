@@ -136,6 +136,28 @@
   padding: 12px 16px;
   margin-bottom: 8px;
   max-width: 280px;
+  position: relative;
+  overflow: hidden;
+}
+
+.attachedDocUploading {
+  opacity: 0.7;
+}
+
+.attachedDocLoader {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 3px;
+  background: var(--accent-warm, #e07a5f);
+  border-radius: 0 0 12px 12px;
+  animation: uploadProgress 2s ease-in-out infinite;
+}
+
+@keyframes uploadProgress {
+  0% { width: 0%; }
+  50% { width: 70%; }
+  100% { width: 100%; }
 }
 
 .attachedDocBadge {

@@ -159,7 +159,7 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
         const tempUserId = 'temp-user-' + Date.now();
 
         const fileToUpload = pendingFile;
-        const attachedDoc = fileToUpload ? { name: fileToUpload.name, size: fileToUpload.size, type: fileToUpload.type } : undefined;
+        const attachedDoc = fileToUpload ? { name: fileToUpload.name, size: fileToUpload.size, type: fileToUpload.type, uploading: true } : undefined;
 
         setMessages((prev) => [
           ...prev,
@@ -180,6 +180,11 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
 
         if (fileToUpload) {
           await uploadDocument(currentThreadId, fileToUpload);
+          setMessages((prev) => prev.map((m) =>
+            m.id === tempUserId && m.attachedDocument
+              ? { ...m, attachedDocument: { ...m.attachedDocument, uploading: false } }
+              : m
+          ));
           refreshDocuments();
         }
 

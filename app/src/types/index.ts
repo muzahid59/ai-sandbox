@@ -33,6 +33,7 @@ export interface UIAttachedDocument {
   name: string;
   size: number;
   type: string;
+  uploading?: boolean;
 }
 
 export interface UIMessage {
