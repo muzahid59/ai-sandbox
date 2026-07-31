@@ -14,6 +14,11 @@
       "key": "thread_id",
       "value": "",
       "type": "string"
+    },
+    {
+      "key": "document_id",
+      "value": "",
+      "type": "string"
     }
   ],
   "item": [
@@ -517,6 +522,196 @@
               "raw": "{{base_url}}/api/v1/auth/gmail/status",
               "host": ["{{base_url}}"],
               "path": ["api", "v1", "auth", "gmail", "status"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Documents",
+      "item": [
+        {
+          "name": "Upload Document (file)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "pm.test('Has document id', () => pm.expect(res.id).to.be.a('string'));",
+                  "pm.test('Status is processing', () => pm.expect(res.status).to.eql('processing'));",
+                  "pm.test('Has contentFingerprint', () => pm.expect(res.contentFingerprint).to.have.length(64));",
+                  "pm.collectionVariables.set('document_id', res.id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": "/path/to/test-document.txt"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/threads/{{thread_id}}/documents",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "threads", "{{thread_id}}", "documents"]
+            }
+          }
+        },
+        {
+          "name": "Ingest URL",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "pm.test('Source type is url', () => pm.expect(res.sourceType).to.eql('url'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"url\": \"https://example.com\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/threads/{{thread_id}}/documents",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "threads", "{{thread_id}}", "documents"]
+            }
+          }
+        },
+        {
+          "name": "List Documents",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Has documents array', () => pm.expect(pm.response.json().documents).to.be.an('array'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/v1/threads/{{thread_id}}/documents",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "threads", "{{thread_id}}", "documents"]
+            }
+          }
+        },
+        {
+          "name": "Get Document",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Has document id', () => pm.expect(pm.response.json().id).to.be.a('string'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/v1/threads/{{thread_id}}/documents/{{document_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "threads", "{{thread_id}}", "documents", "{{document_id}}"]
+            }
+          }
+        },
+        {
+          "name": "Cancel Document",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Status is cancelled', () => pm.expect(pm.response.json().status).to.eql('cancelled'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{base_url}}/api/v1/threads/{{thread_id}}/documents/{{document_id}}/cancel",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "threads", "{{thread_id}}", "documents", "{{document_id}}", "cancel"]
+            }
+          }
+        },
+        {
+          "name": "Check Duplicate Filename",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Has filenameMatch', () => pm.expect(pm.response.json().filenameMatch).to.be.an('object'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/v1/threads/{{thread_id}}/documents/check-duplicate?filename=test.txt",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "threads", "{{thread_id}}", "documents", "check-duplicate"],
+              "query": [
+                { "key": "filename", "value": "test.txt" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Delete Document",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 204', () => pm.response.to.have.status(204));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{base_url}}/api/v1/threads/{{thread_id}}/documents/{{document_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "threads", "{{thread_id}}", "documents", "{{document_id}}"]
             }
           }
         }

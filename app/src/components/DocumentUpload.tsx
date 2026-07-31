@@ -15,6 +15,7 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({ threadId, onUploadCompl
   const [urlValue, setUrlValue] = useState('');
   const [confirmDuplicate, setConfirmDuplicate] = useState<{ filename: string; file: File } | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [isDragOver, setIsDragOver] = useState(false);
 
   useEffect(() => {
     if (error) {
@@ -98,8 +99,50 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({ threadId, onUploadCompl
     [handleButtonClick],
   );
 
+  const ACCEPTED_EXTENSIONS = ['.pdf', '.txt', '.md'];
+
+  const handleDragOver = useCallback((e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragOver(true);
+  }, []);
+
+  const handleDragLeave = useCallback((e: React.DragEvent<HTMLDivElement>) => {
+    setIsDragOver(false);
+  }, []);
+
+  const handleDrop = useCallback(
+    async (e: React.DragEvent<HTMLDivElement>) => {
+      e.preventDefault();
+      setIsDragOver(false);
+      const file = e.dataTransfer.files[0];
+      if (!file) return;
+
+      const ext = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
+      if (!ACCEPTED_EXTENSIONS.includes(ext)) {
+        setError(`Invalid file type "${ext}". Accepted: ${ACCEPTED_EXTENSIONS.join(', ')}`);
+        return;
+      }
+
+      try {
+        const dup = await checkDuplicate(threadId, file.name);
+        if (dup.filenameMatch.exists) {
+          setConfirmDuplicate({ filename: file.name, file });
+          return;
+        }
+      } catch { /* proceed with upload if check fails */ }
+
+      doUpload(file);
+    },
+    [threadId, doUpload],
+  );
+
   return (
-    <div className={styles.wrapper}>
+    <div
+      className={`${styles.wrapper} ${isDragOver ? styles.dragOver : ''}`}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+    >
       <input
         ref={fileInputRef}
         type="file"

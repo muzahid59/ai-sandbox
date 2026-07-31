@@ -5,6 +5,13 @@
   position: relative;
 }
 
+.dragOver {
+  border: 2px dashed var(--accent-warm, #e07a5f);
+  background-color: rgba(224, 122, 95, 0.08);
+  border-radius: 8px;
+  padding: 4px;
+}
+
 .hiddenInput {
   position: absolute;
   width: 1px;
