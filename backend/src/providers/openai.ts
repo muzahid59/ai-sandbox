@@ -36,40 +36,47 @@ export class OpenAIProvider implements AIProvider {
         }))
       : undefined;
 
-    const openaiMessages = messages.map((msg) => {
+    const openaiMessages: Array<Record<string, unknown>> = [];
+    for (const msg of messages) {
       const content = extractTextContent(msg.content);
 
       if (Array.isArray(msg.content)) {
-        const toolResult = mapToolResult(msg.content);
-        if (toolResult) {
-          return {
-            role: 'tool' as const,
-            content: toolResult.content,
-            tool_call_id: toolResult.tool_use_id,
-          };
+        const toolResults = msg.content.filter((b) => b.type === 'tool_result' && 'tool_use_id' in b);
+        if (toolResults.length > 0) {
+          for (const block of toolResults) {
+            if ('tool_use_id' in block) {
+              openaiMessages.push({
+                role: 'tool',
+                content: 'content' in block ? String(block.content) : '',
+                tool_call_id: block.tool_use_id,
+              });
+            }
+          }
+          continue;
         }
       }
 
       if (msg.role === 'assistant' && msg.tool_calls && msg.tool_calls.length > 0) {
-        return {
-          role: 'assistant' as const,
+        openaiMessages.push({
+          role: 'assistant',
           content: content || null,
           tool_calls: msg.tool_calls.map((tc) => ({
             id: tc.id,
-            type: 'function' as const,
+            type: 'function',
             function: {
               name: tc.name,
               arguments: JSON.stringify(tc.arguments),
             },
           })),
-        };
+        });
+        continue;
       }
 
-      return {
-        role: msg.role as 'system' | 'user' | 'assistant',
+      openaiMessages.push({
+        role: msg.role,
         content,
-      };
-    });
+      });
+    }
 
     try {
       const response = await this.client.chat.completions.create({
