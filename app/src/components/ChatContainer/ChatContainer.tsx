@@ -179,6 +179,7 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
         }
 
         if (fileToUpload) {
+          await new Promise(r => setTimeout(r, 0));
           await uploadDocument(currentThreadId, fileToUpload);
           setMessages((prev) => prev.map((m) =>
             m.id === tempUserId && m.attachedDocument
