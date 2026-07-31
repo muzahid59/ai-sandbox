@@ -7,6 +7,7 @@ import { ToolExecutionContext } from '../types/context';
 import { contextService } from './contextService';
 import { getSystemPrompt } from '../prompts';
 import { buildMemorySystemPrompt } from './memoryService';
+import { hasReadyDocuments } from './documentService';
 import logger from '../config/logger';
 
 const log = logger.child({ service: 'chat' });
@@ -29,11 +30,19 @@ export async function processMessage(
   const provider = createProvider(thread.model);
   const allTools = toolRegistry.getDefinitions();
 
-  const tools = selectedToolNames === undefined
+  let tools = selectedToolNames === undefined
     ? allTools
     : selectedToolNames.length > 0
       ? allTools.filter((tool) => selectedToolNames.includes(tool.name))
       : [];
+
+  if (await hasReadyDocuments(thread.id)) {
+    const hasDocSearch = tools.some(t => t.name === 'document_search');
+    if (!hasDocSearch) {
+      const docSearchTool = allTools.find(t => t.name === 'document_search');
+      if (docSearchTool) tools = [...tools, docSearchTool];
+    }
+  }
 
   const startTime = Date.now();
 

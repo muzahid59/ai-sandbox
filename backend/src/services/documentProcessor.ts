@@ -21,7 +21,8 @@ export async function processDocument(
     // Stage 1: Extract text
     await updateDocumentStatus(documentId, 'extracting');
     const extractStart = Date.now();
-    const text = await extractText(content, mimeType);
+    const rawText = await extractText(content, mimeType);
+    const text = rawText.replace(/\x00/g, '');
     log.info({ event: 'document.extract', documentId, durationMs: Date.now() - extractStart, charCount: text.length });
 
     if (!text.trim()) {
