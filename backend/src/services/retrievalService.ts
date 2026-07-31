@@ -41,7 +41,8 @@ export async function searchDocuments(
               1 - (dc.embedding <=> $1::vector) as score
        FROM document_chunks dc
        JOIN documents d ON dc.document_id = d.id
-       WHERE d.thread_id = $2 AND d.status = 'ready'
+       JOIN threads t ON d.thread_id = t.id
+       WHERE d.thread_id = $2 AND d.status = 'ready' AND t.status != 'deleted'
        ORDER BY dc.embedding <=> $1::vector
        LIMIT 20`,
       embeddingSql,
@@ -52,7 +53,8 @@ export async function searchDocuments(
               ts_rank(dc.search_vector, plainto_tsquery('english', $1)) as score
        FROM document_chunks dc
        JOIN documents d ON dc.document_id = d.id
-       WHERE d.thread_id = $2 AND d.status = 'ready'
+       JOIN threads t ON d.thread_id = t.id
+       WHERE d.thread_id = $2 AND d.status = 'ready' AND t.status != 'deleted'
          AND dc.search_vector @@ plainto_tsquery('english', $1)
        ORDER BY score DESC
        LIMIT 20`,

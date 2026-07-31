@@ -122,3 +122,62 @@
 .error .message-bubble p {
   color: #ef4444 !important;
 }
+
+/* Source citations */
+.sources {
+  margin-top: 8px;
+  font-family: var(--font-sans);
+  font-size: 13px;
+}
+
+.sourcesToggle {
+  background: none;
+  border: none;
+  color: var(--text-muted, #888);
+  cursor: pointer;
+  padding: 4px 0;
+  font-size: 13px;
+  font-family: var(--font-sans);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.sourcesToggle:hover {
+  color: var(--text-200);
+}
+
+.sourcesChevron {
+  font-size: 10px;
+}
+
+.sourcesList {
+  list-style: none;
+  padding: 0;
+  margin: 4px 0 0;
+  border-left: 2px solid var(--divider, #333);
+  padding-left: 12px;
+}
+
+.sourceItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 3px 0;
+  color: var(--text-muted, #888);
+  font-size: 12px;
+}
+
+.sourceTitle {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 80%;
+}
+
+.sourceScore {
+  color: var(--text-300, #666);
+  font-size: 11px;
+  flex-shrink: 0;
+  margin-left: 8px;
+}

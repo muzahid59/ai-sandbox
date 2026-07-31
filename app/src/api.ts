@@ -1,4 +1,5 @@
 import type { Thread } from './types';
+import type { Document } from '@shared/types/document';
 import { fetchWithAuth, getAccessToken, AuthExpiredError } from './services/authService';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001';
@@ -20,6 +21,9 @@ interface SSECallbacks {
   onError?: (data: { message: string }) => void;
   onToolUseStart?: (data: Record<string, unknown>) => void;
   onToolUseResult?: (data: Record<string, unknown>) => void;
+  onDocumentSearchStart?: () => void;
+  onDocumentSearchResult?: (sources: Array<{ documentId: string; documentTitle: string; chunkIndex: number; relevanceScore: number; snippet: string }>) => void;
+  onDocumentSearchEmpty?: () => void;
   onAuthExpired?: () => void;
 }
 
@@ -88,7 +92,7 @@ export async function sendMessage(
   tools: string[],
   callbacks: SSECallbacks
 ): Promise<void> {
-  const { onCreated, onDelta, onDone, onError, onToolUseStart, onToolUseResult, onAuthExpired } =
+  const { onCreated, onDelta, onDone, onError, onToolUseStart, onToolUseResult, onDocumentSearchStart, onDocumentSearchResult, onDocumentSearchEmpty, onAuthExpired } =
     callbacks;
   try {
     const token = getAccessToken();
@@ -142,6 +146,15 @@ export async function sendMessage(
               case 'message_stop':
                 onDone?.(data);
                 break;
+              case 'document_search_start':
+                onDocumentSearchStart?.();
+                break;
+              case 'document_search_result':
+                onDocumentSearchResult?.(data.sources || []);
+                break;
+              case 'document_search_empty':
+                onDocumentSearchEmpty?.();
+                break;
               case 'error':
                 onError?.(data.error || data);
                 break;
@@ -162,4 +175,66 @@ export async function sendMessage(
     const msg = error instanceof Error ? error.message : 'Unknown error';
     onError?.({ message: msg });
   }
+}
+
+export async function uploadDocument(threadId: string, file: File): Promise<Document> {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const res = await fetchWithAuth(`${API_URL}/api/v1/threads/${threadId}/documents`, {
+    method: 'POST',
+    body: formData,
+  });
+  if (!res.ok) throw new Error(`Failed to upload document: ${res.status}`);
+  return res.json();
+}
+
+export async function ingestUrl(threadId: string, url: string): Promise<Document> {
+  const res = await fetchWithAuth(`${API_URL}/api/v1/threads/${threadId}/documents`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ url }),
+  });
+  if (!res.ok) throw new Error(`Failed to ingest URL: ${res.status}`);
+  return res.json();
+}
+
+export async function listDocuments(threadId: string): Promise<Document[]> {
+  const res = await fetchWithAuth(`${API_URL}/api/v1/threads/${threadId}/documents`);
+  if (!res.ok) throw new Error(`Failed to list documents: ${res.status}`);
+  const data = await res.json();
+  return data.documents;
+}
+
+export async function deleteDocument(threadId: string, documentId: string): Promise<void> {
+  const res = await fetchWithAuth(
+    `${API_URL}/api/v1/threads/${threadId}/documents/${documentId}`,
+    {
+      method: 'DELETE',
+    }
+  );
+  if (!res.ok) throw new Error(`Failed to delete document: ${res.status}`);
+}
+
+export async function cancelDocument(threadId: string, documentId: string): Promise<void> {
+  const res = await fetchWithAuth(
+    `${API_URL}/api/v1/threads/${threadId}/documents/${documentId}/cancel`,
+    {
+      method: 'POST',
+    }
+  );
+  if (!res.ok) throw new Error(`Failed to cancel document: ${res.status}`);
+}
+
+export async function checkDuplicate(
+  threadId: string,
+  filename: string
+): Promise<{
+  filenameMatch: { exists: boolean; existingDocumentId?: string; existingTitle?: string };
+}> {
+  const res = await fetchWithAuth(
+    `${API_URL}/api/v1/threads/${threadId}/documents/check-duplicate?filename=${encodeURIComponent(filename)}`
+  );
+  if (!res.ok) throw new Error(`Failed to check duplicate: ${res.status}`);
+  return res.json();
 }

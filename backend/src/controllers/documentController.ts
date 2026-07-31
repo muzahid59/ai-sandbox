@@ -1,9 +1,9 @@
 import crypto from 'crypto';
 import { Request, Response } from 'express';
-import { NotFoundError, BadRequestError, ConflictError } from '../errors';
+import { NotFoundError, BadRequestError, ConflictError, PermissionDeniedError, ValidationError } from '../errors';
 import * as documentService from '../services/documentService';
 import { processDocument } from '../services/documentProcessor';
-import { extractFromUrl } from '../services/textExtractor';
+import { extractFromUrl, SsrfBlockedError, FetchFailedError } from '../services/textExtractor';
 import logger from '../config/logger';
 
 export async function handleUploadDocument(req: Request, res: Response) {
@@ -62,7 +62,15 @@ export async function handleIngestUrl(req: Request, res: Response) {
     throw new BadRequestError('Invalid URL format');
   }
 
-  const { text, title } = await extractFromUrl(url);
+  let text: string;
+  let title: string;
+  try {
+    ({ text, title } = await extractFromUrl(url));
+  } catch (err) {
+    if (err instanceof SsrfBlockedError) throw new PermissionDeniedError(err.message);
+    if (err instanceof FetchFailedError) throw new ValidationError(err.message);
+    throw err;
+  }
 
   const contentBuffer = Buffer.from(text, 'utf-8');
   const contentFingerprint = crypto.createHash('sha256').update(contentBuffer).digest('hex');

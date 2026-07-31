@@ -1,0 +1,165 @@
+.wrapper {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  position: relative;
+}
+
+.hiddenInput {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.uploadBtn {
+  background: none;
+  border: 1px solid var(--input-border);
+  border-radius: 6px;
+  width: 28px;
+  height: 28px;
+  color: var(--text-300);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  padding: 0;
+  transition:
+    background-color 0.15s ease,
+    opacity 0.15s ease;
+}
+
+.uploadBtn:hover {
+  background-color: var(--button-hover);
+}
+
+.uploadBtn:focus-visible {
+  outline: 2px solid var(--input-border-focus);
+  outline-offset: 1px;
+}
+
+.uploadBtn:disabled {
+  cursor: not-allowed;
+}
+
+.uploadBtn.uploading {
+  opacity: 0.5;
+  width: auto;
+  padding: 0 8px;
+}
+
+.loadingText {
+  font-size: 11px;
+  font-family: var(--font-sans);
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.urlToggleBtn {
+  composes: uploadBtn;
+}
+
+.urlRow {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.urlInput {
+  font-size: 12px;
+  font-family: var(--font-sans);
+  padding: 4px 8px;
+  border: 1px solid var(--input-border);
+  border-radius: 6px;
+  background: var(--bg-200, #1a1a1a);
+  color: var(--text-100);
+  width: 200px;
+}
+
+.urlInput:focus {
+  outline: 2px solid var(--input-border-focus);
+  outline-offset: 1px;
+}
+
+.urlSubmitBtn {
+  font-size: 12px;
+  padding: 4px 10px;
+  border: 1px solid var(--input-border);
+  border-radius: 6px;
+  background: none;
+  color: var(--text-300);
+  cursor: pointer;
+}
+
+.urlSubmitBtn:hover {
+  background-color: var(--button-hover);
+}
+
+.urlSubmitBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.confirmOverlay {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  background: var(--bg-200, #1a1a1a);
+  border: 1px solid var(--divider, #333);
+  border-radius: 8px;
+  padding: 12px;
+  font-size: 13px;
+  font-family: var(--font-sans);
+  color: var(--text-100);
+  min-width: 260px;
+  z-index: 10;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+
+.confirmOverlay p {
+  margin: 0 0 8px;
+}
+
+.confirmActions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.confirmActions button {
+  font-size: 12px;
+  padding: 4px 12px;
+  border: 1px solid var(--input-border);
+  border-radius: 6px;
+  background: none;
+  color: var(--text-200);
+  cursor: pointer;
+}
+
+.confirmActions button:first-child {
+  background: var(--accent-warm, #e07a5f);
+  color: #fff;
+  border-color: transparent;
+}
+
+.errorText {
+  font-size: 11px;
+  color: #dc2626;
+  white-space: nowrap;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.noticeText {
+  font-size: 11px;
+  color: var(--text-muted, #888);
+  white-space: nowrap;
+  max-width: 260px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

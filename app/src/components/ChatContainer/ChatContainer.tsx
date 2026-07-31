@@ -1,9 +1,12 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { fetchThread, createThread, sendMessage } from '../../api';
+import { fetchThread, createThread, sendMessage, listDocuments, deleteDocument, cancelDocument } from '../../api';
 import MessageList from '../MessageList/MessageList';
 import ChatInput from '../ChatInput/ChatInput';
-import type { UIMessage, ChatContainerProps } from '../../types';
+import DocumentUpload from '../DocumentUpload';
+import DocumentPanel from '../DocumentPanel';
+import type { UIMessage, ChatContainerProps, UIDocumentSource } from '../../types';
+import type { Document } from '@shared/types/document';
 import styles from './ChatContainer.module.css';
 
 interface DispatchPayload {
@@ -36,6 +39,9 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
     'reply_email',
   ]);
   const [threadNotFound, setThreadNotFound] = useState(false);
+  const [documents, setDocuments] = useState<Document[]>([]);
+  const [showDocPanel, setShowDocPanel] = useState(false);
+  const pendingSourcesRef = useRef<UIDocumentSource[]>([]);
   const recognition = useRef<SpeechRecognition | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const skipNextFetchRef = useRef(false);
@@ -45,6 +51,7 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
 
     if (!threadId) {
       setMessages([]);
+      setDocuments([]);
       return;
     }
 
@@ -72,6 +79,13 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
             done: true,
           }))
         );
+      })
+      .then(() => {
+        if (!cancelled) {
+          listDocuments(threadId!).then(docs => {
+            if (!cancelled) setDocuments(docs);
+          }).catch(() => {});
+        }
       })
       .catch((err: unknown) => {
         if (cancelled) return;
@@ -189,8 +203,13 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
               prev.map((m) => (!m.sent && !m.done ? { ...m, text: m.text + data.text } : m))
             );
           },
+          onDocumentSearchResult: (sources) => {
+            pendingSourcesRef.current = sources;
+          },
           onDone: () => {
-            setMessages((prev) => prev.map((m) => (!m.sent && !m.done ? { ...m, done: true } : m)));
+            const docSources = pendingSourcesRef.current;
+            pendingSourcesRef.current = [];
+            setMessages((prev) => prev.map((m) => (!m.sent && !m.done ? { ...m, done: true, documentSources: docSources.length > 0 ? docSources : undefined } : m)));
             setIsLoading(false);
             onThreadUpdated?.(currentThreadId!);
             onMessageComplete?.();
@@ -225,6 +244,24 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
     },
     [threadId, selectedModel, selectedTools, onThreadCreated, onThreadUpdated]
   );
+
+  const refreshDocuments = useCallback(() => {
+    if (threadId) {
+      listDocuments(threadId).then(setDocuments).catch(() => {});
+    }
+  }, [threadId]);
+
+  const handleDeleteDocument = useCallback(async (documentId: string) => {
+    if (!threadId) return;
+    await deleteDocument(threadId, documentId);
+    setDocuments(prev => prev.filter(d => d.id !== documentId));
+  }, [threadId]);
+
+  const handleCancelDocument = useCallback(async (documentId: string) => {
+    if (!threadId) return;
+    await cancelDocument(threadId, documentId);
+    refreshDocuments();
+  }, [threadId, refreshDocuments]);
 
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
@@ -291,8 +328,22 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
       ) : (
         <>
           <MessageList messages={messages} />
-          <ChatInput {...inputProps} />
+          <div className={styles.inputRow}>
+            <ChatInput {...inputProps} />
+            {threadId && (
+              <DocumentUpload threadId={threadId} onUploadComplete={refreshDocuments} />
+            )}
+          </div>
         </>
+      )}
+      {threadId && documents.length > 0 && (
+        <DocumentPanel
+          threadId={threadId}
+          documents={documents}
+          onDelete={handleDeleteDocument}
+          onCancel={handleCancelDocument}
+          onRefresh={refreshDocuments}
+        />
       )}
     </div>
   );

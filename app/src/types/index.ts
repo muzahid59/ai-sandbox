@@ -21,6 +21,14 @@ import type {
   ToolUseResultEvent,
 } from '@shared/types';
 
+export interface UIDocumentSource {
+  documentId: string;
+  documentTitle: string;
+  chunkIndex: number;
+  relevanceScore: number;
+  snippet: string;
+}
+
 export interface UIMessage {
   id: string;
   text: string;
@@ -28,6 +36,7 @@ export interface UIMessage {
   done: boolean;
   isError?: boolean;
   toolCalls?: UIToolCall[];
+  documentSources?: UIDocumentSource[];
 }
 
 export interface UIToolCall {
