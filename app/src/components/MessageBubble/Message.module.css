@@ -123,6 +123,53 @@
   color: #ef4444 !important;
 }
 
+/* Attached document card (user message) */
+.attachedDoc {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--bg-200, rgba(255,255,255,0.06));
+  border: 1px solid var(--divider, rgba(255,255,255,0.1));
+  border-radius: 12px;
+  padding: 12px 16px;
+  margin-bottom: 8px;
+  max-width: 280px;
+}
+
+.attachedDocBadge {
+  background: var(--accent-warm, #e07a5f);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  flex-shrink: 0;
+  font-family: var(--font-sans);
+}
+
+.attachedDocInfo {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.attachedDocName {
+  font-size: 13px;
+  color: var(--text-100);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-family: var(--font-sans);
+}
+
+.attachedDocSize {
+  font-size: 11px;
+  color: var(--text-muted, #888);
+  font-family: var(--font-sans);
+}
+
 /* Source citations */
 .sources {
   margin-top: 8px;

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { fetchThread, createThread, sendMessage, listDocuments, deleteDocument, cancelDocument } from '../../api';
+import { fetchThread, createThread, sendMessage, uploadDocument, listDocuments, deleteDocument, cancelDocument } from '../../api';
 import MessageList from '../MessageList/MessageList';
 import ChatInput from '../ChatInput/ChatInput';
 import DocumentUpload from '../DocumentUpload';
@@ -40,7 +40,7 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
   ]);
   const [threadNotFound, setThreadNotFound] = useState(false);
   const [documents, setDocuments] = useState<Document[]>([]);
-  const [showDocPanel, setShowDocPanel] = useState(false);
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
   const pendingSourcesRef = useRef<UIDocumentSource[]>([]);
   const recognition = useRef<SpeechRecognition | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -158,12 +158,16 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
 
         const tempUserId = 'temp-user-' + Date.now();
 
+        const fileToUpload = pendingFile;
+        const attachedDoc = fileToUpload ? { name: fileToUpload.name, size: fileToUpload.size, type: fileToUpload.type } : undefined;
+
         setMessages((prev) => [
           ...prev,
-          { id: tempUserId, text: payload.text, sent: true, done: true },
+          { id: tempUserId, text: payload.text, sent: true, done: true, attachedDocument: attachedDoc },
         ]);
         setInputValue('');
         setImageData(null);
+        setPendingFile(null);
         if (fileInputRef.current) fileInputRef.current.value = '';
 
         let currentThreadId = threadId;
@@ -174,8 +178,13 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
           onThreadCreated?.(thread);
         }
 
+        if (fileToUpload) {
+          await uploadDocument(currentThreadId, fileToUpload);
+          refreshDocuments();
+        }
+
         const content: Array<{ type: string; text?: string; url?: string }> = [
-          { type: 'text', text: payload.text },
+          { type: 'text', text: payload.text || (fileToUpload ? `I've attached ${fileToUpload.name}` : '') },
         ];
         if (payload.image) {
           content.push({ type: 'image_url', url: payload.image });
@@ -242,7 +251,7 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
         setIsLoading(false);
       }
     },
-    [threadId, selectedModel, selectedTools, onThreadCreated, onThreadUpdated]
+    [threadId, selectedModel, selectedTools, pendingFile, onThreadCreated, onThreadUpdated]
   );
 
   const refreshDocuments = useCallback(() => {
@@ -265,7 +274,7 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
 
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
-    if (!inputValue) return;
+    if (!inputValue && !pendingFile) return;
 
     if (isListening) {
       stopListening();
@@ -327,20 +336,22 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
         </div>
       ) : (
         <>
+          {threadId && documents.length > 0 && (
+            <DocumentPanel
+              threadId={threadId}
+              documents={documents}
+              onDelete={handleDeleteDocument}
+              onCancel={handleCancelDocument}
+              onRefresh={refreshDocuments}
+            />
+          )}
           <MessageList messages={messages} />
           <ChatInput {...inputProps}
-            documentUpload={threadId ? <DocumentUpload threadId={threadId} onUploadComplete={refreshDocuments} /> : undefined}
+            pendingFile={pendingFile}
+            onRemovePendingFile={() => setPendingFile(null)}
+            documentUpload={threadId ? <DocumentUpload threadId={threadId} onFileAttach={setPendingFile} onUploadComplete={refreshDocuments} /> : undefined}
           />
         </>
-      )}
-      {threadId && documents.length > 0 && (
-        <DocumentPanel
-          threadId={threadId}
-          documents={documents}
-          onDelete={handleDeleteDocument}
-          onCancel={handleCancelDocument}
-          onRefresh={refreshDocuments}
-        />
       )}
     </div>
   );

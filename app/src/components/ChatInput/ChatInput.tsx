@@ -34,6 +34,8 @@ const ChatInput: React.FC<ChatInputProps> = ({
   selectedTools,
   onToolsChange,
   documentUpload,
+  pendingFile,
+  onRemovePendingFile,
 }) => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const toolModalRef = useRef<HTMLDivElement>(null);
@@ -86,6 +88,22 @@ const ChatInput: React.FC<ChatInputProps> = ({
   return (
     <div className={styles.inputWrapper}>
       <form onSubmit={onSubmit} className={styles.inputContainer}>
+        {pendingFile && (
+          <div className={styles.pendingFile}>
+            <div className={styles.pendingFileCard}>
+              <div className={styles.pendingFileBadge}>
+                {pendingFile.name.endsWith('.pdf') ? 'PDF' : pendingFile.name.endsWith('.md') ? 'MD' : 'TXT'}
+              </div>
+              <div className={styles.pendingFileInfo}>
+                <span className={styles.pendingFileName}>{pendingFile.name}</span>
+                <span className={styles.pendingFileSize}>
+                  {pendingFile.size < 1024 ? `${pendingFile.size} B` : pendingFile.size < 1024 * 1024 ? `${(pendingFile.size / 1024).toFixed(1)} KB` : `${(pendingFile.size / (1024 * 1024)).toFixed(1)} MB`}
+                </span>
+              </div>
+              <button type="button" className={styles.pendingFileRemove} onClick={onRemovePendingFile} aria-label="Remove file">×</button>
+            </div>
+          </div>
+        )}
         <textarea
           ref={textareaRef}
           value={inputValue}
@@ -179,7 +197,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
               <button
                 type="submit"
                 className={styles.sendBtn}
-                disabled={!inputValue}
+                disabled={!inputValue && !pendingFile}
                 title="Send message"
                 aria-label="Send message"
               >

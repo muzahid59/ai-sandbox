@@ -29,6 +29,12 @@ export interface UIDocumentSource {
   snippet: string;
 }
 
+export interface UIAttachedDocument {
+  name: string;
+  size: number;
+  type: string;
+}
+
 export interface UIMessage {
   id: string;
   text: string;
@@ -37,6 +43,7 @@ export interface UIMessage {
   isError?: boolean;
   toolCalls?: UIToolCall[];
   documentSources?: UIDocumentSource[];
+  attachedDocument?: UIAttachedDocument;
 }
 
 export interface UIToolCall {
@@ -79,6 +86,8 @@ export interface ChatInputProps {
   selectedTools: string[];
   onToolsChange: (tools: string[]) => void;
   documentUpload?: React.ReactNode;
+  pendingFile?: File | null;
+  onRemovePendingFile?: () => void;
 }
 
 export interface MessageBubbleProps {

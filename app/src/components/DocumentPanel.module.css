@@ -1,21 +1,26 @@
 .panel {
-  padding: 0 6px;
+  max-width: 768px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 12px 24px 4px;
+  box-sizing: border-box;
 }
 
 .sectionLabel {
   display: block;
   font-size: 11px;
   color: var(--text-muted);
-  padding: 8px 10px 4px;
+  padding: 0 0 6px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
   font-weight: 500;
+  font-family: var(--font-sans);
 }
 
 .emptyState {
   font-size: 12px;
   color: var(--text-muted);
-  padding: 8px 10px;
+  padding: 4px 0;
   line-height: 1.5;
 }
 
@@ -24,41 +29,40 @@
   margin: 0;
   padding: 0;
   display: flex;
-  flex-direction: column;
-  gap: 1px;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .row {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 10px;
-  border-radius: 8px;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--input-border);
+  background: var(--bg-200, rgba(255,255,255,0.03));
   transition: background-color 0.15s ease;
+  max-width: 260px;
 }
 
 .row:hover {
-  background-color: var(--sidebar-hover);
+  background-color: var(--button-hover, rgba(255,255,255,0.06));
 }
 
 .rowMain {
-  flex: 1;
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 2px;
 }
 
 .title {
   font-size: 13px;
-  color: var(--sidebar-text);
+  color: var(--text-100);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-
-.row:hover .title {
-  color: var(--sidebar-text-active);
+  font-family: var(--font-sans);
 }
 
 .meta {
@@ -81,17 +85,17 @@
 
 .statusProcessing {
   background-color: rgba(234, 179, 8, 0.15);
-  color: #b45309;
+  color: #eab308;
 }
 
 .statusReady {
   background-color: rgba(34, 197, 94, 0.15);
-  color: #15803d;
+  color: #22c55e;
 }
 
 .statusFailed {
   background-color: rgba(239, 68, 68, 0.15);
-  color: #dc2626;
+  color: #ef4444;
 }
 
 .statusCancelled {
@@ -128,13 +132,8 @@
 }
 
 .cancelBtn:hover {
-  color: var(--sidebar-text-active);
-  border-color: var(--sidebar-text-active);
-}
-
-.cancelBtn:focus-visible {
-  outline: 2px solid var(--sidebar-text-active);
-  outline-offset: 1px;
+  color: var(--text-100);
+  border-color: var(--text-100);
 }
 
 .deleteBtn {
@@ -145,19 +144,18 @@
   cursor: pointer;
   padding: 2px 4px;
   border-radius: 4px;
-  font-size: 16px;
+  font-size: 14px;
   line-height: 1;
   flex-shrink: 0;
 }
 
 .deleteBtn:hover {
   color: var(--text-100);
-  background-color: var(--sidebar-hover);
 }
 
 .deleteBtn:focus-visible {
   display: block;
-  outline: 2px solid var(--sidebar-text-active);
+  outline: 2px solid var(--input-border-focus);
   outline-offset: 1px;
 }
 
