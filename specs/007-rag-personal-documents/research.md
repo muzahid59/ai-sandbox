@@ -67,16 +67,27 @@
 
 ---
 
-## 6. Retrieval Strategy
+## 6. Retrieval Strategy — Hybrid Search
 
-**Decision:** Cosine similarity search via pgvector, returning top-5 chunks above a relevance threshold (0.7), scoped to the current thread's ready documents.
+**Decision:** Hybrid retrieval combining semantic vector search (pgvector cosine similarity) and keyword search (PostgreSQL `ts_vector` full-text search), with Reciprocal Rank Fusion (RRF) to merge and re-rank results. Returns up to 10 chunks per query, scoped to the current thread's ready documents.
 
-**Rationale:** pgvector's `<=>` operator (cosine distance) is the standard for text embedding similarity. Top-5 chunks at ~500 tokens each = ~2,500 tokens of context, well within model limits. The 0.7 threshold prevents low-relevance noise from contaminating responses. Thread scoping is enforced in the SQL WHERE clause (`WHERE document.thread_id = $1 AND document.status = 'ready'`).
+**Rationale:** FR-9 requires both semantic and keyword search with re-ranking. Pure vector search misses exact keyword matches (e.g., proper nouns, product codes, dates); pure keyword search misses semantic similarity. RRF is a simple, parameter-light fusion method: `score = Σ 1/(k + rank_i)` where k=60 is standard. PostgreSQL's built-in `tsvector`/`tsquery` with `ts_rank` provides keyword search without additional infrastructure.
+
+**Implementation:**
+1. Add a `search_vector tsvector` column to `document_chunks`, populated at chunk insertion time via `to_tsvector('english', content)`.
+2. Create a GIN index on `search_vector` for fast full-text lookups.
+3. At query time, run two parallel queries:
+   - **Vector search:** `ORDER BY embedding <=> $query_embedding LIMIT 20`
+   - **Keyword search:** `WHERE search_vector @@ plainto_tsquery('english', $query) ORDER BY ts_rank(search_vector, ...) DESC LIMIT 20`
+4. Merge results using RRF (k=60), deduplicate by chunk ID, return top 10.
+5. Apply a minimum relevance threshold (RRF score > 0.0) to exclude noise.
 
 **Alternatives considered:**
+- Pure vector search — Misses exact keyword matches; the spec explicitly requires hybrid.
 - Inner product (`<#>`) — Requires normalized vectors; cosine distance is more forgiving.
-- No threshold, just top-K — Risks injecting irrelevant context that confuses the model.
-- Hybrid search (BM25 + vector) — More accurate but significantly more complex for v1. Can layer in post-launch.
+- BM25 via `pg_bm25` extension — More accurate than `ts_rank` but requires an additional Postgres extension not available in the standard pgvector image.
+- External search engine (Elasticsearch, Typesense) — Unnecessary infrastructure overhead when PostgreSQL full-text search is sufficient for this scale.
+- Cohere Rerank / cross-encoder re-ranking — Better accuracy but adds API latency and cost; RRF is a pragmatic v1 choice.
 
 ---
 
@@ -99,3 +110,52 @@
 **Rationale:** The spec requires "all documents attached to that thread are deleted along with it" (FR-5). Prisma's cascade delete handles this at the database level. The current `softDeleteThread` only sets status to `deleted` — documents should be hard-deleted (including their vector data) when the thread reaches terminal deletion. A separate cleanup step or a hard-delete path handles this.
 
 **Design decision:** When a thread is soft-deleted, documents remain but are excluded from search (thread status check). When the thread is permanently purged (future admin action or background job), cascade delete removes documents and chunks via the DB constraint.
+
+---
+
+## 9. Content Fingerprinting
+
+**Decision:** Compute a SHA-256 hash of the raw file/URL content at upload time and store it on the Document record. Used for informational duplicate detection (FR-6d), not deduplication.
+
+**Rationale:** Assumption 10 requires a content fingerprint for detecting when identical content is uploaded again, regardless of filename. SHA-256 is fast, collision-resistant, and available in Node's built-in `crypto` module — no new dependency. The hash is computed from the raw Buffer before text extraction and stored as a hex string (64 chars).
+
+**Implementation:** `crypto.createHash('sha256').update(buffer).digest('hex')` — computed in the upload handler before dispatching to the document processor. For URL ingestion, hash the fetched response body.
+
+**Alternatives considered:**
+- MD5 — Faster but collision-prone; SHA-256 is negligibly slower for files ≤ 20 MB.
+- Content-based deduplication (block upload if duplicate) — Spec explicitly says upload proceeds; fingerprint is informational only.
+- Perceptual hashing — Only relevant for images/media, not text documents.
+
+---
+
+## 10. Embedding Model Versioning
+
+**Decision:** Store the embedding model identifier (e.g., `text-embedding-3-small`) on each DocumentChunk record. This enables future model upgrades without requiring a bulk re-embed.
+
+**Rationale:** Assumption 11 requires recording which model produced each chunk's vector. If the embedding model is upgraded later, new chunks use the new model while old chunks retain their version tag — enabling incremental migration or mixed-model retrieval strategies.
+
+**Implementation:** A `embeddingModel` string field on DocumentChunk, set during the embedding step. Default value matches the configured embedding model.
+
+**Alternatives considered:**
+- Store model version at the Document level — Less granular; if a document is partially re-embedded, chunk-level tracking is more accurate.
+- No versioning — Spec explicitly requires it (Assumption 11).
+
+---
+
+## 11. Observability Strategy
+
+**Decision:** Use the existing pino structured logger to emit metric events at each pipeline stage. No separate metrics backend in this phase (Assumption 12).
+
+**Rationale:** FR-16 requires tracking upload duration, extraction duration, embedding duration, retrieval latency, chunks retrieved, and embedding failures. Structured JSON logs with well-defined event types can be parsed by any log aggregation tool (ELK, Datadog, CloudWatch). Each pipeline stage logs a timing event with `{event, documentId, durationMs, ...metadata}`.
+
+**Implementation:**
+- Upload handler: log `document.upload` with `{documentId, fileSize, durationMs}`
+- Text extraction: log `document.extract` with `{documentId, durationMs, charCount}`
+- Embedding: log `document.embed` with `{documentId, durationMs, chunkCount, batchCount}`
+- Embedding failure: log `document.embed.error` with `{documentId, attempt, error}`
+- Retrieval: log `document.retrieve` with `{threadId, durationMs, chunksReturned, queryLength}`
+- End-to-end: log `document.process.complete` or `document.process.failed`
+
+**Alternatives considered:**
+- Prometheus metrics — More structured but adds infrastructure (metrics server, scraper); overkill for single-user local dev.
+- OpenTelemetry spans — Excellent for distributed tracing but requires an OTLP collector; deferred to a future phase.

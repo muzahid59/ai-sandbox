@@ -39,10 +39,12 @@ Content-Type: application/json
   "sourceType": "file",
   "mimeType": "application/pdf",
   "fileSize": 524288,
+  "contentFingerprint": "a1b2c3d4e5f6...",
   "status": "processing",
   "statusMessage": null,
   "chunkCount": 0,
-  "createdAt": "2026-07-29T12:00:00.000Z"
+  "createdAt": "2026-07-29T12:00:00.000Z",
+  "duplicateNotice": null
 }
 ```
 
@@ -72,6 +74,7 @@ List all documents attached to a thread.
       "sourceType": "file",
       "mimeType": "application/pdf",
       "fileSize": 524288,
+      "contentFingerprint": "a1b2c3d4e5f6...",
       "status": "ready",
       "statusMessage": null,
       "chunkCount": 42,
@@ -106,6 +109,29 @@ Delete a document and all its chunks. Immediate effect on search results.
 | Status | Code | Condition |
 |--------|------|-----------|
 | 404 | `DOCUMENT_NOT_FOUND` | Document does not exist in this thread |
+
+---
+
+### POST `/api/v1/threads/:threadId/documents/:documentId/cancel`
+
+Cancel a document that is still processing. Removes the document and any partial data.
+
+**Precondition:** Document must be in a processing state (`processing`, `extracting`, `chunking`, `embedding`).
+
+**Success response (200 OK):**
+```json
+{
+  "id": "uuid",
+  "status": "cancelled",
+  "message": "Document processing cancelled and all data removed."
+}
+```
+
+**Error responses:**
+| Status | Code | Condition |
+|--------|------|-----------|
+| 404 | `DOCUMENT_NOT_FOUND` | Document does not exist in this thread |
+| 409 | `DOCUMENT_NOT_PROCESSING` | Document is already in `ready`, `failed`, or `cancelled` state |
 
 ---
 
@@ -189,7 +215,7 @@ The RAG retrieval is implemented as an internal tool (not user-visible) that the
 
 ---
 
-## Duplicate Filename Check
+## Duplicate Checks
 
 ### GET `/api/v1/threads/:threadId/documents/check-duplicate?filename=contract.pdf`
 
@@ -198,8 +224,30 @@ Check if a filename already exists in the thread (supports FR-6c confirmation pr
 **Response (200 OK):**
 ```json
 {
-  "exists": true,
-  "existingDocumentId": "uuid",
-  "existingTitle": "contract.pdf"
+  "filenameMatch": {
+    "exists": true,
+    "existingDocumentId": "uuid",
+    "existingTitle": "contract.pdf"
+  }
 }
+```
+
+### Content Fingerprint Duplicate Detection (FR-6d)
+
+Content fingerprint matching is handled server-side during upload. After the file's SHA-256 hash is computed, the server checks for an existing document in the same thread with the same fingerprint. If a match is found, the upload proceeds normally but the response includes a `duplicateNotice` field:
+
+```json
+{
+  "id": "uuid",
+  "title": "contract-v2.pdf",
+  "status": "processing",
+  "duplicateNotice": {
+    "matchedDocumentId": "uuid",
+    "matchedDocumentTitle": "contract.pdf",
+    "message": "This content matches an existing document: contract.pdf"
+  }
+}
+```
+
+The frontend displays this as a non-blocking informational toast. The upload is never blocked by content fingerprint matching.
 ```
