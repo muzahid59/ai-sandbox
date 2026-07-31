@@ -6,6 +6,8 @@
 
 .sent {
   justify-content: flex-end;
+  flex-direction: column;
+  align-items: flex-end;
 }
 
 .received {
