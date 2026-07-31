@@ -55,6 +55,7 @@ const DocumentUpload: React.FC<DocumentUploadProps> = ({ threadId, onFileAttach,
 
   const handleUrlSubmit = useCallback(async () => {
     if (!urlValue.trim()) return;
+    if (!threadId) { setError('Send a message first to create a thread'); return; }
     try { new URL(urlValue); } catch { setError('Invalid URL'); return; }
     setError(null);
     setIsIngesting(true);

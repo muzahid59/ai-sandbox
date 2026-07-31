@@ -338,7 +338,11 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
         <div className={styles.welcomeScreen}>
           <div className={styles.welcomeIcon}>&#10022;</div>
           <h1 className={styles.welcomeHeading}>How can I help you today?</h1>
-          <ChatInput {...inputProps} />
+          <ChatInput {...inputProps}
+            pendingFile={pendingFile}
+            onRemovePendingFile={() => setPendingFile(null)}
+            documentUpload={<DocumentUpload threadId={threadId || ''} onFileAttach={setPendingFile} onUploadComplete={refreshDocuments} />}
+          />
         </div>
       ) : (
         <>
