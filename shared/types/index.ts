@@ -23,3 +23,14 @@ export type {
 } from './events';
 
 export type { Memory, MemorySource, UserPreferences } from './memory';
+
+export type {
+  DocumentSourceType,
+  DocumentStatus,
+  DuplicateNotice,
+  Document,
+  DocumentSearchResult,
+  DocumentSearchStartEvent,
+  DocumentSearchResultEvent,
+  DocumentSearchEmptyEvent,
+} from './document';

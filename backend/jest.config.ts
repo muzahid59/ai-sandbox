@@ -12,6 +12,10 @@ const config: Config = {
       },
     }],
   },
+  moduleNameMapper: {
+    '^pdf-parse$': '<rootDir>/tests/__mocks__/pdf-parse.ts',
+    '^pgvector$': '<rootDir>/tests/__mocks__/pgvector.ts',
+  },
   clearMocks: true,
 };
 

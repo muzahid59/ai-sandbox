@@ -63,7 +63,7 @@ export async function processMessage(
   }, 'Messages prepared for LLM');
 
   const effectiveTools = useToolPrompt ? tools : [];
-  const context: ToolExecutionContext | undefined = userId ? { userId } : undefined;
+  const context: ToolExecutionContext | undefined = userId ? { userId, threadId: thread.id } : undefined;
   const loopResult = await runAgenticLoop(provider, messages, effectiveTools, callbacks, 10, context);
 
   const durationMs = Date.now() - startTime;

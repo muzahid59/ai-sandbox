@@ -49,8 +49,27 @@ export async function handleSendMessage(req: Request, res: Response) {
   try {
     const result = await processMessage(thread, content, selectedTools, {
       onDelta: (text) => writer.sendDelta(text),
-      onToolUseStart: (call) => writer.sendToolUseStart({ type: 'tool_use', id: call.id, name: call.name, input: call.arguments }),
-      onToolUseResult: (callId, name, toolResult) => writer.sendToolUseResult({ tool_call_id: callId, name, output: toolResult.output, is_error: toolResult.is_error }),
+      onToolUseStart: (call) => {
+        if (call.name === 'document_search') {
+          writer.sendDocumentSearchStart(assistantMessage.id);
+        }
+        writer.sendToolUseStart({ type: 'tool_use', id: call.id, name: call.name, input: call.arguments });
+      },
+      onToolUseResult: (callId, name, toolResult) => {
+        if (name === 'document_search' && !toolResult.is_error) {
+          try {
+            const parsed = JSON.parse(toolResult.output);
+            if (parsed.metadata?.sources?.length > 0) {
+              writer.sendDocumentSearchResult(assistantMessage.id, parsed.metadata.sources);
+            } else {
+              writer.sendDocumentSearchEmpty(assistantMessage.id);
+            }
+          } catch {
+            writer.sendDocumentSearchEmpty(assistantMessage.id);
+          }
+        }
+        writer.sendToolUseResult({ tool_call_id: callId, name, output: toolResult.output, is_error: toolResult.is_error });
+      },
     }, req.user!.id);
 
     await updateMessageStatus(assistantMessage.id, 'complete', { content: [{ type: 'text', text: result.text }], stopReason: 'end_turn' });

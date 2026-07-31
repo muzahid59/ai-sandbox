@@ -61,6 +61,18 @@ export class SSEWriter {
     this.write(event);
   }
 
+  sendDocumentSearchStart(msgId: string): void {
+    this.write({ type: 'document_search_start', msg_id: msgId });
+  }
+
+  sendDocumentSearchResult(msgId: string, sources: unknown[]): void {
+    this.write({ type: 'document_search_result', msg_id: msgId, sources });
+  }
+
+  sendDocumentSearchEmpty(msgId: string): void {
+    this.write({ type: 'document_search_empty', msg_id: msgId });
+  }
+
   sendError(data: ErrorEvent['error']): void {
     this.write({ type: 'error', error: data });
   }

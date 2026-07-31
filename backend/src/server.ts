@@ -11,6 +11,7 @@ import { googleAuthRoutes } from './routes/googleAuthRoutes';
 import { authRoutes } from './routes/authRoutes';
 import { memoryRoutes } from './routes/memoryRoutes';
 import { preferencesRoutes } from './routes/preferencesRoutes';
+import { documentRoutes } from './routes/documentRoutes';
 import { registerAllTools } from './tools';
 import { toolRegistry } from './services/toolRegistry';
 import { registerProviders } from './providers';
@@ -45,6 +46,7 @@ app.use('/api/v1', threadRoutes);
 app.use('/api/v1', messageRoutes);
 app.use('/api/v1', memoryRoutes);
 app.use('/api/v1', preferencesRoutes);
+app.use('/api/v1/threads/:threadId/documents', documentRoutes);
 
 app.get('/health', (_req, res) => {
   res.status(200).json({ status: 'ok' });

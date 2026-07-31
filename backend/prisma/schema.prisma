@@ -14,6 +14,21 @@ enum ThreadStatus {
   deleted
 }
 
+enum DocumentSourceType {
+  file
+  url
+}
+
+enum DocumentStatus {
+  processing
+  extracting
+  chunking
+  embedding
+  ready
+  failed
+  cancelled
+}
+
 enum MemorySource {
   manual
   extracted
@@ -45,6 +60,7 @@ model Thread {
   createdAt         DateTime     @default(now()) @map("created_at")
   updatedAt         DateTime     @updatedAt @map("updated_at")
   messages          Message[]
+  documents         Document[]
   extractedMemories Memory[]     @relation("MemorySourceThread")
 
   @@index([userId])
@@ -103,6 +119,7 @@ model User {
   googleOAuthToken GoogleOAuthToken?
   refreshTokens    RefreshToken[]
   memories         Memory[]
+  documents        Document[]
   preferences      UserPreferences?
 
   @@map("users")
@@ -163,4 +180,45 @@ model GoogleOAuthToken {
 
   @@index([userId])
   @@map("google_oauth_tokens")
+}
+
+model Document {
+  id                 String             @id @default(uuid())
+  threadId           String             @map("thread_id")
+  userId             String             @map("user_id")
+  title              String             @db.VarChar(255)
+  sourceType         DocumentSourceType @map("source_type")
+  sourceUrl          String?            @map("source_url") @db.VarChar(2048)
+  mimeType           String             @map("mime_type") @db.VarChar(127)
+  fileSize           Int                @map("file_size")
+  contentFingerprint String             @map("content_fingerprint") @db.Char(64)
+  status             DocumentStatus     @default(processing)
+  statusMessage      String?            @map("status_message") @db.VarChar(500)
+  chunkCount         Int                @default(0) @map("chunk_count")
+  createdAt          DateTime           @default(now()) @map("created_at")
+  updatedAt          DateTime           @updatedAt @map("updated_at")
+  thread             Thread             @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  user               User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  chunks             DocumentChunk[]
+
+  @@index([threadId, status])
+  @@index([threadId, contentFingerprint])
+  @@index([userId])
+  @@map("documents")
+}
+
+model DocumentChunk {
+  id             String                          @id @default(uuid())
+  documentId     String                          @map("document_id")
+  chunkIndex     Int                             @map("chunk_index")
+  content        String                          @db.Text
+  tokenCount     Int                             @map("token_count")
+  embedding      Unsupported("vector(1536)")?
+  searchVector   Unsupported("tsvector")?        @map("search_vector")
+  embeddingModel String                          @map("embedding_model") @db.VarChar(100)
+  createdAt      DateTime                        @default(now()) @map("created_at")
+  document       Document                        @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@index([documentId])
+  @@map("document_chunks")
 }

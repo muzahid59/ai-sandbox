@@ -8,6 +8,7 @@ import { searchEmails } from './searchEmails';
 import { summarizeEmails } from './summarizeEmails';
 import { draftEmail } from './draftEmail';
 import { replyEmail } from './replyEmail';
+import { documentSearch } from './documentSearch';
 
 export function registerAllTools(): void {
   toolRegistry.register(webSearch);
@@ -19,4 +20,5 @@ export function registerAllTools(): void {
   toolRegistry.register(summarizeEmails);
   toolRegistry.register(draftEmail);
   toolRegistry.register(replyEmail);
+  toolRegistry.register(documentSearch);
 }
