@@ -14,8 +14,11 @@ export type {
   DeltaEvent,
   ToolUseStartEvent as SharedToolUseStartEvent,
   ToolUseResultEvent as SharedToolUseResultEvent,
+  ActionPendingEvent,
   DoneEvent,
   ErrorEvent as SharedErrorEvent,
+  PendingAction as SharedPendingAction,
+  PendingActionStatus as SharedPendingActionStatus,
 } from '@shared/types';
 
 // ─── Auth ───

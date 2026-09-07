@@ -61,6 +61,16 @@ export class SSEWriter {
     this.write(event);
   }
 
+  sendActionPending(data: {
+    action_id: string;
+    msg_id: string;
+    tool_name: string;
+    arguments: Record<string, unknown>;
+    expires_at: string;
+  }): void {
+    this.write({ type: 'action_pending', ...data });
+  }
+
   sendDocumentSearchStart(msgId: string): void {
     this.write({ type: 'document_search_start', msg_id: msgId });
   }

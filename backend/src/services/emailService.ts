@@ -186,6 +186,46 @@ class EmailService {
     return { emails, totalCount, returnedCount: emails.length };
   }
 
+  // ─── List Drafts ───
+
+  async listDrafts(
+    userId: string,
+    maxResults: number = 20,
+    includeBody: boolean = false,
+  ): Promise<EmailListResult> {
+    const auth = await this.getAuthClient(userId);
+    const gmail = google.gmail({ version: 'v1', auth });
+
+    const listResponse = await this.withRetry(() =>
+      gmail.users.drafts.list({ userId: 'me', maxResults }),
+    );
+
+    const drafts = listResponse.data.drafts ?? [];
+    const totalCount = listResponse.data.resultSizeEstimate ?? drafts.length;
+
+    const emails: EmailSummary[] = [];
+    for (const draft of drafts) {
+      const detail = await this.withRetry(() =>
+        gmail.users.drafts.get({
+          userId: 'me',
+          id: draft.id!,
+          format: includeBody ? 'full' : 'metadata',
+        }),
+      );
+      const message = detail.data.message;
+      if (!message) continue;
+      const summary = this.parseEmail(message);
+      summary.id = `draft:${draft.id!}`;
+      if (includeBody) {
+        const rawBody = this.extractBody(message.payload);
+        summary.body = this.truncateBody(rawBody);
+      }
+      emails.push(summary);
+    }
+
+    return { emails, totalCount, returnedCount: emails.length };
+  }
+
   // ─── Get Single Email ───
 
   async getEmail(userId: string, emailId: string, includeBody: boolean = false): Promise<EmailSummary> {

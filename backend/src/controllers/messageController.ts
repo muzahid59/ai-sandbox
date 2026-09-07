@@ -3,6 +3,7 @@ import { getThreadById, incrementThreadTokens } from '../services/threadService'
 import { createMessage, getByThread, updateMessageStatus, countByThread } from '../services/messageService';
 import { processMessage } from '../services/chatService';
 import { contextService } from '../services/contextService';
+import { createPendingAction, getThreadPendingAction } from '../services/pendingActionService';
 import { SSEWriter } from '../sse/sseWriter';
 import { extractTextContent } from '../providers/utils';
 import { ContentBlockParam } from '../types/content';
@@ -28,6 +29,14 @@ export async function handleGetMessages(req: Request, res: Response) {
 export async function handleSendMessage(req: Request, res: Response) {
   const thread = await getThreadById(req.params.id as string, req.user!.id);
   if (!thread) throw new NotFoundError('Thread not found');
+
+  const existingPending = await getThreadPendingAction(thread.id);
+  if (existingPending) {
+    return res.status(409).json({
+      code: 'APPROVAL_PENDING',
+      message: 'Please approve or reject the pending action before sending a new message.',
+    });
+  }
 
   const { content, tools: selectedTools } = req.body as { content?: ContentBlockParam[]; tools?: string[] };
   if (!content || !Array.isArray(content) || content.length === 0) {
@@ -71,6 +80,35 @@ export async function handleSendMessage(req: Request, res: Response) {
         writer.sendToolUseResult({ tool_call_id: callId, name, output: toolResult.output, is_error: toolResult.is_error });
       },
     }, req.user!.id);
+
+    if (result.suspended) {
+      await updateMessageStatus(assistantMessage.id, 'complete', {
+        content: result.suspended.contentBlocks as any,
+        stopReason: 'action_pending',
+      });
+
+      const pendingAction = await createPendingAction({
+        threadId: thread.id,
+        userId: req.user!.id,
+        messageId: assistantMessage.id,
+        toolName: result.suspended.toolCall.name,
+        toolCallId: result.suspended.toolCall.id,
+        arguments: result.suspended.toolCall.arguments,
+      });
+
+      writer.sendActionPending({
+        action_id: pendingAction.id,
+        msg_id: assistantMessage.id,
+        tool_name: pendingAction.toolName,
+        arguments: pendingAction.arguments as Record<string, unknown>,
+        expires_at: pendingAction.expiresAt.toISOString(),
+      });
+
+      log.info({ actionId: pendingAction.id, toolName: pendingAction.toolName, durationMs: Date.now() - start }, 'Message suspended for approval');
+      writer.sendMessageStop('action_pending', 0);
+      writer.end();
+      return;
+    }
 
     await updateMessageStatus(assistantMessage.id, 'complete', { content: [{ type: 'text', text: result.text }], stopReason: 'end_turn' });
 

@@ -19,6 +19,11 @@
       "key": "document_id",
       "value": "",
       "type": "string"
+    },
+    {
+      "key": "action_id",
+      "value": "",
+      "type": "string"
     }
   ],
   "item": [
@@ -770,6 +775,59 @@
               "host": ["{{base_url}}"],
               "path": ["content-completion"]
             }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Actions",
+      "description": "Approval workflow actions",
+      "item": [
+        {
+          "name": "Approve Action (SSE)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/actions/{{action_id}}/approve",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "actions", "{{action_id}}", "approve"]
+            },
+            "description": "Approves a pending action, executes the tool, and streams the AI's follow-up response via SSE."
+          }
+        },
+        {
+          "name": "Reject Action (SSE)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/actions/{{action_id}}/reject",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "actions", "{{action_id}}", "reject"]
+            },
+            "description": "Rejects a pending action and streams the AI's cancellation acknowledgement via SSE."
+          }
+        },
+        {
+          "name": "Get Action",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/actions/{{action_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "actions", "{{action_id}}"]
+            },
+            "description": "Fetches a single pending action by ID for status polling."
           }
         }
       ]

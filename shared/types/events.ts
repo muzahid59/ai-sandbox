@@ -3,6 +3,7 @@ export type SSEEvent =
   | DeltaEvent
   | ToolUseStartEvent
   | ToolUseResultEvent
+  | ActionPendingEvent
   | DoneEvent
   | ErrorEvent;
 
@@ -33,10 +34,19 @@ export interface ToolUseResultEvent {
   output: string;
 }
 
+export interface ActionPendingEvent {
+  type: 'action_pending';
+  action_id: string;
+  msg_id: string;
+  tool_name: string;
+  arguments: Record<string, unknown>;
+  expires_at: string;
+}
+
 export interface DoneEvent {
   type: 'done';
   msg_id: string;
-  stop_reason: 'end_turn' | 'tool_use' | 'max_tokens';
+  stop_reason: 'end_turn' | 'tool_use' | 'max_tokens' | 'action_pending';
   tool_calls_count: number;
 }
 

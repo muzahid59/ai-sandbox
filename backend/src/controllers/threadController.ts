@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { createThread, listThreads, getThreadById, updateThread, softDeleteThread } from '../services/threadService';
 import { getByThread } from '../services/messageService';
+import { getThreadPendingAction } from '../services/pendingActionService';
 import { getPreferences } from '../services/preferencesService';
 import { BadRequestError, NotFoundError } from '../errors';
 import logger from '../config/logger';
@@ -43,8 +44,17 @@ export async function handleGetThread(req: Request, res: Response) {
   if (!thread) throw new NotFoundError('Thread not found');
 
   const messages = await getByThread(thread.id);
-  log.info({ messageCount: messages.length, durationMs: Date.now() - start }, 'Thread fetched');
-  return res.json({ thread, messages });
+  const pending = await getThreadPendingAction(thread.id);
+  const pendingAction = pending ? {
+    id: pending.id,
+    messageId: pending.messageId,
+    toolName: pending.toolName,
+    arguments: pending.arguments,
+    status: pending.status,
+    expiresAt: pending.expiresAt.toISOString(),
+  } : null;
+  log.info({ messageCount: messages.length, hasPendingAction: !!pending, durationMs: Date.now() - start }, 'Thread fetched');
+  return res.json({ thread, messages, pendingAction });
 }
 
 export async function handleUpdateThread(req: Request, res: Response) {

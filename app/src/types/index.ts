@@ -7,8 +7,11 @@ export type {
   DeltaEvent,
   ToolUseStartEvent,
   ToolUseResultEvent,
+  ActionPendingEvent,
   DoneEvent,
   ErrorEvent,
+  PendingAction,
+  PendingActionStatus,
 } from '@shared/types';
 
 import type {
@@ -19,6 +22,8 @@ import type {
   ErrorEvent,
   ToolUseStartEvent,
   ToolUseResultEvent,
+  ActionPendingEvent,
+  PendingAction,
 } from '@shared/types';
 
 export interface UIDocumentSource {
@@ -89,6 +94,8 @@ export interface ChatInputProps {
   documentUpload?: React.ReactNode;
   pendingFile?: File | null;
   onRemovePendingFile?: () => void;
+  isPendingApproval?: boolean;
+  pendingHintMessage?: string;
 }
 
 export interface MessageBubbleProps {
@@ -97,6 +104,11 @@ export interface MessageBubbleProps {
 
 export interface MessageListProps {
   messages: UIMessage[];
+  pendingAction?: PendingAction | null;
+  onApproveAction?: () => void;
+  onRejectAction?: () => void;
+  isActionLoading?: boolean;
+  onActionStatusChange?: (status: string) => void;
 }
 
 export interface SidebarProps {

@@ -18,11 +18,14 @@ export type {
   DeltaEvent,
   ToolUseStartEvent,
   ToolUseResultEvent,
+  ActionPendingEvent,
   DoneEvent,
   ErrorEvent,
 } from './events';
 
 export type { Memory, MemorySource, UserPreferences } from './memory';
+
+export type { PendingAction, PendingActionStatus } from './pendingAction';
 
 export type {
   DocumentSourceType,

@@ -16,6 +16,9 @@ const TOOLS = [
   { id: 'web_search', name: 'Web Search' },
   { id: 'fetch_url', name: 'Fetch URL' },
   { id: 'google_calendar', name: 'Google Calendar' },
+  { id: 'create_calendar_event', name: 'Create Calendar Event' },
+  { id: 'list_drafts', name: 'List Drafts' },
+  { id: 'test_approval', name: 'Test Approval' },
 ];
 
 const ChatInput: React.FC<ChatInputProps> = ({
@@ -36,6 +39,8 @@ const ChatInput: React.FC<ChatInputProps> = ({
   documentUpload,
   pendingFile,
   onRemovePendingFile,
+  isPendingApproval,
+  pendingHintMessage,
 }) => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const toolModalRef = useRef<HTMLDivElement>(null);
@@ -107,14 +112,20 @@ const ChatInput: React.FC<ChatInputProps> = ({
         <textarea
           ref={textareaRef}
           value={inputValue}
-          placeholder={isListening ? 'Listening...' : 'Ask anything...'}
+          placeholder={
+            isPendingApproval
+              ? pendingHintMessage || 'Please approve or reject the pending action before sending a new message.'
+              : isListening
+                ? 'Listening...'
+                : 'Ask anything...'
+          }
           onChange={(e) => {
             setInputValue(e.target.value);
             autoResize();
           }}
           onKeyDown={handleKeyDown}
           className={styles.textInput}
-          disabled={isLoading}
+          disabled={isLoading || isPendingApproval}
           rows={1}
         />
         <input
