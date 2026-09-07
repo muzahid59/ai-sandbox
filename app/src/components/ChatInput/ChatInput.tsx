@@ -16,6 +16,8 @@ const TOOLS = [
   { id: 'web_search', name: 'Web Search' },
   { id: 'fetch_url', name: 'Fetch URL' },
   { id: 'google_calendar', name: 'Google Calendar' },
+  { id: 'create_calendar_event', name: 'Create Calendar Event' },
+  { id: 'list_drafts', name: 'List Drafts' },
   { id: 'test_approval', name: 'Test Approval' },
 ];
 

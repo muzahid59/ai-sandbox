@@ -32,11 +32,13 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
     'web_search',
     'fetch_url',
     'google_calendar',
+    'create_calendar_event',
     'read_emails',
     'search_emails',
     'summarize_emails',
     'draft_email',
     'reply_email',
+    'list_drafts',
     'test_approval',
   ]);
   const [threadNotFound, setThreadNotFound] = useState(false);

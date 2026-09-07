@@ -2,8 +2,6 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { getGoogleConnectionStatus, disconnectGoogle, GoogleConnectionStatus } from '../../api';
 import styles from './GoogleConnection.module.css';
 
-const GOOGLE_AUTH_URL = `${process.env.REACT_APP_API_URL || 'http://localhost:5001'}/api/v1/auth/google`;
-
 const GoogleConnection: React.FC = () => {
   const [status, setStatus] = useState<GoogleConnectionStatus | null>(null);
   const [loading, setLoading] = useState(true);
@@ -84,7 +82,7 @@ const GoogleConnection: React.FC = () => {
 
   return (
     <div className={styles.container}>
-      <a href={GOOGLE_AUTH_URL} className={styles.connectButton}>
+      <a href={status.authorizeUrl} className={styles.connectButton}>
         Connect Google
       </a>
     </div>
