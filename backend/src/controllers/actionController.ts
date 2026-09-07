@@ -73,11 +73,16 @@ export async function handleApproveAction(req: Request, res: Response) {
       }],
     });
 
+    let providerStreamed = false;
     const aiResponse = await provider.chatCompletion({
       messages,
       tools: [],
-      onDelta: (text) => writer.sendDelta(text),
+      onDelta: (text) => { providerStreamed = true; writer.sendDelta(text); },
     });
+
+    if (!providerStreamed && aiResponse.text) {
+      writer.sendDelta(aiResponse.text);
+    }
 
     await createMessage({
       threadId: action.threadId,
@@ -145,11 +150,16 @@ export async function handleRejectAction(req: Request, res: Response) {
       }],
     });
 
+    let providerStreamed = false;
     const aiResponse = await provider.chatCompletion({
       messages,
       tools: [],
-      onDelta: (text) => writer.sendDelta(text),
+      onDelta: (text) => { providerStreamed = true; writer.sendDelta(text); },
     });
+
+    if (!providerStreamed && aiResponse.text) {
+      writer.sendDelta(aiResponse.text);
+    }
 
     await createMessage({
       threadId: action.threadId,
