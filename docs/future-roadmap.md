@@ -72,14 +72,14 @@ This document captures planned features, their rationale, technical approach, an
 - System prompt engineering: how injected context shapes AI behaviour without the user seeing it
 - Token budgeting: you can't inject unlimited context — recency-ordered trimming is the simplest strategy
 
-**The scaling problem — and what comes next (§2.2):**
+**The scaling problem — future improvement:**
 
 Full injection works fine at up to ~50 memories. Beyond that, two problems emerge:
 
 1. **Cost**: every message pays for the full memory block in input tokens, even if most memories are irrelevant to the current question. At scale, providers charge per token — this adds up.
 2. **Quality**: injecting 200 memories dilutes attention. The AI may ignore older or less relevant facts.
 
-The production solution is **semantic retrieval**: instead of injecting everything, embed the user's current message as a vector, then fetch only the top-5 most similar memories from the database. The pgvector infrastructure for this is built in §2.2 (for documents) — once it exists, upgrading memory injection is a small change: swap `findMany` for a vector similarity query.
+The production solution is **semantic retrieval**: instead of injecting everything, embed the user's current message as a vector, then fetch only the top-5 most similar memories from the database. The pgvector infrastructure for this is already in place from §2.2 — upgrading memory injection is a small change: add an `embedding vector(1536)` column to the `Memory` table, backfill embeddings, and swap `findMany` in `memoryService.buildMemorySystemPrompt()` for a pgvector similarity query. Flagged as a future improvement; deprioritised in favour of Phase 3.
 
 **Prompt caching** is the other lever: providers (Anthropic, OpenAI, Google) cache the stable prefix of the system prompt at ~10% of normal token cost. A memory block that hasn't changed between messages is served from cache — so the marginal cost of large system prompts drops significantly in production.
 
