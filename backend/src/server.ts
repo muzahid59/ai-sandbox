@@ -12,8 +12,10 @@ import { authRoutes } from './routes/authRoutes';
 import { memoryRoutes } from './routes/memoryRoutes';
 import { preferencesRoutes } from './routes/preferencesRoutes';
 import { documentRoutes } from './routes/documentRoutes';
+import { actionRoutes } from './routes/actionRoutes';
 import { registerAllTools } from './tools';
 import { toolRegistry } from './services/toolRegistry';
+import { expireOverdue } from './services/pendingActionService';
 import { registerProviders } from './providers';
 import logger from './config/logger';
 
@@ -47,6 +49,7 @@ app.use('/api/v1', messageRoutes);
 app.use('/api/v1', memoryRoutes);
 app.use('/api/v1', preferencesRoutes);
 app.use('/api/v1/threads/:threadId/documents', documentRoutes);
+app.use('/api/v1', actionRoutes);
 
 app.get('/health', (_req, res) => {
   res.status(200).json({ status: 'ok' });
@@ -60,6 +63,18 @@ app.get('/', (_req, res) => {
 app.use(errorHandler);
 
 export { app };
+
+const EXPIRY_INTERVAL_MS = 60_000;
+setInterval(async () => {
+  try {
+    const count = await expireOverdue();
+    if (count > 0) {
+      logger.info({ expiredCount: count }, 'Expired overdue pending actions');
+    }
+  } catch (err) {
+    logger.error({ err }, 'Pending action expiry check failed');
+  }
+}, EXPIRY_INTERVAL_MS);
 
 if (require.main === module) {
   app.listen(port, () => {

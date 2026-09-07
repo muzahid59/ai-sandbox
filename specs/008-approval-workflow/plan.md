@@ -16,7 +16,7 @@
 - **AI Integration**: Multi-provider via `ai_factory.js` (OpenAI, Google, DeepSeek, Ollama)
 - **Tool System**: `ToolRegistry` singleton (`backend/src/services/toolRegistry.ts`), `ToolDefinition` interface (`backend/src/types/index.ts`), `runAgenticLoop` function (`backend/src/services/toolExecutor.ts`)
 - **SSE Streaming**: `SSEWriter` utility, event types: `message_created`, `delta`, `tool_use_start`, `tool_use_result`, `done`, `error`
-- **Auth**: JWT-based via `backend/src/middleware/auth.ts`, `req.user` injected on all `/api/v1` routes
+- **Auth**: Hardcoded dev middleware via `backend/src/middleware/auth.ts`, `req.user` injected on all `/api/v1` routes (real JWT auth deferred to feature 005)
 - **Message Flow**: `handleSendMessage` → `processMessage` (chatService) → `runAgenticLoop` (toolExecutor)
 
 ### Key Integration Points

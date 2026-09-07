@@ -2,7 +2,8 @@ import { Thread } from '@prisma/client';
 import { createProvider } from '../providers';
 import { toolRegistry } from './toolRegistry';
 import { runAgenticLoop, AgenticLoopCallbacks, AgenticLoopResult } from './toolExecutor';
-import { ContentBlockParam } from '../types/content';
+import { ContentBlockParam, ContentBlock } from '../types/content';
+import { ToolCall } from '../types/messages';
 import { ToolExecutionContext } from '../types/context';
 import { contextService } from './contextService';
 import { getSystemPrompt } from '../prompts';
@@ -16,6 +17,11 @@ export interface ChatResult {
   text: string;
   toolCallCount: number;
   durationMs: number;
+  suspended?: {
+    pendingActionId: string;
+    toolCall: ToolCall;
+    contentBlocks: ContentBlock[];
+  };
 }
 
 const NO_TOOL_MODELS = ['gemma'];
@@ -85,5 +91,6 @@ export async function processMessage(
     text: loopResult.finalText,
     toolCallCount: loopResult.toolCallRecords.length,
     durationMs,
+    suspended: loopResult.suspended,
   };
 }

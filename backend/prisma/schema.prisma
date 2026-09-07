@@ -48,6 +48,13 @@ enum MessageStatus {
   error
 }
 
+enum PendingActionStatus {
+  pending
+  approved
+  rejected
+  expired
+}
+
 model Thread {
   id                String       @id @default(uuid())
   userId            String       @map("user_id")
@@ -62,6 +69,7 @@ model Thread {
   messages          Message[]
   documents         Document[]
   extractedMemories Memory[]     @relation("MemorySourceThread")
+  pendingActions    PendingAction[]
 
   @@index([userId])
   @@index([createdAt(sort: Desc)])
@@ -82,6 +90,7 @@ model Message {
   completedAt   DateTime?     @map("completed_at")
   thread        Thread        @relation(fields: [threadId], references: [id], onDelete: Cascade)
   toolCalls     ToolCall[]
+  pendingAction PendingAction?
 
   @@index([threadId, createdAt(sort: Desc)])
   @@map("messages")
@@ -121,6 +130,7 @@ model User {
   memories         Memory[]
   documents        Document[]
   preferences      UserPreferences?
+  pendingActions   PendingAction[]
 
   @@map("users")
 }
@@ -221,4 +231,26 @@ model DocumentChunk {
 
   @@index([documentId])
   @@map("document_chunks")
+}
+
+model PendingAction {
+  id          String              @id @default(uuid())
+  threadId    String              @map("thread_id")
+  userId      String              @map("user_id")
+  messageId   String              @unique @map("message_id")
+  toolName    String              @map("tool_name") @db.VarChar(100)
+  toolCallId  String              @map("tool_call_id") @db.VarChar(100)
+  arguments   Json
+  status      PendingActionStatus @default(pending)
+  expiresAt   DateTime            @map("expires_at")
+  resolvedAt  DateTime?           @map("resolved_at")
+  createdAt   DateTime            @default(now()) @map("created_at")
+  thread      Thread              @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  user        User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  message     Message             @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@index([threadId, status])
+  @@index([userId])
+  @@index([expiresAt, status])
+  @@map("pending_actions")
 }

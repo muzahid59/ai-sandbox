@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { fetchThread, createThread, sendMessage, uploadDocument, listDocuments, deleteDocument, cancelDocument } from '../../api';
+import { fetchThread, createThread, sendMessage, approveAction, rejectAction, uploadDocument, listDocuments, deleteDocument, cancelDocument } from '../../api';
 import MessageList from '../MessageList/MessageList';
 import ChatInput from '../ChatInput/ChatInput';
 import DocumentUpload from '../DocumentUpload';
 import DocumentPanel from '../DocumentPanel';
-import type { UIMessage, ChatContainerProps, UIDocumentSource } from '../../types';
+import type { UIMessage, ChatContainerProps, UIDocumentSource, PendingAction } from '../../types';
 import type { Document } from '@shared/types/document';
 import styles from './ChatContainer.module.css';
 
@@ -37,8 +37,11 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
     'summarize_emails',
     'draft_email',
     'reply_email',
+    'test_approval',
   ]);
   const [threadNotFound, setThreadNotFound] = useState(false);
+  const [pendingAction, setPendingAction] = useState<PendingAction | null>(null);
+  const [isActionLoading, setIsActionLoading] = useState(false);
   const [documents, setDocuments] = useState<Document[]>([]);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const pendingSourcesRef = useRef<UIDocumentSource[]>([]);
@@ -48,6 +51,8 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
 
   useEffect(() => {
     setThreadNotFound(false);
+    setPendingAction(null);
+    setIsActionLoading(false);
 
     if (!threadId) {
       setMessages([]);
@@ -63,8 +68,9 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
     let cancelled = false;
 
     fetchThread(threadId)
-      .then(({ thread, messages: threadMessages }) => {
+      .then((data) => {
         if (cancelled) return;
+        const { thread, messages: threadMessages, pendingAction: pa } = data;
         setSelectedModel(thread.model);
         setMessages(
           threadMessages.map((m) => ({
@@ -79,6 +85,20 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
             done: true,
           }))
         );
+        if (pa && pa.status === 'pending') {
+          setPendingAction({
+            id: pa.id,
+            threadId: threadId!,
+            userId: '',
+            messageId: pa.messageId,
+            toolName: pa.toolName,
+            arguments: pa.arguments,
+            status: pa.status as 'pending',
+            expiresAt: pa.expiresAt,
+            resolvedAt: null,
+            createdAt: '',
+          });
+        }
       })
       .then(() => {
         if (!cancelled) {
@@ -218,6 +238,20 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
               prev.map((m) => (!m.sent && !m.done ? { ...m, text: m.text + data.text } : m))
             );
           },
+          onActionPending: (data) => {
+            setPendingAction({
+              id: data.action_id,
+              threadId: currentThreadId!,
+              userId: '',
+              messageId: data.msg_id,
+              toolName: data.tool_name,
+              arguments: data.arguments,
+              status: 'pending',
+              expiresAt: data.expires_at,
+              resolvedAt: null,
+              createdAt: new Date().toISOString(),
+            });
+          },
           onDocumentSearchResult: (sources) => {
             pendingSourcesRef.current = sources;
           },
@@ -259,6 +293,75 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
     },
     [threadId, selectedModel, selectedTools, pendingFile, onThreadCreated, onThreadUpdated]
   );
+
+  const handleApproveAction = useCallback(async () => {
+    if (!pendingAction) return;
+    setIsActionLoading(true);
+    const tempId = 'temp-approval-response-' + Date.now();
+    setMessages((prev) => [...prev, { id: tempId, text: '', sent: false, done: false }]);
+    try {
+      await approveAction(pendingAction.id, {
+        onDelta: (data) => {
+          setMessages((prev) =>
+            prev.map((m) => (!m.sent && !m.done ? { ...m, text: m.text + data.text } : m)),
+          );
+        },
+        onDone: () => {
+          setMessages((prev) => prev.map((m) => (!m.sent && !m.done ? { ...m, done: true } : m)));
+          setPendingAction((prev) => (prev ? { ...prev, status: 'approved' as const } : null));
+          setIsActionLoading(false);
+        },
+        onError: (data) => {
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === tempId ? { ...m, text: `Error: ${data.message}`, done: true, isError: true } : m,
+            ),
+          );
+          setIsActionLoading(false);
+        },
+      });
+    } catch {
+      setIsActionLoading(false);
+    }
+  }, [pendingAction]);
+
+  const handleActionStatusChange = useCallback((status: string) => {
+    setPendingAction((prev) => (prev ? { ...prev, status: status as PendingAction['status'] } : null));
+    if (status === 'expired') {
+      setIsActionLoading(false);
+    }
+  }, []);
+
+  const handleRejectAction = useCallback(async () => {
+    if (!pendingAction) return;
+    setIsActionLoading(true);
+    const tempId = 'temp-reject-response-' + Date.now();
+    setMessages((prev) => [...prev, { id: tempId, text: '', sent: false, done: false }]);
+    try {
+      await rejectAction(pendingAction.id, {
+        onDelta: (data) => {
+          setMessages((prev) =>
+            prev.map((m) => (!m.sent && !m.done ? { ...m, text: m.text + data.text } : m)),
+          );
+        },
+        onDone: () => {
+          setMessages((prev) => prev.map((m) => (!m.sent && !m.done ? { ...m, done: true } : m)));
+          setPendingAction((prev) => (prev ? { ...prev, status: 'rejected' as const } : null));
+          setIsActionLoading(false);
+        },
+        onError: (data) => {
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === tempId ? { ...m, text: `Error: ${data.message}`, done: true, isError: true } : m,
+            ),
+          );
+          setIsActionLoading(false);
+        },
+      });
+    } catch {
+      setIsActionLoading(false);
+    }
+  }, [pendingAction]);
 
   const refreshDocuments = useCallback(() => {
     if (threadId) {
@@ -303,6 +406,8 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
     }
   };
 
+  const isPendingApproval = pendingAction?.status === 'pending';
+
   const inputProps = {
     inputValue,
     setInputValue,
@@ -318,6 +423,7 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
     onModelChange: setSelectedModel,
     selectedTools,
     onToolsChange: setSelectedTools,
+    isPendingApproval,
   };
 
   if (threadNotFound) {
@@ -355,7 +461,14 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
               onRefresh={refreshDocuments}
             />
           )}
-          <MessageList messages={messages} />
+          <MessageList
+            messages={messages}
+            pendingAction={pendingAction}
+            onApproveAction={handleApproveAction}
+            onRejectAction={handleRejectAction}
+            isActionLoading={isActionLoading}
+            onActionStatusChange={handleActionStatusChange}
+          />
           <ChatInput {...inputProps}
             pendingFile={pendingFile}
             onRemovePendingFile={() => setPendingFile(null)}

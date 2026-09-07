@@ -28,6 +28,12 @@ jest.mock('../../src/services/contextService', () => ({
 }));
 jest.mock('../../src/services/chatService', () => mockChatService);
 
+const mockPendingActionService = {
+  getThreadPendingAction: jest.fn(),
+  createPendingAction: jest.fn(),
+};
+jest.mock('../../src/services/pendingActionService', () => mockPendingActionService);
+
 // Mock prisma for title update
 const mockPrisma = {
   thread: { update: jest.fn() },
@@ -97,6 +103,7 @@ describe('Message API', () => {
 
     it('returns 400 if content is missing', async () => {
       mockThreadService.getThreadById.mockResolvedValue({ id: 'tid-1', userId: USER_ID });
+      mockPendingActionService.getThreadPendingAction.mockResolvedValue(null);
 
       const res = await request(app)
         .post('/api/v1/threads/tid-1/messages')
@@ -104,6 +111,23 @@ describe('Message API', () => {
         .send({});
 
       expect(res.status).toBe(400);
+    });
+
+    it('returns 409 when thread has a pending action', async () => {
+      mockThreadService.getThreadById.mockResolvedValue({ id: 'tid-1', userId: USER_ID });
+      mockPendingActionService.getThreadPendingAction.mockResolvedValue({
+        id: 'pa-1',
+        threadId: 'tid-1',
+        status: 'pending',
+      });
+
+      const res = await request(app)
+        .post('/api/v1/threads/tid-1/messages')
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ content: [{ type: 'text', text: 'Hi' }] });
+
+      expect(res.status).toBe(409);
+      expect(res.body.code).toBe('APPROVAL_PENDING');
     });
   });
 });

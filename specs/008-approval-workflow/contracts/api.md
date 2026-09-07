@@ -6,7 +6,7 @@
 
 Approves a pending action, executes the tool, and streams the AI's follow-up response.
 
-**Auth**: Bearer JWT (existing auth middleware)
+**Auth**: Existing auth middleware (`req.user` injected)
 
 **Path params**: `id` — PendingAction UUID
 
@@ -36,7 +36,7 @@ data: {"type": "done", "msg_id": "msg_456", "stop_reason": "end_turn", "tool_cal
 
 Rejects a pending action and streams the AI's cancellation acknowledgement.
 
-**Auth**: Bearer JWT
+**Auth**: Existing auth middleware (`req.user` injected)
 
 **Path params**: `id` — PendingAction UUID
 
@@ -63,13 +63,14 @@ data: {"type": "done", "msg_id": "msg_789", "stop_reason": "end_turn", "tool_cal
 
 Fetches a single pending action by ID (for polling / status check).
 
-**Auth**: Bearer JWT
+**Auth**: Existing auth middleware (`req.user` injected)
 
 **Response**: `200 OK`
 ```json
 {
   "id": "pa_uuid",
   "threadId": "thread_uuid",
+  "messageId": "msg_uuid",
   "toolName": "send_email",
   "arguments": {
     "to": "sarah@example.com",
@@ -105,6 +106,7 @@ Response gains `pendingAction` field:
   "status": "active",
   "pendingAction": {
     "id": "pa_uuid",
+    "messageId": "msg_uuid",
     "toolName": "send_email",
     "arguments": {
       "to": "sarah@example.com",
@@ -147,6 +149,7 @@ Emitted when the agentic loop suspends waiting for approval. Sent before the `do
 {
   "type": "action_pending",
   "action_id": "pa_uuid",
+  "msg_id": "msg_uuid",
   "tool_name": "send_email",
   "arguments": {
     "to": "sarah@example.com",

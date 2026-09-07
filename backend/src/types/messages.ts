@@ -36,6 +36,7 @@ export interface ToolDefinition {
   name: string;
   description: string;
   input_schema: ToolInputSchema;
+  requiresApproval?: boolean;
 }
 
 // ─── Tool Execution ───

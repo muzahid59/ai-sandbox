@@ -21,6 +21,7 @@ interface SSECallbacks {
   onError?: (data: { message: string }) => void;
   onToolUseStart?: (data: Record<string, unknown>) => void;
   onToolUseResult?: (data: Record<string, unknown>) => void;
+  onActionPending?: (data: { action_id: string; msg_id: string; tool_name: string; arguments: Record<string, unknown>; expires_at: string }) => void;
   onDocumentSearchStart?: () => void;
   onDocumentSearchResult?: (sources: Array<{ documentId: string; documentTitle: string; chunkIndex: number; relevanceScore: number; snippet: string }>) => void;
   onDocumentSearchEmpty?: () => void;
@@ -43,6 +44,14 @@ interface FetchThreadResponse {
     role: string;
     content: ContentBlock[];
   }>;
+  pendingAction?: {
+    id: string;
+    messageId: string;
+    toolName: string;
+    arguments: Record<string, unknown>;
+    status: string;
+    expiresAt: string;
+  } | null;
 }
 
 export async function fetchThreads(): Promise<FetchThreadsResponse[]> {
@@ -92,7 +101,7 @@ export async function sendMessage(
   tools: string[],
   callbacks: SSECallbacks
 ): Promise<void> {
-  const { onCreated, onDelta, onDone, onError, onToolUseStart, onToolUseResult, onDocumentSearchStart, onDocumentSearchResult, onDocumentSearchEmpty, onAuthExpired } =
+  const { onCreated, onDelta, onDone, onError, onToolUseStart, onToolUseResult, onActionPending, onDocumentSearchStart, onDocumentSearchResult, onDocumentSearchEmpty, onAuthExpired } =
     callbacks;
   try {
     const token = getAccessToken();
@@ -143,6 +152,9 @@ export async function sendMessage(
               case 'content_block_stop':
                 onToolUseResult?.(data.tool_result);
                 break;
+              case 'action_pending':
+                onActionPending?.(data);
+                break;
               case 'message_stop':
                 onDone?.(data);
                 break;
@@ -175,6 +187,99 @@ export async function sendMessage(
     const msg = error instanceof Error ? error.message : 'Unknown error';
     onError?.({ message: msg });
   }
+}
+
+async function streamActionSSE(url: string, callbacks: SSECallbacks): Promise<void> {
+  const { onDelta, onDone, onError, onToolUseResult, onAuthExpired } = callbacks;
+  try {
+    const token = getAccessToken();
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+
+    const res = await fetch(url, {
+      method: 'POST',
+      headers,
+      credentials: 'include',
+    });
+
+    if (res.status === 401) {
+      onAuthExpired?.();
+      return;
+    }
+
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({ message: `Server error: ${res.status}` }));
+      onError?.({ message: body.message || `Server error: ${res.status}` });
+      return;
+    }
+
+    const reader = res.body!.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+
+    // eslint-disable-next-line no-constant-condition
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || '';
+
+      for (const line of lines) {
+        if (line.startsWith('data: ')) {
+          try {
+            const data = JSON.parse(line.slice(5));
+            switch (data.type) {
+              case 'content_block_delta':
+                onDelta?.({ text: data.delta?.text || '' });
+                break;
+              case 'content_block_stop':
+                onToolUseResult?.(data.tool_result);
+                break;
+              case 'message_stop':
+                onDone?.(data);
+                break;
+              case 'error':
+                onError?.(data.error || data);
+                break;
+              default:
+                break;
+            }
+          } catch {
+            // skip malformed SSE chunks
+          }
+        }
+      }
+    }
+  } catch (error) {
+    if (error instanceof AuthExpiredError) {
+      onAuthExpired?.();
+      return;
+    }
+    const msg = error instanceof Error ? error.message : 'Unknown error';
+    onError?.({ message: msg });
+  }
+}
+
+export async function approveAction(
+  actionId: string,
+  callbacks: SSECallbacks,
+): Promise<void> {
+  return streamActionSSE(`${API_URL}/api/v1/actions/${actionId}/approve`, callbacks);
+}
+
+export async function rejectAction(
+  actionId: string,
+  callbacks: SSECallbacks,
+): Promise<void> {
+  return streamActionSSE(`${API_URL}/api/v1/actions/${actionId}/reject`, callbacks);
+}
+
+export async function getAction(actionId: string): Promise<Record<string, unknown>> {
+  const res = await fetchWithAuth(`${API_URL}/api/v1/actions/${actionId}`);
+  if (!res.ok) throw new Error(`Failed to get action: ${res.status}`);
+  return res.json();
 }
 
 export async function uploadDocument(threadId: string, file: File): Promise<Document> {

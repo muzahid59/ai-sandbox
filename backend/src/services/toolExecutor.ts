@@ -17,11 +17,17 @@ export interface AgenticLoopCallbacks {
   onDelta: (text: string) => void;
   onToolUseStart: (call: ToolCall) => void;
   onToolUseResult: (callId: string, name: string, result: ToolResult) => void;
+  onApprovalRequired?: (pendingAction: { id: string; toolCall: ToolCall; expiresAt: Date }) => void;
 }
 
 export interface AgenticLoopResult {
   finalText: string;
   toolCallRecords: ToolCallRecord[];
+  suspended?: {
+    pendingActionId: string;
+    toolCall: ToolCall;
+    contentBlocks: ContentBlock[];
+  };
 }
 
 /**
@@ -100,6 +106,26 @@ export async function runAgenticLoop(
       content: response.contentBlocks,
       tool_calls: response.toolCalls,
     });
+
+    // 3b. Check for approval-required tools before execution
+    const approvalToolCall = response.toolCalls.find((tc) => {
+      const def = tools.find((t) => t.name === tc.name);
+      return def?.requiresApproval === true;
+    });
+
+    if (approvalToolCall) {
+      callbacks.onApprovalRequired?.({ id: '', toolCall: approvalToolCall, expiresAt: new Date() });
+      log.info({ tool: approvalToolCall.name, iteration: i + 1 }, 'Loop suspended — tool requires approval');
+      return {
+        finalText,
+        toolCallRecords: allRecords,
+        suspended: {
+          pendingActionId: '',
+          toolCall: approvalToolCall,
+          contentBlocks: response.contentBlocks,
+        },
+      };
+    }
 
     // 4. Execute ALL tool calls in parallel (Anthropic pattern)
     const toolCallPromises = response.toolCalls.map(async (toolCall): Promise<ToolCallRecord> => {
