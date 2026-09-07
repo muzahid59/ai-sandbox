@@ -75,13 +75,19 @@ The current agentic loop executes tools immediately and silently. For read-only 
 **When** the user refreshes the browser or returns to the thread  
 **Then** the approval card re-appears in the same pending state, and the agentic loop is still paused
 
+**Variant 3a: User remains on page during timeout**
+
+**Given** an approval card has been pending for more than 10 minutes with the user on the page  
+**When** the 10-minute timeout passes  
+**Then** the card status updates to "Expired" via periodic polling (without requiring a refresh), and an assistant message appears in the thread noting the action was cancelled
+
 ---
 
 ### Scenario 4: Approval timeout
 
 **Given** an approval card has been pending for 10 minutes with no user action  
 **When** the timeout elapses  
-**Then** the action auto-rejects, the card updates to show "Expired", and the agentic loop resumes with the rejection result
+**Then** the action auto-rejects, the card updates to show "Expired" (detected via periodic status polling), and the agentic loop resumes with the rejection result
 
 ---
 
@@ -117,8 +123,8 @@ When the loop suspends, a real-time event is emitted to the client containing th
 
 ### FR5 — Approval card UI
 The approval card renders inline in the chat thread (not a modal or separate page). It displays:
-- A human-readable action name (e.g. "Send email")
-- All arguments in a readable formatted preview (not raw JSON)
+- A human-readable action name derived mechanically from the tool definition ID (e.g. `send_email` → "Send email": capitalize and replace underscores with spaces)
+- All arguments in a readable formatted preview (not raw JSON), displayed as labeled key-value pairs (e.g., "Recipient: sarah@example.com") with tool-specific formatting for rich fields (e.g., email body shown as prose, not a stringified JSON value)
 - Approve and Reject buttons (disabled once the action is resolved)
 - Current status: Pending / Approved / Rejected / Expired
 
@@ -134,7 +140,7 @@ Validates ownership, transitions status to `rejected`, resumes the agentic loop 
 A pending action that has already been approved, rejected, or expired cannot be transitioned again. Duplicate attempts return an error.
 
 ### FR9 — Expiry
-Pending actions older than 10 minutes auto-reject. A background process detects and transitions expired actions.
+Pending actions older than 10 minutes auto-reject. A background process detects and transitions expired actions, and an assistant message is created in the thread to notify the user of the expiry. The approval card updates to "Expired" status when the expiry is detected (within 60 seconds of the timeout).
 
 ### FR10 — Persistence across restart and reload
 When the user returns to a thread containing a pending action — whether after a browser refresh or a server restart — the approval card is restored from the server-side record. On approval post-restart, the approve endpoint reconstructs the agentic loop from stored context (thread message history, toolCallId, arguments) rather than requiring a live in-memory loop.
@@ -147,10 +153,10 @@ A user can only approve or reject pending actions belonging to their own threads
 ## Success Criteria
 
 1. **Zero unintended executions**: No approval-required tool executes without explicit user approval.
-2. **Approval card renders within 2 seconds** of the AI deciding to call a flagged tool.
+2. **Approval card renders within 2 seconds** — measured from SSE event arrival on the client to card visible on screen (including network latency).
 3. **Approve and Reject complete within 3 seconds** — the AI's follow-up response begins streaming within 3 seconds of the user clicking either button.
 4. **Full persistence on reload**: 100% of pending approval cards re-appear correctly after a browser refresh.
-5. **Reliable auto-expiry**: Pending actions older than 10 minutes are auto-rejected without manual intervention.
+5. **Reliable auto-expiry**: Pending actions older than 10 minutes are auto-rejected within 60 seconds of the timeout expiring. If user remains on page, card status updates via polling; if user is away, expiry notification appears on next page visit.
 6. **No regression on existing tools**: web search, document search, and fetch URL continue to execute without any approval step.
 
 ---
@@ -163,7 +169,7 @@ A user can only approve or reject pending actions belonging to their own threads
 |--------------|--------------------------------------------------------------|
 | id           | Unique identifier (UUID)                                     |
 | threadId     | Thread this action belongs to                                |
-| userId       | Owning user                                                  |
+| userId       | Owning user (for authorization — see FR11)                   |
 | messageId    | The assistant message that triggered the action              |
 | toolName     | The tool the AI wants to call (e.g. `send_email`)            |
 | toolCallId   | The tool call ID from the AI provider                        |
@@ -177,7 +183,7 @@ A user can only approve or reject pending actions belonging to their own threads
 
 ## Dependencies
 
-- Real authentication (005) must be complete — pending actions are user-scoped.
+- Real authentication (005) is recommended — pending actions are user-scoped. The current hardcoded dev middleware (`auth.ts`) provides a `req.user` sufficient for development and testing. Production deployment requires real auth.
 - The agentic loop (`toolExecutor.ts`) must be extended to support pause and resume.
 - At least one approval-required tool must exist. A stub "test approval tool" with no real side effects will be used during development; `send_email` (Phase 4.2) is the first production consumer.
 
@@ -201,3 +207,4 @@ A user can only approve or reject pending actions belonging to their own threads
 - The approval card is delivered via the existing SSE infrastructure; no separate WebSocket connection is needed.
 - Arguments are displayed in human-readable format (e.g. email body as prose, not JSON string), with display formatting determined per tool.
 - Rejected actions do not automatically retry — the user must re-ask the AI if they want it to try a different approach.
+- Background expiry scan runs every 60 seconds; client-side status polling checks every 30 seconds when a pending action is present.
