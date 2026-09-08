@@ -28,6 +28,13 @@ export type { Memory, MemorySource, UserPreferences } from './memory';
 export type { PendingAction, PendingActionStatus } from './pendingAction';
 
 export type {
+  ScheduledTask,
+  TaskExecution,
+  CreateScheduledTaskRequest,
+  UpdateScheduledTaskRequest,
+} from './scheduledTask';
+
+export type {
   DocumentSourceType,
   DocumentStatus,
   DuplicateNotice,

@@ -13,9 +13,11 @@ import { memoryRoutes } from './routes/memoryRoutes';
 import { preferencesRoutes } from './routes/preferencesRoutes';
 import { documentRoutes } from './routes/documentRoutes';
 import { actionRoutes } from './routes/actionRoutes';
+import { scheduledTaskRoutes } from './routes/scheduledTaskRoutes';
 import { registerAllTools } from './tools';
 import { toolRegistry } from './services/toolRegistry';
 import { expireOverdue } from './services/pendingActionService';
+import { initScheduler, loadAllTasks, registerWorker, stopScheduler } from './services/taskScheduler';
 import { registerProviders } from './providers';
 import logger from './config/logger';
 
@@ -50,6 +52,7 @@ app.use('/api/v1', memoryRoutes);
 app.use('/api/v1', preferencesRoutes);
 app.use('/api/v1/threads/:threadId/documents', documentRoutes);
 app.use('/api/v1', actionRoutes);
+app.use('/api/v1', scheduledTaskRoutes);
 
 app.get('/health', (_req, res) => {
   res.status(200).json({ status: 'ok' });
@@ -77,7 +80,23 @@ setInterval(async () => {
 }, EXPIRY_INTERVAL_MS);
 
 if (require.main === module) {
-  app.listen(port, () => {
+  app.listen(port, async () => {
     logger.info({ port }, 'Server running');
+    try {
+      await initScheduler(process.env.DATABASE_URL!);
+      await loadAllTasks();
+      await registerWorker();
+      logger.info('Scheduled task scheduler initialized');
+    } catch (err) {
+      logger.error({ err }, 'Failed to initialize scheduler — scheduled tasks will be unavailable');
+    }
   });
+
+  const shutdown = async () => {
+    logger.info('Shutting down gracefully...');
+    await stopScheduler();
+    process.exit(0);
+  };
+  process.on('SIGTERM', shutdown);
+  process.on('SIGINT', shutdown);
 }
