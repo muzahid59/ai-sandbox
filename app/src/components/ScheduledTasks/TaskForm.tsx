@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import cronstrue from 'cronstrue';
 import type { CreateScheduledTaskRequest, ScheduledTask } from '../../types';
+import ScheduleBuilder from './ScheduleBuilder';
 import styles from './TaskForm.module.css';
 
 const MODELS = [
@@ -19,38 +20,17 @@ interface TaskFormProps {
   initialData?: Partial<ScheduledTask>;
 }
 
-const PRESETS: { label: string; value: string }[] = [
-  { label: 'Every 5 minutes', value: '*/5 * * * *' },
-  { label: 'Daily at 9 AM', value: '0 9 * * *' },
-  { label: 'Weekdays at 9 AM', value: '0 9 * * 1-5' },
-  { label: 'Weekly (Monday 9 AM)', value: '0 9 * * 1' },
-  { label: 'Monthly (1st at 9 AM)', value: '0 9 1 * *' },
-  { label: 'Custom', value: '' },
-];
-
 const defaultTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
 const TaskForm: React.FC<TaskFormProps> = ({ onSubmit, onCancel, initialData }) => {
   const [name, setName] = useState(initialData?.name || '');
   const [prompt, setPrompt] = useState(initialData?.prompt || '');
   const [cronExpression, setCronExpression] = useState(initialData?.cronExpression || '0 9 * * *');
-  const [preset, setPreset] = useState(() => {
-    const match = PRESETS.find((p) => p.value === (initialData?.cronExpression || '0 9 * * *'));
-    return match ? match.value : '';
-  });
   const [model, setModel] = useState(initialData?.model || MODELS[0].id);
   const [timezone, setTimezone] = useState(initialData?.timezone || defaultTimezone);
   const [submitting, setSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState('');
-
-  function getCronDescription(): string | null {
-    try {
-      return cronstrue.toString(cronExpression);
-    } catch {
-      return null;
-    }
-  }
 
   function validate(): boolean {
     const e: Record<string, string> = {};
@@ -59,7 +39,9 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSubmit, onCancel, initialData }) 
     if (!prompt.trim()) e.prompt = 'Prompt is required';
     else if (prompt.length > 2000) e.prompt = 'Prompt must be 2000 characters or less';
     if (!cronExpression.trim()) e.cronExpression = 'Schedule is required';
-    else if (!getCronDescription()) e.cronExpression = 'Invalid cron expression';
+    else {
+      try { cronstrue.toString(cronExpression); } catch { e.cronExpression = 'Invalid schedule'; }
+    }
     if (!model.trim()) e.model = 'Model is required';
     if (!timezone.trim()) e.timezone = 'Timezone is required';
     setErrors(e);
@@ -86,13 +68,6 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSubmit, onCancel, initialData }) 
     }
   }
 
-  function handlePresetChange(value: string) {
-    setPreset(value);
-    if (value) setCronExpression(value);
-  }
-
-  const isCustom = preset === '';
-  const cronDesc = getCronDescription();
   const isEdit = !!initialData?.id;
 
   return (
@@ -128,33 +103,11 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSubmit, onCancel, initialData }) 
 
       <div className={styles.field}>
         <label className={styles.label}>Schedule</label>
-        <select
-          className={styles.select}
-          value={preset}
-          onChange={(e) => handlePresetChange(e.target.value)}
-          aria-label="Schedule preset"
-        >
-          {PRESETS.map((p) => (
-            <option key={p.label} value={p.value}>
-              {p.label}
-            </option>
-          ))}
-        </select>
-        {isCustom && (
-          <input
-            className={`${styles.input} ${errors.cronExpression ? styles.inputError : ''}`}
-            type="text"
-            value={cronExpression}
-            onChange={(e) => setCronExpression(e.target.value)}
-            placeholder="e.g. 0 9 * * 1-5 (min hour day month weekday)"
-            aria-label="Custom cron expression"
-          />
-        )}
-        {cronDesc && <span className={styles.cronPreview}>{cronDesc}</span>}
-        {!cronDesc && cronExpression.trim() && (
-          <span className={styles.cronError}>Invalid cron expression</span>
-        )}
-        {errors.cronExpression && <span className={styles.fieldError}>{errors.cronExpression}</span>}
+        <ScheduleBuilder
+          value={cronExpression}
+          onChange={setCronExpression}
+          error={errors.cronExpression}
+        />
       </div>
 
       <div className={styles.field}>

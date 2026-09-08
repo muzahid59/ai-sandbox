@@ -55,36 +55,6 @@
   color: #ef4444;
 }
 
-.cronRow {
-  display: flex;
-  gap: 8px;
-  align-items: flex-start;
-}
-
-.cronRow .select {
-  flex-shrink: 0;
-  width: auto;
-}
-
-.cronRow .input {
-  flex: 1;
-}
-
-.cronPreview {
-  font-size: 12px;
-  color: var(--accent-warm);
-  font-style: italic;
-}
-
-.cronHint {
-  font-size: 11px;
-  color: var(--text-muted);
-}
-
-.cronError {
-  font-size: 12px;
-  color: #ef4444;
-}
 
 .actions {
   display: flex;
