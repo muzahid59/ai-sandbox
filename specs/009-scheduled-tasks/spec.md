@@ -119,7 +119,7 @@ Today, every interaction with the assistant requires the user to initiate a conv
 ## Functional Requirements
 
 ### FR1 — Task creation
-Users can create a scheduled task by providing: a descriptive name, a prompt (the instruction the AI will execute), a cron expression defining the schedule, and an optional thread to post results to. If no thread is specified, a dedicated thread is created automatically.
+Users can create a scheduled task by providing: a descriptive name, a prompt (the instruction the AI will execute), a cron expression defining the schedule, an AI model to use for execution, and an optional thread to post results to. If no thread is specified, a dedicated thread is created automatically. The task management UI is a dedicated section in the sidebar, below the thread list, providing access to create, view, edit, and manage scheduled tasks.
 
 ### FR2 — Cron-based scheduling
 Tasks execute on a recurring basis defined by a standard 5-field cron expression (minute, hour, day-of-month, month, day-of-week). The scheduler evaluates cron expressions in the user's configured timezone.
@@ -143,7 +143,7 @@ Users can update a task's name, prompt, cron expression, and timezone. Changes t
 Users can delete a task permanently. Deletion cancels all future executions. The thread containing past results is not deleted.
 
 ### FR9 — Execution history
-Each task maintains a record of its recent executions (last 50 runs). Each record includes: execution timestamp, duration, success/failure status, and a reference to the thread message containing the result.
+Each task maintains a record of its recent executions (last 50 runs). Each record includes: execution timestamp, duration, success/failure status, and a reference to the thread message containing the result. When a new execution record is created and the task has more than 50 records, the oldest records beyond the limit are automatically deleted.
 
 ### FR10 — Failure resilience
 A failed execution does not disable the task. The error is logged in execution history and posted as a message in the task's thread. The task continues to fire on its next scheduled time.
@@ -159,6 +159,12 @@ Each user can have a maximum of 20 scheduled tasks to prevent resource exhaustio
 
 ### FR14 — Minimum interval enforcement
 The system validates that cron expressions do not resolve to intervals shorter than 5 minutes. Tasks that would fire more frequently are rejected at creation time.
+
+### FR15 — Overlapping execution prevention
+If a task's previous execution is still running when the next scheduled time arrives, the overlapping run is skipped. The task resumes its normal schedule at the following interval. A skipped run is not recorded as a failure.
+
+### FR16 — Execution timeout
+Each scheduled task execution has a maximum wall-clock timeout of 5 minutes. If the agentic loop does not complete within this limit, the execution is terminated, recorded as a failure with a timeout error, and the error is posted in the task's thread.
 
 ---
 
@@ -185,6 +191,7 @@ The system validates that cron expressions do not resolve to intervals shorter t
 | prompt         | The instruction text the AI will execute                           |
 | cronExpression | Standard 5-field cron expression                                   |
 | timezone       | IANA timezone string (e.g. "Europe/London")                        |
+| model          | AI model identifier selected by the user (e.g. "openai", "google")|
 | threadId       | Thread where results are posted                                    |
 | enabled        | Whether the task is active                                         |
 | lastRunAt      | Timestamp of the most recent execution (nullable)                  |
@@ -204,6 +211,18 @@ The system validates that cron expressions do not resolve to intervals shorter t
 | durationMs     | Execution duration in milliseconds                                 |
 | startedAt      | When execution began                                               |
 | completedAt    | When execution finished                                            |
+
+---
+
+## Clarifications
+
+### Session 2026-09-08
+
+- Q: When a task execution is still running and the next scheduled time arrives, what should happen? → A: Skip the overlapping run; execute next at the following scheduled time.
+- Q: What should the maximum wall-clock timeout be for a single scheduled task execution? → A: 5 minutes.
+- Q: Where should the scheduled tasks management UI live in the frontend? → A: Dedicated section in the sidebar, below the thread list.
+- Q: Which AI model should scheduled tasks use for execution? → A: User selects a model per task at creation time (stored on the task).
+- Q: How should execution history records beyond the 50-record limit be handled? → A: Auto-delete oldest records when a new execution exceeds 50 per task.
 
 ---
 
