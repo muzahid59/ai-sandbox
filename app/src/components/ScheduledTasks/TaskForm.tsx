@@ -3,6 +3,16 @@ import cronstrue from 'cronstrue';
 import type { CreateScheduledTaskRequest, ScheduledTask } from '../../types';
 import styles from './TaskForm.module.css';
 
+const MODELS = [
+  { id: 'openai', name: 'OpenAI GPT' },
+  { id: 'google', name: 'Google Gemini' },
+  { id: 'lama', name: 'Llama 3.2' },
+  { id: 'deepseek', name: 'DeepSeek-r1' },
+  { id: 'gemma', name: 'Gemma 3 4B' },
+  { id: 'qwen3.6', name: 'Qwen 3.6' },
+  { id: 'ornith', name: 'Ornith' },
+];
+
 interface TaskFormProps {
   onSubmit: (data: CreateScheduledTaskRequest) => Promise<void>;
   onCancel: () => void;
@@ -10,12 +20,12 @@ interface TaskFormProps {
 }
 
 const PRESETS: { label: string; value: string }[] = [
-  { label: 'Custom', value: '' },
   { label: 'Every 5 minutes', value: '*/5 * * * *' },
   { label: 'Daily at 9 AM', value: '0 9 * * *' },
   { label: 'Weekdays at 9 AM', value: '0 9 * * 1-5' },
   { label: 'Weekly (Monday 9 AM)', value: '0 9 * * 1' },
   { label: 'Monthly (1st at 9 AM)', value: '0 9 1 * *' },
+  { label: 'Custom', value: '' },
 ];
 
 const defaultTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -28,7 +38,7 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSubmit, onCancel, initialData }) 
     const match = PRESETS.find((p) => p.value === (initialData?.cronExpression || '0 9 * * *'));
     return match ? match.value : '';
   });
-  const [model, setModel] = useState(initialData?.model || '');
+  const [model, setModel] = useState(initialData?.model || MODELS[0].id);
   const [timezone, setTimezone] = useState(initialData?.timezone || defaultTimezone);
   const [submitting, setSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -81,6 +91,7 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSubmit, onCancel, initialData }) 
     if (value) setCronExpression(value);
   }
 
+  const isCustom = preset === '';
   const cronDesc = getCronDescription();
   const isEdit = !!initialData?.id;
 
@@ -117,31 +128,28 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSubmit, onCancel, initialData }) 
 
       <div className={styles.field}>
         <label className={styles.label}>Schedule</label>
-        <div className={styles.cronRow}>
-          <select
-            className={styles.select}
-            value={preset}
-            onChange={(e) => handlePresetChange(e.target.value)}
-            aria-label="Schedule preset"
-          >
-            {PRESETS.map((p) => (
-              <option key={p.value} value={p.value}>
-                {p.label}
-              </option>
-            ))}
-          </select>
+        <select
+          className={styles.select}
+          value={preset}
+          onChange={(e) => handlePresetChange(e.target.value)}
+          aria-label="Schedule preset"
+        >
+          {PRESETS.map((p) => (
+            <option key={p.label} value={p.value}>
+              {p.label}
+            </option>
+          ))}
+        </select>
+        {isCustom && (
           <input
             className={`${styles.input} ${errors.cronExpression ? styles.inputError : ''}`}
             type="text"
             value={cronExpression}
-            onChange={(e) => {
-              setCronExpression(e.target.value);
-              setPreset('');
-            }}
-            placeholder="* * * * *"
-            aria-label="Cron expression"
+            onChange={(e) => setCronExpression(e.target.value)}
+            placeholder="e.g. 0 9 * * 1-5 (min hour day month weekday)"
+            aria-label="Custom cron expression"
           />
-        </div>
+        )}
         {cronDesc && <span className={styles.cronPreview}>{cronDesc}</span>}
         {!cronDesc && cronExpression.trim() && (
           <span className={styles.cronError}>Invalid cron expression</span>
@@ -151,14 +159,18 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSubmit, onCancel, initialData }) 
 
       <div className={styles.field}>
         <label className={styles.label}>Model</label>
-        <input
-          className={`${styles.input} ${errors.model ? styles.inputError : ''}`}
-          type="text"
+        <select
+          className={`${styles.select} ${errors.model ? styles.inputError : ''}`}
           value={model}
           onChange={(e) => setModel(e.target.value)}
-          placeholder="e.g. gpt-4o"
           aria-label="AI model"
-        />
+        >
+          {MODELS.map((m) => (
+            <option key={m.id} value={m.id}>
+              {m.name}
+            </option>
+          ))}
+        </select>
         {errors.model && <span className={styles.fieldError}>{errors.model}</span>}
       </div>
 

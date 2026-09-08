@@ -238,24 +238,15 @@ const Sidebar: React.FC<SidebarProps> = ({
             )}
           </div>
 
-          {onOpenScheduledTasks && (
-            <div className={styles.recents}>
-              <div
-                className={styles.sectionLabel}
-                style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
-              >
-                <span>Scheduled Tasks{scheduledTaskCount ? ` (${scheduledTaskCount})` : ''}</span>
-              </div>
+          <div className={styles.userActions}>
+            {onOpenScheduledTasks && (
               <button className={styles.navItem} onClick={onOpenScheduledTasks}>
                 <span className={styles.navIcon}>
                   <ClockIcon />
                 </span>
-                Manage Tasks
+                Scheduled Tasks{scheduledTaskCount ? ` (${scheduledTaskCount})` : ''}
               </button>
-            </div>
-          )}
-
-          <div className={styles.userActions}>
+            )}
             {onOpenMemories && (
               <button className={styles.navItem} onClick={onOpenMemories}>
                 <span className={styles.navIcon}>&#128161;</span>

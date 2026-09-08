@@ -13,18 +13,18 @@
 .label {
   font-size: 13px;
   font-weight: 500;
-  color: var(--text-primary, #111);
+  color: var(--text-200);
 }
 
 .input,
 .textarea,
 .select {
   padding: 8px 12px;
-  border: 1px solid var(--border-color, #d1d5db);
+  border: 1px solid var(--input-border);
   border-radius: 8px;
   font-size: 14px;
-  background: var(--bg-input, #fff);
-  color: var(--text-primary, #111);
+  background: var(--input-bg);
+  color: var(--text-100);
   font-family: inherit;
 }
 
@@ -32,11 +32,11 @@
 .textarea:focus,
 .select:focus {
   outline: none;
-  border-color: var(--accent, #6366f1);
+  border-color: var(--input-border-focus);
 }
 
 .inputError {
-  border-color: var(--danger, #ef4444);
+  border-color: #ef4444;
 }
 
 .textarea {
@@ -46,13 +46,13 @@
 
 .charCount {
   font-size: 11px;
-  color: var(--text-muted, #9ca3af);
+  color: var(--text-muted);
   text-align: right;
 }
 
 .fieldError {
   font-size: 12px;
-  color: var(--danger, #ef4444);
+  color: #ef4444;
 }
 
 .cronRow {
@@ -72,13 +72,18 @@
 
 .cronPreview {
   font-size: 12px;
-  color: var(--accent, #6366f1);
+  color: var(--accent-warm);
   font-style: italic;
+}
+
+.cronHint {
+  font-size: 11px;
+  color: var(--text-muted);
 }
 
 .cronError {
   font-size: 12px;
-  color: var(--danger, #ef4444);
+  color: #ef4444;
 }
 
 .actions {
@@ -90,7 +95,7 @@
 
 .submitBtn {
   padding: 8px 20px;
-  background: var(--accent, #6366f1);
+  background: var(--accent-warm);
   color: #fff;
   border: none;
   border-radius: 8px;
@@ -110,20 +115,20 @@
 .cancelBtn {
   padding: 8px 20px;
   background: none;
-  border: 1px solid var(--border-color, #d1d5db);
+  border: 1px solid var(--input-border);
   border-radius: 8px;
   font-size: 14px;
   cursor: pointer;
-  color: var(--text-primary, #374151);
+  color: var(--text-200);
 }
 
 .cancelBtn:hover {
-  background: var(--bg-hover, #f3f4f6);
+  background: var(--button-hover);
 }
 
 .formError {
   font-size: 13px;
-  color: var(--danger, #ef4444);
+  color: #ef4444;
   background: rgba(239, 68, 68, 0.08);
   padding: 8px 12px;
   border-radius: 6px;
