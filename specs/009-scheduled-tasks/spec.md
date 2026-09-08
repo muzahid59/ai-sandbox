@@ -194,6 +194,7 @@ Each scheduled task execution has a maximum wall-clock timeout of 5 minutes. If 
 | model          | AI model identifier selected by the user (e.g. "openai", "google")|
 | threadId       | Thread where results are posted                                    |
 | enabled        | Whether the task is active                                         |
+| running        | Whether the task is currently executing (for overlap detection)    |
 | lastRunAt      | Timestamp of the most recent execution (nullable)                  |
 | nextRunAt      | Computed next execution time (nullable when disabled)              |
 | createdAt      | Creation timestamp                                                 |
@@ -206,7 +207,7 @@ Each scheduled task execution has a maximum wall-clock timeout of 5 minutes. If 
 | id             | Unique identifier (UUID)                                           |
 | taskId         | The scheduled task this execution belongs to                       |
 | messageId      | Reference to the thread message containing the result              |
-| status         | `success` / `failed`                                               |
+| status         | `success` / `failed` / `timeout` / `skipped`                      |
 | error          | Error message if execution failed (nullable)                       |
 | durationMs     | Execution duration in milliseconds                                 |
 | startedAt      | When execution began                                               |
