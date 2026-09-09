@@ -9,7 +9,7 @@ import logger from '../config/logger';
 const log = logger.child({ service: 'scheduledTask' });
 
 const MAX_TASKS_PER_USER = 20;
-const MIN_INTERVAL_MS = 5 * 60 * 1000;
+const MIN_INTERVAL_MS = 60 * 1000;
 const MAX_EXECUTIONS_PER_TASK = 50;
 
 interface CreateTaskData {
@@ -55,7 +55,7 @@ function validateCronExpression(cronExpression: string, timezone: string): Date 
   for (let i = 1; i < occurrences.length; i++) {
     const gap = occurrences[i].getTime() - occurrences[i - 1].getTime();
     if (gap < MIN_INTERVAL_MS) {
-      throw new BadRequestError('Cron interval must be at least 5 minutes');
+      throw new BadRequestError('Cron interval must be at least 1 minute');
     }
   }
 

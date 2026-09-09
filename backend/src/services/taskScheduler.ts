@@ -170,6 +170,15 @@ async function taskHandler(job: Job<{ taskId: string }>): Promise<void> {
       timeoutPromise,
     ]);
 
+    const assistantMsg = await prisma.message.create({
+      data: {
+        threadId: thread.id,
+        role: 'assistant',
+        content: [{ type: 'text', text: result.text }] as any,
+        status: 'complete',
+      },
+    });
+
     const completedAt = new Date();
     const durationMs = completedAt.getTime() - startedAt.getTime();
     const nextRunAt = computeNextRunAt(task.cronExpression, task.timezone);
@@ -180,6 +189,7 @@ async function taskHandler(job: Job<{ taskId: string }>): Promise<void> {
     });
 
     await recordExecution(taskId, {
+      messageId: assistantMsg.id,
       status: 'success',
       durationMs,
       startedAt,

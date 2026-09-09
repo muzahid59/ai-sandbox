@@ -19,7 +19,7 @@ interface ScheduleBuilderProps {
   error?: string;
 }
 
-const MINUTE_OPTIONS = [5, 10, 15, 20, 30, 60];
+const MINUTE_OPTIONS = [1, 2, 5, 10, 15, 20, 30, 60];
 const DAYS_OF_WEEK = [
   { label: 'Mon', value: 1 },
   { label: 'Tue', value: 2 },
