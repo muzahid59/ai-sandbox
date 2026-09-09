@@ -61,6 +61,10 @@ export async function scheduleTask(task: ScheduledTask): Promise<void> {
   }
   const jobName = getJobName(task.id);
   try {
+    const existing = await boss.getQueue(jobName);
+    if (!existing) {
+      await boss.createQueue(jobName);
+    }
     await boss.schedule(jobName, task.cronExpression, { taskId: task.id }, { tz: task.timezone });
     await boss.work(jobName, { localConcurrency: 1 }, async (jobs: Job<{ taskId: string }>[]) => {
       for (const job of jobs) {
@@ -82,6 +86,7 @@ export async function unscheduleTask(taskId: string): Promise<void> {
   try {
     await boss.unschedule(jobName);
     await boss.offWork(jobName);
+    await boss.deleteQueue(jobName).catch(() => {});
     log.info({ taskId }, 'Task unscheduled');
   } catch (err) {
     log.error({ err, taskId }, 'Failed to unschedule task');

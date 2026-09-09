@@ -5,6 +5,9 @@ const mockBossInstance = {
   unschedule: jest.fn(),
   work: jest.fn(),
   offWork: jest.fn(),
+  createQueue: jest.fn(),
+  getQueue: jest.fn(),
+  deleteQueue: jest.fn(),
 };
 
 const MockPgBoss = jest.fn().mockImplementation(() => mockBossInstance);
@@ -105,6 +108,9 @@ describe('taskScheduler', () => {
     mockBossInstance.unschedule.mockResolvedValue(undefined);
     mockBossInstance.work.mockResolvedValue(undefined);
     mockBossInstance.offWork.mockResolvedValue(undefined);
+    mockBossInstance.createQueue.mockResolvedValue(undefined);
+    mockBossInstance.getQueue.mockResolvedValue(null);
+    mockBossInstance.deleteQueue.mockResolvedValue(undefined);
   });
 
   describe('initScheduler (T027)', () => {
