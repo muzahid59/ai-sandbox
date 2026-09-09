@@ -16,6 +16,8 @@ interface ChatLayoutProps {
   onOpenSettings?: () => void;
   onMessageComplete?: () => void;
   displayName?: string | null;
+  scheduledTaskCount?: number;
+  onOpenScheduledTasks?: () => void;
 }
 
 const ChatLayout: React.FC<ChatLayoutProps> = ({
@@ -30,6 +32,8 @@ const ChatLayout: React.FC<ChatLayoutProps> = ({
   onOpenSettings,
   onMessageComplete,
   displayName,
+  scheduledTaskCount,
+  onOpenScheduledTasks,
 }) => {
   const { threadId } = useParams<{ threadId: string }>();
   const navigate = useNavigate();
@@ -66,6 +70,8 @@ const ChatLayout: React.FC<ChatLayoutProps> = ({
         onOpenMemories={onOpenMemories}
         onOpenSettings={onOpenSettings}
         displayName={displayName}
+        scheduledTaskCount={scheduledTaskCount}
+        onOpenScheduledTasks={onOpenScheduledTasks}
       />
       <div className="mainContent">
         {themeToggle}

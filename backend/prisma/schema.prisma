@@ -48,6 +48,13 @@ enum MessageStatus {
   error
 }
 
+enum TaskExecutionStatus {
+  success
+  failed
+  timeout
+  skipped
+}
+
 enum PendingActionStatus {
   pending
   approved
@@ -70,6 +77,7 @@ model Thread {
   documents         Document[]
   extractedMemories Memory[]     @relation("MemorySourceThread")
   pendingActions    PendingAction[]
+  scheduledTasks    ScheduledTask[]
 
   @@index([userId])
   @@index([createdAt(sort: Desc)])
@@ -131,6 +139,7 @@ model User {
   documents        Document[]
   preferences      UserPreferences?
   pendingActions   PendingAction[]
+  scheduledTasks   ScheduledTask[]
 
   @@map("users")
 }
@@ -253,4 +262,44 @@ model PendingAction {
   @@index([userId])
   @@index([expiresAt, status])
   @@map("pending_actions")
+}
+
+model ScheduledTask {
+  id             String              @id @default(uuid())
+  userId         String              @map("user_id")
+  name           String              @db.VarChar(100)
+  prompt         String              @db.VarChar(2000)
+  cronExpression String              @map("cron_expression") @db.VarChar(100)
+  timezone       String              @db.VarChar(50)
+  model          String              @db.VarChar(50)
+  threadId       String?             @map("thread_id")
+  enabled        Boolean             @default(true)
+  running        Boolean             @default(false)
+  lastRunAt      DateTime?           @map("last_run_at")
+  nextRunAt      DateTime?           @map("next_run_at")
+  createdAt      DateTime            @default(now()) @map("created_at")
+  updatedAt      DateTime            @updatedAt @map("updated_at")
+  user           User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  thread         Thread?             @relation(fields: [threadId], references: [id], onDelete: SetNull)
+  executions     TaskExecution[]
+
+  @@unique([userId, name])
+  @@index([userId])
+  @@index([enabled, nextRunAt])
+  @@map("scheduled_tasks")
+}
+
+model TaskExecution {
+  id          String              @id @default(uuid())
+  taskId      String              @map("task_id")
+  messageId   String?             @map("message_id")
+  status      TaskExecutionStatus
+  error       String?             @db.VarChar(1000)
+  durationMs  Int?                @map("duration_ms")
+  startedAt   DateTime            @map("started_at")
+  completedAt DateTime?           @map("completed_at")
+  task        ScheduledTask       @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@index([taskId, startedAt(sort: Desc)])
+  @@map("task_executions")
 }

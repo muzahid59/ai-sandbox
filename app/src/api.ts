@@ -1,4 +1,4 @@
-import type { Thread } from './types';
+import type { Thread, ScheduledTask, TaskExecution, CreateScheduledTaskRequest, UpdateScheduledTaskRequest } from './types';
 import type { Document } from '@shared/types/document';
 import { fetchWithAuth, getAccessToken, AuthExpiredError } from './services/authService';
 
@@ -341,5 +341,62 @@ export async function checkDuplicate(
     `${API_URL}/api/v1/threads/${threadId}/documents/check-duplicate?filename=${encodeURIComponent(filename)}`
   );
   if (!res.ok) throw new Error(`Failed to check duplicate: ${res.status}`);
+  return res.json();
+}
+
+async function extractErrorMessage(res: Response, fallback: string): Promise<string> {
+  try {
+    const body = await res.json();
+    return body?.error?.message || fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+export async function fetchScheduledTasks(): Promise<{ tasks: ScheduledTask[] }> {
+  const res = await fetchWithAuth(`${API_URL}/api/v1/scheduled-tasks`);
+  if (!res.ok) throw new Error(await extractErrorMessage(res, 'Failed to fetch scheduled tasks'));
+  return res.json();
+}
+
+export async function createScheduledTask(data: CreateScheduledTaskRequest): Promise<ScheduledTask> {
+  const res = await fetchWithAuth(`${API_URL}/api/v1/scheduled-tasks`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error(await extractErrorMessage(res, 'Failed to create scheduled task'));
+  return res.json();
+}
+
+export async function updateScheduledTask(id: string, data: UpdateScheduledTaskRequest): Promise<ScheduledTask> {
+  const res = await fetchWithAuth(`${API_URL}/api/v1/scheduled-tasks/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error(await extractErrorMessage(res, 'Failed to update scheduled task'));
+  return res.json();
+}
+
+export async function deleteScheduledTask(id: string): Promise<{ success: boolean }> {
+  const res = await fetchWithAuth(`${API_URL}/api/v1/scheduled-tasks/${id}`, {
+    method: 'DELETE',
+  });
+  if (!res.ok) throw new Error(await extractErrorMessage(res, 'Failed to delete scheduled task'));
+  return res.json();
+}
+
+export async function fetchTaskExecutions(
+  id: string,
+  limit?: number,
+  cursor?: string,
+): Promise<{ executions: TaskExecution[]; nextCursor: string | null }> {
+  const params = new URLSearchParams();
+  if (limit) params.set('limit', String(limit));
+  if (cursor) params.set('cursor', cursor);
+  const qs = params.toString();
+  const res = await fetchWithAuth(`${API_URL}/api/v1/scheduled-tasks/${id}/executions${qs ? `?${qs}` : ''}`);
+  if (!res.ok) throw new Error(await extractErrorMessage(res, 'Failed to fetch task executions'));
   return res.json();
 }

@@ -24,6 +24,16 @@
       "key": "action_id",
       "value": "",
       "type": "string"
+    },
+    {
+      "key": "task_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "access_token",
+      "value": "",
+      "type": "string"
     }
   ],
   "item": [
@@ -774,6 +784,248 @@
               "raw": "{{base_url}}/content-completion",
               "host": ["{{base_url}}"],
               "path": ["content-completion"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Scheduled Tasks",
+      "description": "Scheduled/recurring task management",
+      "item": [
+        {
+          "name": "Create Scheduled Task",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "pm.test('Has task id', () => pm.expect(res.id).to.be.a('string'));",
+                  "pm.test('Has name', () => pm.expect(res.name).to.eql('Test task'));",
+                  "pm.test('Enabled by default', () => pm.expect(res.enabled).to.be.true);",
+                  "pm.test('Has nextRunAt', () => pm.expect(res.nextRunAt).to.not.be.null);",
+                  "pm.collectionVariables.set('task_id', res.id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Test task\",\n  \"prompt\": \"What is the current date and time?\",\n  \"cronExpression\": \"*/5 * * * *\",\n  \"timezone\": \"Europe/London\",\n  \"model\": \"gpt-4o\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/scheduled-tasks",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "scheduled-tasks"]
+            }
+          }
+        },
+        {
+          "name": "List Scheduled Tasks",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Has tasks array', () => pm.expect(pm.response.json().tasks).to.be.an('array'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/scheduled-tasks",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "scheduled-tasks"]
+            }
+          }
+        },
+        {
+          "name": "Get Scheduled Task",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Has task id', () => pm.expect(res.id).to.eql(pm.collectionVariables.get('task_id')));",
+                  "pm.test('Has executions', () => pm.expect(res.executions).to.be.an('array'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/scheduled-tasks/{{task_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "scheduled-tasks", "{{task_id}}"]
+            }
+          }
+        },
+        {
+          "name": "Update Scheduled Task (disable)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Disabled', () => pm.expect(res.enabled).to.be.false);",
+                  "pm.test('nextRunAt null', () => pm.expect(res.nextRunAt).to.be.null);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"enabled\": false\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/scheduled-tasks/{{task_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "scheduled-tasks", "{{task_id}}"]
+            }
+          }
+        },
+        {
+          "name": "Update Scheduled Task (re-enable)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Enabled', () => pm.expect(res.enabled).to.be.true);",
+                  "pm.test('nextRunAt set', () => pm.expect(res.nextRunAt).to.not.be.null);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"enabled\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/scheduled-tasks/{{task_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "scheduled-tasks", "{{task_id}}"]
+            }
+          }
+        },
+        {
+          "name": "Get Task Executions",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Has executions array', () => pm.expect(pm.response.json().executions).to.be.an('array'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/scheduled-tasks/{{task_id}}/executions?limit=20",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "scheduled-tasks", "{{task_id}}", "executions"],
+              "query": [
+                { "key": "limit", "value": "20" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Delete Scheduled Task",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Success', () => pm.expect(pm.response.json().success).to.be.true);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/scheduled-tasks/{{task_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "scheduled-tasks", "{{task_id}}"]
+            }
+          }
+        },
+        {
+          "name": "Get Scheduled Task (not found — 404)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 404', () => pm.response.to.have.status(404));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/scheduled-tasks/00000000-0000-0000-0000-000000000000",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "scheduled-tasks", "00000000-0000-0000-0000-000000000000"]
             }
           }
         }

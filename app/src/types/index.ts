@@ -12,6 +12,10 @@ export type {
   ErrorEvent,
   PendingAction,
   PendingActionStatus,
+  ScheduledTask,
+  TaskExecution,
+  CreateScheduledTaskRequest,
+  UpdateScheduledTaskRequest,
 } from '@shared/types';
 
 import type {
@@ -121,4 +125,6 @@ export interface SidebarProps {
   onOpenMemories?: () => void;
   onOpenSettings?: () => void;
   displayName?: string | null;
+  scheduledTaskCount?: number;
+  onOpenScheduledTasks?: () => void;
 }

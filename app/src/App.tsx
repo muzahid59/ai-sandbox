@@ -8,10 +8,11 @@ import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
 import MemoryManager from './components/MemoryManager/MemoryManager';
 import SettingsPanel from './components/SettingsPanel/SettingsPanel';
-import { fetchThreads, deleteThread } from './api';
+import ScheduledTasksPanel from './components/ScheduledTasks/ScheduledTasksPanel';
+import { fetchThreads, deleteThread, fetchScheduledTasks, createScheduledTask, updateScheduledTask, deleteScheduledTask } from './api';
 import * as authService from './services/authService';
 import type { AuthUser } from './services/authService';
-import type { Thread } from './types';
+import type { Thread, ScheduledTask, CreateScheduledTaskRequest, UpdateScheduledTaskRequest } from './types';
 import type { UserPreferences } from '@shared/types';
 import { AuthExpiredError } from './services/authService';
 
@@ -67,6 +68,9 @@ function App() {
   const [memoriesVersion, setMemoriesVersion] = useState(0);
   const [showMemories, setShowMemories] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [showScheduledTasks, setShowScheduledTasks] = useState(false);
+  const [scheduledTasks, setScheduledTasks] = useState<ScheduledTask[]>([]);
+  const [scheduledTasksLoading, setScheduledTasksLoading] = useState(false);
   const [preferences, setPreferences] = useState<UserPreferences | null>(null);
 
   useEffect(() => {
@@ -112,6 +116,14 @@ function App() {
         if (err instanceof AuthExpiredError) handleLogout();
         else console.error('Failed to load threads:', err);
       });
+    setScheduledTasksLoading(true);
+    fetchScheduledTasks()
+      .then((data) => setScheduledTasks(data.tasks))
+      .catch((err: unknown) => {
+        if (err instanceof AuthExpiredError) handleLogout();
+        else console.error('Failed to load scheduled tasks:', err);
+      })
+      .finally(() => setScheduledTasksLoading(false));
   }, [user, handleLogout]);
 
   useEffect(() => {
@@ -128,6 +140,30 @@ function App() {
   const toggleTheme = () => {
     setTheme(theme === 'light' ? 'dark' : 'light');
   };
+
+  const handleCreateTask = useCallback(
+    async (data: CreateScheduledTaskRequest) => {
+      const task = await createScheduledTask(data);
+      setScheduledTasks((prev) => [task, ...prev]);
+    },
+    []
+  );
+
+  const handleUpdateTask = useCallback(
+    async (id: string, data: UpdateScheduledTaskRequest) => {
+      const updated = await updateScheduledTask(id, data);
+      setScheduledTasks((prev) => prev.map((t) => (t.id === id ? updated : t)));
+    },
+    []
+  );
+
+  const handleDeleteTask = useCallback(
+    async (id: string) => {
+      await deleteScheduledTask(id);
+      setScheduledTasks((prev) => prev.filter((t) => t.id !== id));
+    },
+    []
+  );
 
   const handleDeleteThread = useCallback(
     async (threadId: string) => {
@@ -180,6 +216,8 @@ function App() {
     onOpenSettings: () => setShowSettings(true),
     onMessageComplete: () => setMemoriesVersion((v) => v + 1),
     displayName: preferences?.displayName ?? null,
+    scheduledTaskCount: scheduledTasks.length,
+    onOpenScheduledTasks: () => setShowScheduledTasks(true),
   };
 
   return (
@@ -191,6 +229,16 @@ function App() {
       )}
       {showMemories && (
         <MemoryManager version={memoriesVersion} onClose={() => setShowMemories(false)} />
+      )}
+      {showScheduledTasks && (
+        <ScheduledTasksPanel
+          onClose={() => setShowScheduledTasks(false)}
+          tasks={scheduledTasks}
+          loading={scheduledTasksLoading}
+          onCreateTask={handleCreateTask}
+          onUpdateTask={handleUpdateTask}
+          onDeleteTask={handleDeleteTask}
+        />
       )}
       {showSettings && (
         <SettingsPanel

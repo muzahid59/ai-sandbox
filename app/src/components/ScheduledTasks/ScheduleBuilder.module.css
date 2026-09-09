@@ -1,0 +1,137 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.frequencyGroup {
+  display: flex;
+  border: 1px solid var(--input-border);
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--input-bg);
+}
+
+.frequencyPill {
+  flex: 1;
+  padding: 7px 4px;
+  border: none;
+  background: transparent;
+  color: var(--text-200);
+  font-size: 13px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.frequencyPill:not(:last-child) {
+  border-right: 1px solid var(--input-border);
+}
+
+.frequencyPill:hover:not(.frequencyPillActive) {
+  background: var(--button-hover);
+}
+
+.frequencyPillActive {
+  background: var(--accent-warm);
+  color: #fff;
+}
+
+.contextFields {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.inlineRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.inlineLabel {
+  font-size: 13px;
+  color: var(--text-300);
+  white-space: nowrap;
+}
+
+.select {
+  padding: 6px 10px;
+  border: 1px solid var(--input-border);
+  border-radius: 6px;
+  font-size: 13px;
+  background: var(--input-bg);
+  color: var(--text-100);
+  font-family: inherit;
+}
+
+.select:focus {
+  outline: none;
+  border-color: var(--input-border-focus);
+}
+
+.input {
+  padding: 8px 12px;
+  border: 1px solid var(--input-border);
+  border-radius: 8px;
+  font-size: 14px;
+  background: var(--input-bg);
+  color: var(--text-100);
+  font-family: inherit;
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--input-border-focus);
+}
+
+.dayPills {
+  display: flex;
+  gap: 4px;
+}
+
+.dayPill {
+  width: 40px;
+  height: 32px;
+  border: 1px solid var(--input-border);
+  border-radius: 6px;
+  background: var(--bg-300);
+  color: var(--text-200);
+  font-size: 12px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dayPill:hover:not(.dayPillActive) {
+  background: var(--button-hover);
+}
+
+.dayPillActive {
+  background: var(--accent-warm);
+  color: #fff;
+  border-color: var(--accent-warm);
+}
+
+.preview {
+  font-size: 12px;
+  color: var(--accent-warm);
+  font-style: italic;
+}
+
+.fieldError {
+  font-size: 12px;
+  color: #ef4444;
+}
+
+.advancedBanner {
+  font-size: 12px;
+  color: var(--text-muted);
+  background: var(--bg-300);
+  padding: 8px 12px;
+  border-radius: 6px;
+}

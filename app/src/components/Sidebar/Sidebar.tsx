@@ -113,6 +113,22 @@ const SidebarToggleIcon: React.FC = () => (
   </svg>
 );
 
+const ClockIcon: React.FC = () => (
+  <svg
+    width="18"
+    height="18"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <circle cx="12" cy="12" r="10" />
+    <polyline points="12 6 12 12 16 14" />
+  </svg>
+);
+
 const Sidebar: React.FC<SidebarProps> = ({
   threads = [],
   activeThreadId,
@@ -123,6 +139,8 @@ const Sidebar: React.FC<SidebarProps> = ({
   onOpenMemories,
   onOpenSettings,
   displayName,
+  scheduledTaskCount,
+  onOpenScheduledTasks,
 }) => {
   const [collapsed, setCollapsed] = useState(false);
 
@@ -221,6 +239,14 @@ const Sidebar: React.FC<SidebarProps> = ({
           </div>
 
           <div className={styles.userActions}>
+            {onOpenScheduledTasks && (
+              <button className={styles.navItem} onClick={onOpenScheduledTasks}>
+                <span className={styles.navIcon}>
+                  <ClockIcon />
+                </span>
+                Scheduled Tasks{scheduledTaskCount ? ` (${scheduledTaskCount})` : ''}
+              </button>
+            )}
             {onOpenMemories && (
               <button className={styles.navItem} onClick={onOpenMemories}>
                 <span className={styles.navIcon}>&#128161;</span>
