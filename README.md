@@ -21,6 +21,14 @@ A full-stack AI chat application built as a learning project — each feature im
 - **Google OAuth 2.0** — connect your Google account for Calendar and Gmail tools
 - **Silent refresh** — access tokens refresh automatically in the background
 
+### Documents & RAG
+- **Document upload** — attach PDFs, text files, or ingest URLs into a thread
+- **Hybrid search** — vector similarity (pgvector) + full-text search (tsvector) for accurate retrieval
+- **Source citations** — AI responses reference the exact document chunks they drew from
+- **Duplicate detection** — content fingerprinting prevents re-processing identical documents
+- **Drag-and-drop** — drop files directly into the chat input
+- **Document panel** — view, manage, and track processing status of all thread documents
+
 ### Memory & Personalization
 - **Persistent memory** — the AI remembers facts about you across threads ("User prefers bullet-point summaries", "User works in TypeScript")
 - **Auto-extraction** — after every AI response, a background call extracts and saves durable facts without blocking the stream
@@ -30,6 +38,18 @@ A full-stack AI chat application built as a learning project — each feature im
 - **Custom instructions** — set a persistent instruction block prepended to every AI prompt
 - **User preferences** — set a display name, default AI model, and custom instructions that persist across sessions
 - **Display name in AI prompts** — the AI knows and uses your name in responses
+
+### Human-in-the-Loop Approval
+- **Approval workflow** — sensitive tool actions (e.g., creating calendar events, drafting emails) require explicit user approval before executing
+- **Approval card UI** — inline approve/reject buttons in the chat with expiration countdown
+- **Action expiry** — pending actions auto-expire, preventing stale approvals from executing later
+
+### Scheduled Tasks
+- **Recurring prompts** — schedule AI prompts to run automatically on a cron schedule
+- **Visual schedule builder** — configure frequency (every N minutes/hours/daily/weekly) without writing cron expressions
+- **Per-task model selection** — choose which AI model runs each scheduled task
+- **Execution history** — track run status, duration, and errors for each task
+- **Thread output** — scheduled task responses are saved to a dedicated thread for later review
 
 ## Prerequisites
 
@@ -85,13 +105,17 @@ docker-compose up --build
 |------|-------------|
 | `web_search` | Searches the web via SearXNG |
 | `fetch_url` | Fetches a web page and extracts text (SSRF-protected) |
+| `document_search` | Searches uploaded documents using hybrid vector + full-text search |
 | `google_calendar` | Reads your Google Calendar events (requires OAuth) |
+| `create_calendar_event` | Creates a Google Calendar event (requires OAuth + approval) |
 | `calculator` | Evaluates math expressions via mathjs |
 | `get_current_date` | Returns current date/time (prevents stale training data answers) |
 | `read_emails` | Reads Gmail messages (requires OAuth) |
 | `search_emails` | Searches Gmail (requires OAuth) |
-| `draft_email` | Creates an email draft in Gmail (requires OAuth) |
-| `reply_email` | Creates a reply draft in Gmail (requires OAuth) |
+| `summarize_emails` | Summarizes recent Gmail messages (requires OAuth) |
+| `list_drafts` | Lists Gmail drafts (requires OAuth) |
+| `draft_email` | Creates an email draft in Gmail (requires OAuth + approval) |
+| `reply_email` | Creates a reply draft in Gmail (requires OAuth + approval) |
 
 ## API Endpoints
 
@@ -107,6 +131,12 @@ docker-compose up --build
 | `GET/POST /api/v1/memories` | List / create memories |
 | `PATCH/DELETE /api/v1/memories/:id` | Update / delete a memory |
 | `GET/PATCH /api/v1/preferences` | Get / update user preferences |
+| `GET/POST /api/v1/threads/:id/documents` | List / upload documents |
+| `GET/DELETE /api/v1/threads/:id/documents/:docId` | Get / delete a document |
+| `GET/POST/PATCH/DELETE /api/v1/scheduled-tasks` | CRUD for scheduled tasks |
+| `GET /api/v1/scheduled-tasks/:id/executions` | Task execution history |
+| `POST /api/v1/actions/:id/approve` | Approve a pending action |
+| `POST /api/v1/actions/:id/reject` | Reject a pending action |
 
 ## Project Structure
 
@@ -114,7 +144,7 @@ docker-compose up --build
 ai-sandbox/
 ├── app/                  # React 18 frontend (TypeScript, strict)
 │   └── src/
-│       ├── components/   # ChatContainer, Sidebar, MemoryManager, SettingsPanel, …
+│       ├── components/   # ChatContainer, Sidebar, MemoryManager, DocumentPanel, ScheduledTasks, …
 │       ├── pages/        # LoginPage, RegisterPage
 │       └── services/     # Auth service, API client
 ├── backend/              # Express + TypeScript API (strict)
@@ -126,7 +156,7 @@ ai-sandbox/
 │   │   ├── tools/        # Tool definitions and handlers
 │   │   └── middleware/   # Auth, error handling, request logging
 │   ├── prisma/           # Schema + migrations
-│   └── tests/            # Jest unit + integration tests (215 tests)
+│   └── tests/            # Jest unit + integration tests
 ├── shared/               # Types shared between frontend and backend
 ├── docs/                 # Future roadmap, Postman collection
 └── docker-compose.yml
@@ -191,5 +221,8 @@ Each feature was chosen to implement a real pattern from production AI systems:
 | Persistent memory | Background extraction vs tool-based recall, token budgeting, duplicate detection |
 | Memory injection | System prompt engineering, context window management |
 | Preferences + custom instructions | Per-user personalisation, layered prompt construction |
+| RAG + document search | Chunking, embeddings, hybrid retrieval (vector + full-text) |
+| Human-in-the-loop approval | Gated tool execution, action expiry, approval UX |
+| Scheduled tasks | Cron scheduling (pg-boss), background job execution, execution tracking |
 | Structured logging | Pino, request tracing, sensitive field redaction |
 | Context window management | Token budgeting, recency bias, cache invalidation |
